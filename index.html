@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Chat - Dark Mode</title>
+    <title>Random Chat - Reels Mode</title>
     <style>
-        /* Base Theme */
+        /* Base Theme with Animated Gradient */
         body { 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background: #0a0a0a; /* Deep black background */
+            background: linear-gradient(-45deg, #0a0a0a, #1a1a2e, #16213e, #0f0c29);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
             color: #ffffff;
             display: flex; 
             justify-content: center; 
@@ -18,11 +20,17 @@
             overflow: hidden; 
         }
 
-        /* Main Chat Window */
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Main Chat Window - NOW WITH TRANSITIONS FOR SWIPING */
         .chat-container { 
             width: 100%;
             max-width: 450px; 
-            background: #1a1a1a; /* Dark gray container */
+            background: #1a1a1a; 
             border-radius: 20px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px rgba(0, 123, 255, 0.1); 
             padding: 25px; 
@@ -32,11 +40,14 @@
             max-height: 750px;
             z-index: 10; 
             border: 1px solid #2a2a2a;
+            
+            /* This is the magic that makes the whole box slide smoothly */
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease-in-out;
+            will-change: transform, opacity;
         }
 
         h2 { text-align: center; margin-top: 0; font-weight: 600; letter-spacing: 1px; color: #eee; }
 
-        /* The Chat Area */
         #chat-box { 
             flex-grow: 1; 
             border-radius: 12px; 
@@ -46,16 +57,14 @@
             background: #111111; 
             display: flex;
             flex-direction: column;
-            gap: 12px; /* Space between messages */
+            gap: 12px; 
         }
 
-        /* Custom Scrollbar for a sleek look */
         #chat-box::-webkit-scrollbar { width: 6px; }
         #chat-box::-webkit-scrollbar-track { background: transparent; }
         #chat-box::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         #chat-box::-webkit-scrollbar-thumb:hover { background: #555; }
 
-        /* Message Bubbles */
         .message { 
             padding: 12px 18px; 
             border-radius: 20px; 
@@ -63,8 +72,8 @@
             word-wrap: break-word;
             line-height: 1.4;
             font-size: 0.95em;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; /* Bouncy reveal animation */
-            opacity: 0; /* Starts hidden for the animation */
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+            opacity: 0; 
             transform-origin: bottom;
         }
 
@@ -73,101 +82,30 @@
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Specific Message Styles */
-        .my-msg { 
-            background: linear-gradient(135deg, #0062cc, #007bff); 
-            color: white; 
-            align-self: flex-end; 
-            border-bottom-right-radius: 4px; /* The "tail" effect */
-            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
-        }
+        .my-msg { background: linear-gradient(135deg, #0062cc, #007bff); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2); }
+        .stranger-msg { background: #2d2d2d; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
+        .system-msg { text-align: center; color: #888; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 20px; }
 
-        .stranger-msg { 
-            background: #2d2d2d; 
-            color: #e0e0e0; 
-            align-self: flex-start; 
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .system-msg { 
-            text-align: center; 
-            color: #888; 
-            font-size: 0.8em; 
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            align-self: center;
-            background: rgba(255,255,255,0.05);
-            padding: 6px 12px;
-            border-radius: 20px;
-        }
-
-        /* Controls (Input and Button) */
         .controls { display: flex; gap: 10px; }
-        
-        input[type="text"] { 
-            flex-grow: 1; 
-            padding: 14px 20px; 
-            background: #222; 
-            border: 1px solid #333; 
-            color: white; 
-            border-radius: 25px; 
-            outline: none; 
-            font-size: 1em;
-            transition: all 0.3s ease;
-        }
+        input[type="text"] { flex-grow: 1; padding: 14px 20px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 1em; transition: all 0.3s ease; }
         input[type="text"]:focus { border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,0.2); }
         input[type="text"]:disabled { background: #1a1a1a; cursor: not-allowed; }
 
-        button { 
-            padding: 0 20px; 
-            border: none; 
-            background: #007bff; 
-            color: white; 
-            border-radius: 25px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 0.9em;
-        }
+        button { padding: 0 20px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.9em; }
         button:hover:not(:disabled) { background: #0056b3; transform: translateY(-2px); }
         button:active:not(:disabled) { transform: translateY(0); }
         button:disabled { background: #333; color: #666; cursor: not-allowed; }
 
-        /* The Big Start Button */
-        #start-btn { 
-            background: linear-gradient(135deg, #ff416c, #ff4b2b); 
-            margin-top: 15px; 
-            width: 100%; 
-            font-size: 1.1em; 
-            padding: 16px; 
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3);
-        }
+        #start-btn { background: linear-gradient(135deg, #ff416c, #ff4b2b); margin-top: 15px; width: 100%; font-size: 1.1em; padding: 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3); }
         #start-btn:hover { background: linear-gradient(135deg, #ff4b2b, #ff416c); box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5); }
 
-        /* Subtle Skip Hint */
-        #skip-hint { 
-            display: none; 
-            text-align: center; 
-            color: #777; 
-            font-size: 0.85em; 
-            margin-top: 15px; 
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
-        }
+        #skip-hint { display: none; text-align: center; color: #777; font-size: 0.85em; margin-top: 15px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
     </style>
 </head>
 <body>
 
-<div class="chat-container">
+<div class="chat-container" id="main-container">
     <h2>Random Chat</h2>
     <div id="chat-box">
         <div class="message system-msg">Click below to start your first chat!</div>
@@ -177,7 +115,7 @@
         <button id="send-btn" disabled>Send</button>
     </div>
     <button id="start-btn">Start Chatting</button>
-    <div id="skip-hint">⏬ Scroll outside chat, swipe up, or press ↓ to skip ⏬</div>
+    <div id="skip-hint">⏬ Swipe up, scroll, or press ↓ to skip ⏬</div>
 </div>
 
 <script type="module">
@@ -199,6 +137,7 @@
     const analytics = getAnalytics(app);
     const db = getFirestore(app);
 
+    const container = document.getElementById('main-container'); // Grab the whole box for animation
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
@@ -218,8 +157,6 @@
         div.className = `message ${type}`;
         div.textContent = text;
         chatBox.appendChild(div);
-        
-        // Smooth scroll to bottom
         chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
     }
 
@@ -250,7 +187,7 @@
                 msgInput.disabled = true;
                 sendBtn.disabled = true;
                 if (unsubscribeMessages) unsubscribeMessages(); 
-                appendMessage("⏬ Scroll or press ↓ to find someone new ⏬", "system-msg");
+                appendMessage("⏬ Swipe or press ↓ to find someone new ⏬", "system-msg");
             }
         });
     }
@@ -323,23 +260,42 @@
         });
     }
 
+    // --- REELS SWIPE ANIMATION LOGIC ---
     async function skipToNext() {
         if (!hasStarted || isSkipping) return;
         isSkipping = true;
 
+        // 1. Tell Firebase we are leaving
         if (currentRoomId) {
-            appendMessage("You skipped.", "system-msg");
             const roomToClose = currentRoomId; 
-            updateDoc(doc(db, "rooms", roomToClose), {
-                status: "closed"
-            }).catch(e => console.error(e));
+            updateDoc(doc(db, "rooms", roomToClose), { status: "closed" }).catch(e => console.error(e));
         }
-        
-        findStranger();
 
+        // 2. Animate the current box UP and fading out
+        container.style.transform = 'translateY(-100vh) scale(0.9)';
+        container.style.opacity = '0';
+
+        // Wait 300ms for it to slide off screen
         setTimeout(() => {
-            isSkipping = false;
-        }, 1500); 
+            // 3. While invisible, teleport it to the bottom and reset the chat
+            container.style.transition = 'none'; // Turn off animation temporarily
+            container.style.transform = 'translateY(100vh) scale(0.9)'; // Move to bottom
+            
+            findStranger(); // Clear chat, say "Looking for stranger..."
+
+            // 4. Force the browser to register the teleport, then slide it back up
+            void container.offsetWidth; // This is a magic trick to force CSS to update instantly
+
+            container.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease-in-out';
+            container.style.transform = 'translateY(0) scale(1)'; // Move to center
+            container.style.opacity = '1';
+
+            // 5. Unlock the skip button after it finishes arriving
+            setTimeout(() => {
+                isSkipping = false;
+            }, 500); 
+
+        }, 300); // 300ms matches the CSS transition out time
     }
 
     startBtn.addEventListener('click', () => {
@@ -349,6 +305,7 @@
         findStranger();
     });
 
+    // Scroll Triggers
     window.addEventListener('wheel', (e) => {
         if (e.target.closest('#chat-box')) return; 
         if (e.deltaY > 20) skipToNext();
