@@ -32,7 +32,7 @@
         <button id="send-btn" disabled>Send</button>
     </div>
     <button id="start-btn">Start Chatting</button>
-    <div id="skip-hint">⏬ Scroll down outside the chat, swipe up, or press ↓ to skip to the next person ⏬</div>
+    <div id="skip-hint">⏬ Scroll down outside the chat, swipe up, or press ↓ to skip ⏬</div>
 </div>
 
 <script type="module">
@@ -64,7 +64,8 @@
     let unsubscribeRoom = null;
     let unsubscribeMessages = null;
     let hasStarted = false;
-    let isSkipping = false; // Prevents triggering multiple skips at once
+    let isSkipping = false; 
+    let isChatting = false; // New state to track if we are actively talking
     const myUserId = "user_" + Math.random().toString(36).substr(2, 9);
 
     function appendMessage(text, type) {
@@ -79,9 +80,35 @@
         chatBox.innerHTML = '';
         msgInput.disabled = true;
         sendBtn.disabled = true;
+        isChatting = false;
         if (unsubscribeRoom) unsubscribeRoom();
         if (unsubscribeMessages) unsubscribeMessages();
         currentRoomId = null;
+    }
+
+    // --- NEW LISTENER LOGIC ---
+    function setupRoomListener(roomId) {
+        if (unsubscribeRoom) unsubscribeRoom();
+        
+        unsubscribeRoom = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
+            const data = snapshot.data();
+            if (!data) return;
+
+            // If we were waiting and someone joined
+            if (data.status === "chatting" && !isChatting) {
+                startChat(roomId);
+            }
+            
+            // If the OTHER person skipped and closed the room
+            if (data.status === "closed" && isChatting) {
+                appendMessage("Stranger disconnected.", "system-msg");
+                isChatting = false;
+                msgInput.disabled = true;
+                sendBtn.disabled = true;
+                if (unsubscribeMessages) unsubscribeMessages(); // Stop listening to messages
+                appendMessage("⏬ Scroll or press ↓ to find someone new ⏬", "system-msg");
+            }
+        });
     }
 
     async function findStranger() {
@@ -95,11 +122,14 @@
         if (!querySnapshot.empty) {
             const roomDoc = querySnapshot.docs[0];
             currentRoomId = roomDoc.id;
+            
             await updateDoc(doc(db, "rooms", currentRoomId), {
                 status: "chatting",
                 peerId: myUserId
             });
-            startChat(currentRoomId, false);
+            
+            setupRoomListener(currentRoomId);
+            startChat(currentRoomId);
         } else {
             const newRoom = await addDoc(roomsRef, {
                 status: "waiting",
@@ -107,18 +137,13 @@
                 createdAt: serverTimestamp()
             });
             currentRoomId = newRoom.id;
-            unsubscribeRoom = onSnapshot(doc(db, "rooms", currentRoomId), (snapshot) => {
-                const data = snapshot.data();
-                if (data && data.status === "chatting") {
-                    startChat(currentRoomId, true);
-                }
-            });
+            
+            setupRoomListener(currentRoomId);
         }
     }
 
-    function startChat(roomId, isCreator) {
-        if (unsubscribeRoom && isCreator) unsubscribeRoom(); 
-        
+    function startChat(roomId) {
+        isChatting = true;
         appendMessage("You are now chatting with a random stranger. Say hi!", "system-msg");
         msgInput.disabled = false;
         sendBtn.disabled = false;
@@ -127,6 +152,7 @@
         const messagesRef = collection(db, "rooms", roomId, "messages");
         const messagesQuery = query(messagesRef, orderBy("timestamp", "asc"));
 
+        if (unsubscribeMessages) unsubscribeMessages();
         unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
             snapshot.docChanges().forEach((change) => {
                 if (change.type === "added") {
@@ -153,44 +179,44 @@
         });
     }
 
-    // --- SKIPPING LOGIC ---
-
-    function skipToNext() {
+    // --- UPDATED SKIP LOGIC ---
+    async function skipToNext() {
         if (!hasStarted || isSkipping) return;
         isSkipping = true;
 
         if (currentRoomId) {
             appendMessage("You skipped to the next person.", "system-msg");
+            
+            // Save the ID before we reset, so we can tell Firebase to close it
+            const roomToClose = currentRoomId; 
+            
+            // Tell Firebase the room is dead in the background
+            updateDoc(doc(db, "rooms", roomToClose), {
+                status: "closed"
+            }).catch(e => console.error("Error closing room", e));
         }
         
+        // Immediately start finding the next person
         findStranger();
 
-        // 1.5 second cooldown so they don't accidentally skip 10 people in one scroll
         setTimeout(() => {
             isSkipping = false;
         }, 1500); 
     }
 
-    // 1. First time start button
+    // Events
     startBtn.addEventListener('click', () => {
-        startBtn.style.display = 'none'; // Hide the button permanently
-        skipHint.style.display = 'block'; // Show the scroll instructions
+        startBtn.style.display = 'none'; 
+        skipHint.style.display = 'block'; 
         hasStarted = true;
         findStranger();
     });
 
-    // 2. Mouse Wheel Event
     window.addEventListener('wheel', (e) => {
-        // Ignore scroll if they are scrolling INSIDE the chatbox
         if (e.target.closest('#chat-box')) return; 
-        
-        // If scrolling down
-        if (e.deltaY > 20) {
-            skipToNext();
-        }
+        if (e.deltaY > 20) skipToNext();
     });
 
-    // 3. Mobile Swipe Event
     let touchStartY = 0;
     window.addEventListener('touchstart', (e) => {
         touchStartY = e.changedTouches[0].screenY;
@@ -198,29 +224,27 @@
     
     window.addEventListener('touchend', (e) => {
         let touchEndY = e.changedTouches[0].screenY;
-        
-        // Swiping UP (TikTok style) to go down to the next person
         if (touchStartY - touchEndY > 50) {
-            // Ignore if swiping inside chatbox
             if (e.target.closest('#chat-box')) return;
             skipToNext();
         }
     });
 
-    // 4. Keyboard Arrow Down
     window.addEventListener('keydown', (e) => {
-        // Ignore if they are typing a message
         if (document.activeElement === msgInput) return;
-
-        if (e.key === 'ArrowDown') {
-            skipToNext();
-        }
+        if (e.key === 'ArrowDown') skipToNext();
     });
 
-    // Sending messages
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
+    });
+
+    // Handle closing the browser tab completely
+    window.addEventListener('beforeunload', () => {
+        if (currentRoomId) {
+            updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" });
+        }
     });
 
 </script>
