@@ -3,36 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Chat</title>
+    <title>Random Chat - Dark Mode</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
-        .chat-container { width: 400px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; height: 600px; z-index: 10; }
-        #chat-box { flex-grow: 1; border: 1px solid #ccc; border-radius: 4px; padding: 10px; overflow-y: auto; margin-bottom: 10px; background: #fafafa; }
-        .message { margin-bottom: 8px; padding: 8px; border-radius: 4px; max-width: 80%; }
-        .my-msg { background: #007bff; color: white; align-self: flex-end; margin-left: auto; }
-        .stranger-msg { background: #e9ecef; color: black; align-self: flex-start; }
-        .system-msg { text-align: center; color: #888; font-size: 0.9em; font-style: italic; }
+        /* Base Theme */
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background: #0a0a0a; /* Deep black background */
+            color: #ffffff;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            overflow: hidden; 
+        }
+
+        /* Main Chat Window */
+        .chat-container { 
+            width: 100%;
+            max-width: 450px; 
+            background: #1a1a1a; /* Dark gray container */
+            border-radius: 20px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px rgba(0, 123, 255, 0.1); 
+            padding: 25px; 
+            display: flex; 
+            flex-direction: column; 
+            height: 85vh; 
+            max-height: 750px;
+            z-index: 10; 
+            border: 1px solid #2a2a2a;
+        }
+
+        h2 { text-align: center; margin-top: 0; font-weight: 600; letter-spacing: 1px; color: #eee; }
+
+        /* The Chat Area */
+        #chat-box { 
+            flex-grow: 1; 
+            border-radius: 12px; 
+            padding: 15px; 
+            overflow-y: auto; 
+            margin-bottom: 15px; 
+            background: #111111; 
+            display: flex;
+            flex-direction: column;
+            gap: 12px; /* Space between messages */
+        }
+
+        /* Custom Scrollbar for a sleek look */
+        #chat-box::-webkit-scrollbar { width: 6px; }
+        #chat-box::-webkit-scrollbar-track { background: transparent; }
+        #chat-box::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        #chat-box::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Message Bubbles */
+        .message { 
+            padding: 12px 18px; 
+            border-radius: 20px; 
+            max-width: 75%; 
+            word-wrap: break-word;
+            line-height: 1.4;
+            font-size: 0.95em;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; /* Bouncy reveal animation */
+            opacity: 0; /* Starts hidden for the animation */
+            transform-origin: bottom;
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: translateY(20px) scale(0.9); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Specific Message Styles */
+        .my-msg { 
+            background: linear-gradient(135deg, #0062cc, #007bff); 
+            color: white; 
+            align-self: flex-end; 
+            border-bottom-right-radius: 4px; /* The "tail" effect */
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+        }
+
+        .stranger-msg { 
+            background: #2d2d2d; 
+            color: #e0e0e0; 
+            align-self: flex-start; 
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .system-msg { 
+            text-align: center; 
+            color: #888; 
+            font-size: 0.8em; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            align-self: center;
+            background: rgba(255,255,255,0.05);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        /* Controls (Input and Button) */
         .controls { display: flex; gap: 10px; }
-        input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 10px 15px; border: none; background: #28a745; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        #start-btn { background: #dc3545; margin-top: 10px; width: 100%; font-size: 1.1em; padding: 15px; }
-        #skip-hint { display: none; text-align: center; color: #666; font-size: 0.85em; margin-top: 15px; background: #eee; padding: 10px; border-radius: 4px; }
+        
+        input[type="text"] { 
+            flex-grow: 1; 
+            padding: 14px 20px; 
+            background: #222; 
+            border: 1px solid #333; 
+            color: white; 
+            border-radius: 25px; 
+            outline: none; 
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        input[type="text"]:focus { border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,0.2); }
+        input[type="text"]:disabled { background: #1a1a1a; cursor: not-allowed; }
+
+        button { 
+            padding: 0 20px; 
+            border: none; 
+            background: #007bff; 
+            color: white; 
+            border-radius: 25px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9em;
+        }
+        button:hover:not(:disabled) { background: #0056b3; transform: translateY(-2px); }
+        button:active:not(:disabled) { transform: translateY(0); }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+        /* The Big Start Button */
+        #start-btn { 
+            background: linear-gradient(135deg, #ff416c, #ff4b2b); 
+            margin-top: 15px; 
+            width: 100%; 
+            font-size: 1.1em; 
+            padding: 16px; 
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3);
+        }
+        #start-btn:hover { background: linear-gradient(135deg, #ff4b2b, #ff416c); box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5); }
+
+        /* Subtle Skip Hint */
+        #skip-hint { 
+            display: none; 
+            text-align: center; 
+            color: #777; 
+            font-size: 0.85em; 
+            margin-top: 15px; 
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
     </style>
 </head>
 <body>
 
 <div class="chat-container">
-    <h2 style="text-align: center; margin-top: 0;">Random Chat</h2>
+    <h2>Random Chat</h2>
     <div id="chat-box">
         <div class="message system-msg">Click below to start your first chat!</div>
     </div>
     <div class="controls">
-        <input type="text" id="msg-input" placeholder="Type a message..." disabled>
+        <input type="text" id="msg-input" placeholder="Type a message..." disabled autocomplete="off">
         <button id="send-btn" disabled>Send</button>
     </div>
     <button id="start-btn">Start Chatting</button>
-    <div id="skip-hint">⏬ Scroll down outside the chat, swipe up, or press ↓ to skip ⏬</div>
+    <div id="skip-hint">⏬ Scroll outside chat, swipe up, or press ↓ to skip ⏬</div>
 </div>
 
 <script type="module">
@@ -65,7 +210,7 @@
     let unsubscribeMessages = null;
     let hasStarted = false;
     let isSkipping = false; 
-    let isChatting = false; // New state to track if we are actively talking
+    let isChatting = false; 
     const myUserId = "user_" + Math.random().toString(36).substr(2, 9);
 
     function appendMessage(text, type) {
@@ -73,7 +218,9 @@
         div.className = `message ${type}`;
         div.textContent = text;
         chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // Smooth scroll to bottom
+        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
     }
 
     function resetChat() {
@@ -86,7 +233,6 @@
         currentRoomId = null;
     }
 
-    // --- NEW LISTENER LOGIC ---
     function setupRoomListener(roomId) {
         if (unsubscribeRoom) unsubscribeRoom();
         
@@ -94,18 +240,16 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // If we were waiting and someone joined
             if (data.status === "chatting" && !isChatting) {
                 startChat(roomId);
             }
             
-            // If the OTHER person skipped and closed the room
             if (data.status === "closed" && isChatting) {
                 appendMessage("Stranger disconnected.", "system-msg");
                 isChatting = false;
                 msgInput.disabled = true;
                 sendBtn.disabled = true;
-                if (unsubscribeMessages) unsubscribeMessages(); // Stop listening to messages
+                if (unsubscribeMessages) unsubscribeMessages(); 
                 appendMessage("⏬ Scroll or press ↓ to find someone new ⏬", "system-msg");
             }
         });
@@ -144,7 +288,7 @@
 
     function startChat(roomId) {
         isChatting = true;
-        appendMessage("You are now chatting with a random stranger. Say hi!", "system-msg");
+        appendMessage("You are now chatting! Say hi 👋", "system-msg");
         msgInput.disabled = false;
         sendBtn.disabled = false;
         msgInput.focus();
@@ -179,24 +323,18 @@
         });
     }
 
-    // --- UPDATED SKIP LOGIC ---
     async function skipToNext() {
         if (!hasStarted || isSkipping) return;
         isSkipping = true;
 
         if (currentRoomId) {
-            appendMessage("You skipped to the next person.", "system-msg");
-            
-            // Save the ID before we reset, so we can tell Firebase to close it
+            appendMessage("You skipped.", "system-msg");
             const roomToClose = currentRoomId; 
-            
-            // Tell Firebase the room is dead in the background
             updateDoc(doc(db, "rooms", roomToClose), {
                 status: "closed"
-            }).catch(e => console.error("Error closing room", e));
+            }).catch(e => console.error(e));
         }
         
-        // Immediately start finding the next person
         findStranger();
 
         setTimeout(() => {
@@ -204,7 +342,6 @@
         }, 1500); 
     }
 
-    // Events
     startBtn.addEventListener('click', () => {
         startBtn.style.display = 'none'; 
         skipHint.style.display = 'block'; 
@@ -240,13 +377,11 @@
         if (e.key === 'Enter') sendMessage();
     });
 
-    // Handle closing the browser tab completely
     window.addEventListener('beforeunload', () => {
         if (currentRoomId) {
             updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" });
         }
     });
-
 </script>
 </body>
 </html>
