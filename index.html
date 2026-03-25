@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Random Chat</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .chat-container { width: 400px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; height: 600px; }
+        body { font-family: Arial, sans-serif; background: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        .chat-container { width: 400px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; height: 600px; z-index: 10; }
         #chat-box { flex-grow: 1; border: 1px solid #ccc; border-radius: 4px; padding: 10px; overflow-y: auto; margin-bottom: 10px; background: #fafafa; }
         .message { margin-bottom: 8px; padding: 8px; border-radius: 4px; max-width: 80%; }
         .my-msg { background: #007bff; color: white; align-self: flex-end; margin-left: auto; }
@@ -16,7 +16,8 @@
         input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
         button { padding: 10px 15px; border: none; background: #28a745; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        #next-btn { background: #dc3545; }
+        #start-btn { background: #dc3545; margin-top: 10px; width: 100%; font-size: 1.1em; padding: 15px; }
+        #skip-hint { display: none; text-align: center; color: #666; font-size: 0.85em; margin-top: 15px; background: #eee; padding: 10px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -24,22 +25,21 @@
 <div class="chat-container">
     <h2 style="text-align: center; margin-top: 0;">Random Chat</h2>
     <div id="chat-box">
-        <div class="message system-msg">Click "Find Stranger" to start!</div>
+        <div class="message system-msg">Click below to start your first chat!</div>
     </div>
     <div class="controls">
         <input type="text" id="msg-input" placeholder="Type a message..." disabled>
         <button id="send-btn" disabled>Send</button>
     </div>
-    <button id="next-btn" style="margin-top: 10px; width: 100%;">Find Stranger</button>
+    <button id="start-btn">Start Chatting</button>
+    <div id="skip-hint">⏬ Scroll down outside the chat, swipe up, or press ↓ to skip to the next person ⏬</div>
 </div>
 
 <script type="module">
-    // 1. Import Firebase modules using the correct browser CDN links
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
     import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // 2. Your web app's Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDsFseykAMdcZhtW3fpg0nQiMd6datK55E",
         authDomain: "projectsocial-6db6d.firebaseapp.com",
@@ -50,24 +50,23 @@
         measurementId: "G-81LG54HW26"
     };
 
-    // 3. Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
     const db = getFirestore(app);
 
-    // DOM Elements
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
-    const nextBtn = document.getElementById('next-btn');
+    const startBtn = document.getElementById('start-btn');
+    const skipHint = document.getElementById('skip-hint');
 
-    // State
     let currentRoomId = null;
     let unsubscribeRoom = null;
     let unsubscribeMessages = null;
-    const myUserId = "user_" + Math.random().toString(36).substr(2, 9); // Generate a random ID for this session
+    let hasStarted = false;
+    let isSkipping = false; // Prevents triggering multiple skips at once
+    const myUserId = "user_" + Math.random().toString(36).substr(2, 9);
 
-    // UI Helpers
     function appendMessage(text, type) {
         const div = document.createElement('div');
         div.className = `message ${type}`;
@@ -80,45 +79,34 @@
         chatBox.innerHTML = '';
         msgInput.disabled = true;
         sendBtn.disabled = true;
-        nextBtn.textContent = 'Find Stranger';
         if (unsubscribeRoom) unsubscribeRoom();
         if (unsubscribeMessages) unsubscribeMessages();
         currentRoomId = null;
     }
 
-    // Matchmaking Logic
     async function findStranger() {
         resetChat();
         appendMessage("Looking for a stranger...", "system-msg");
-        nextBtn.disabled = true;
 
         const roomsRef = collection(db, "rooms");
-        
-        // 1. Try to find a waiting room
         const q = query(roomsRef, where("status", "==", "waiting"));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-            // Join an existing room
             const roomDoc = querySnapshot.docs[0];
             currentRoomId = roomDoc.id;
-            
             await updateDoc(doc(db, "rooms", currentRoomId), {
                 status: "chatting",
                 peerId: myUserId
             });
-            
             startChat(currentRoomId, false);
         } else {
-            // 2. Create a new room and wait
             const newRoom = await addDoc(roomsRef, {
                 status: "waiting",
                 creatorId: myUserId,
                 createdAt: serverTimestamp()
             });
             currentRoomId = newRoom.id;
-            
-            // Listen for someone to join
             unsubscribeRoom = onSnapshot(doc(db, "rooms", currentRoomId), (snapshot) => {
                 const data = snapshot.data();
                 if (data && data.status === "chatting") {
@@ -128,17 +116,14 @@
         }
     }
 
-    // Chat Logic
     function startChat(roomId, isCreator) {
-        if (unsubscribeRoom && isCreator) unsubscribeRoom(); // Stop listening to room status once connected
+        if (unsubscribeRoom && isCreator) unsubscribeRoom(); 
         
         appendMessage("You are now chatting with a random stranger. Say hi!", "system-msg");
         msgInput.disabled = false;
         sendBtn.disabled = false;
-        nextBtn.textContent = 'Disconnect';
-        nextBtn.disabled = false;
+        msgInput.focus();
 
-        // Listen for messages
         const messagesRef = collection(db, "rooms", roomId, "messages");
         const messagesQuery = query(messagesRef, orderBy("timestamp", "asc"));
 
@@ -146,7 +131,6 @@
             snapshot.docChanges().forEach((change) => {
                 if (change.type === "added") {
                     const msgData = change.doc.data();
-                    // Don't show our own messages twice (we append them optimistically on send)
                     if (msgData.senderId !== myUserId) {
                         appendMessage(msgData.text, "stranger-msg");
                     }
@@ -160,7 +144,7 @@
         if (!text || !currentRoomId) return;
 
         msgInput.value = '';
-        appendMessage(text, "my-msg"); // Show immediately on UI
+        appendMessage(text, "my-msg"); 
 
         await addDoc(collection(db, "rooms", currentRoomId, "messages"), {
             text: text,
@@ -169,21 +153,76 @@
         });
     }
 
-    // Event Listeners
-    nextBtn.addEventListener('click', () => {
-        if (currentRoomId && nextBtn.textContent === 'Disconnect') {
-            appendMessage("You disconnected.", "system-msg");
-            resetChat();
-            nextBtn.disabled = false;
-        } else {
-            findStranger();
+    // --- SKIPPING LOGIC ---
+
+    function skipToNext() {
+        if (!hasStarted || isSkipping) return;
+        isSkipping = true;
+
+        if (currentRoomId) {
+            appendMessage("You skipped to the next person.", "system-msg");
+        }
+        
+        findStranger();
+
+        // 1.5 second cooldown so they don't accidentally skip 10 people in one scroll
+        setTimeout(() => {
+            isSkipping = false;
+        }, 1500); 
+    }
+
+    // 1. First time start button
+    startBtn.addEventListener('click', () => {
+        startBtn.style.display = 'none'; // Hide the button permanently
+        skipHint.style.display = 'block'; // Show the scroll instructions
+        hasStarted = true;
+        findStranger();
+    });
+
+    // 2. Mouse Wheel Event
+    window.addEventListener('wheel', (e) => {
+        // Ignore scroll if they are scrolling INSIDE the chatbox
+        if (e.target.closest('#chat-box')) return; 
+        
+        // If scrolling down
+        if (e.deltaY > 20) {
+            skipToNext();
         }
     });
 
+    // 3. Mobile Swipe Event
+    let touchStartY = 0;
+    window.addEventListener('touchstart', (e) => {
+        touchStartY = e.changedTouches[0].screenY;
+    });
+    
+    window.addEventListener('touchend', (e) => {
+        let touchEndY = e.changedTouches[0].screenY;
+        
+        // Swiping UP (TikTok style) to go down to the next person
+        if (touchStartY - touchEndY > 50) {
+            // Ignore if swiping inside chatbox
+            if (e.target.closest('#chat-box')) return;
+            skipToNext();
+        }
+    });
+
+    // 4. Keyboard Arrow Down
+    window.addEventListener('keydown', (e) => {
+        // Ignore if they are typing a message
+        if (document.activeElement === msgInput) return;
+
+        if (e.key === 'ArrowDown') {
+            skipToNext();
+        }
+    });
+
+    // Sending messages
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
+
 </script>
 </body>
 </html>
