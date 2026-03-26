@@ -28,8 +28,9 @@
 
         /* --- VECTOR ICONS --- */
         svg { fill: currentColor; width: 24px; height: 24px; transition: transform 0.2s; }
-        .icon-btn { background: none; border: none; color: #aaa; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
+        .icon-btn { background: none; border: none; color: #aaa; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s;}
         .icon-btn:hover { color: white; transform: scale(1.1); }
+        .active-friend-icon { color: #00ff88 !important; }
 
         /* --- BOTTOM NAVIGATION BAR --- */
         #bottom-nav {
@@ -96,17 +97,18 @@
         .profile-content h3 { margin: 0 0 5px 0; font-size: 1.6em; color: #fff; }
         .profile-content p { color: #aaa; font-size: 0.95em; margin-bottom: 40px; }
 
-        /* 4. Friends Screen (NEW) */
+        /* 4. Friends Screen */
         .friends-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-top: 10px;}
         .friends-list::-webkit-scrollbar { width: 4px; }
         .friends-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         .friend-item { display: flex; align-items: center; padding: 12px; background: #111; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
         .friend-item:hover { background: #222; }
-        .friend-avatar { width: 45px; height: 45px; border-radius: 50%; background: #333; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #888; border: 2px solid #444;}
+        .friend-avatar { width: 45px; height: 45px; border-radius: 50%; background: #222; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; border: 2px solid #007bff;}
         .friend-info { flex-grow: 1; display: flex; flex-direction: column; }
         .friend-name { font-weight: bold; color: #eee; font-size: 1em; margin-bottom: 3px; }
         .friend-msg { color: #888; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-        .friend-time { color: #555; font-size: 0.75em; }
+        
+        .empty-friends { text-align: center; color: #555; margin-top: 50px; font-style: italic; }
 
         /* Modals */
         .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); border-radius: 20px; display: none; justify-content: center; align-items: center; z-index: 100; animation: fadeIn 0.2s ease forwards; }
@@ -145,42 +147,20 @@
     <div id="friends-screen">
         <div class="top-nav">
             <div class="nav-spacer"></div>
-            <h2>Friends</h2>
-            <button class="icon-btn" title="Add Friend">
-                <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            </button>
+            <h2 id="friends-header">Friends</h2>
+            <div class="nav-spacer"></div>
         </div>
-        <div class="friends-list">
-            <div class="friend-item">
-                <div class="friend-avatar" style="border-color: #007bff;">A</div>
-                <div class="friend-info">
-                    <div class="friend-name">Alex M.</div>
-                    <div class="friend-msg">That sounds awesome!</div>
-                </div>
-                <div class="friend-time">2m</div>
+        <div class="friends-list" id="friends-list-container">
             </div>
-            <div class="friend-item">
-                <div class="friend-avatar">S</div>
-                <div class="friend-info">
-                    <div class="friend-name">Stranger 92</div>
-                    <div class="friend-msg">Where are you from?</div>
-                </div>
-                <div class="friend-time">1h</div>
-            </div>
-            <div class="friend-item">
-                <div class="friend-avatar">J</div>
-                <div class="friend-info">
-                    <div class="friend-name">Jamie</div>
-                    <div class="friend-msg">Let's connect later.</div>
-                </div>
-                <div class="friend-time">1d</div>
-            </div>
-        </div>
     </div>
 
     <div id="chat-interface">
-        <div class="top-nav" style="justify-content: center;">
-            <h2>Random Chat</h2>
+        <div class="top-nav">
+            <div class="nav-spacer"></div>
+            <h2 id="chat-header">Random Chat</h2>
+            <button id="add-friend-btn" class="icon-btn" style="display:none;" title="Save as Friend">
+                <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </button>
         </div>
         <div id="chat-box">
             <div class="message system-msg">Click below to start your first chat!</div>
@@ -229,18 +209,9 @@
         <div class="modal-content settings-content">
             <button id="close-settings-btn" class="close-modal-btn">&times;</button>
             <h3>Settings</h3>
-            <button class="settings-item">
-                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                Edit Profile
-            </button>
-            <button class="settings-item">
-                <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
-                Notifications
-            </button>
-            <button class="settings-item">
-                <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-                Privacy Policy
-            </button>
+            <button class="settings-item"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Edit Profile</button>
+            <button class="settings-item"><svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg> Notifications</button>
+            <button class="settings-item"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Privacy Policy</button>
             <button id="btn-logout" class="danger-btn">Sign Out</button>
         </div>
     </div>
@@ -291,12 +262,15 @@
     const tabProfile = document.getElementById('tab-profile');
     const tabProfilePic = document.getElementById('tab-profile-pic');
     
-    // Chat Elements
+    // Chat & Friends Elements
     const chatBox = document.getElementById('chat-box');
+    const chatHeader = document.getElementById('chat-header');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
     const startBtn = document.getElementById('start-btn');
     const skipHint = document.getElementById('skip-hint');
+    const addFriendBtn = document.getElementById('add-friend-btn');
+    const friendsListContainer = document.getElementById('friends-list-container');
     
     // Auth & Profile
     const loginBtn = document.getElementById('login-btn');
@@ -316,10 +290,12 @@
     // State
     let currentRoomId = null;
     let unsubscribeRoom = null;
+    let unsubscribeFriends = null;
     let hasStarted = false;
     let isSkipping = false; 
     let isChatting = false; 
     let isConfirming = false; 
+    let isCurrentChatFriend = false; // Prevents skipping friends!
     let displayedMessageCount = 0; 
     let myUserId = null; 
 
@@ -331,14 +307,9 @@
         profileScreen.style.display = 'none';
         
         screenElement.style.display = 'flex';
-        
-        if (animationClass) {
-            screenElement.style.animation = `${animationClass} 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards`;
-        } else {
-            screenElement.style.animation = `fadeIn 0.3s ease forwards`;
-        }
+        if (animationClass) screenElement.style.animation = `${animationClass} 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards`;
+        else screenElement.style.animation = `fadeIn 0.3s ease forwards`;
 
-        // Manage Bottom Nav Active States
         tabFriends.classList.remove('active');
         tabChat.classList.remove('active');
         tabProfile.classList.remove('active');
@@ -348,13 +319,11 @@
         else if (screenElement === profileScreen) tabProfile.classList.add('active');
     }
 
-    // Helper functions for directional sliding
     function openFriends() { showScreen(friendsScreen, 'slideInFromLeft'); }
     function openChatFromFriends() { showScreen(chatInterface, 'slideInFromRight'); chatBox.scrollTo({ top: chatBox.scrollHeight }); }
     function openChatFromProfile() { showScreen(chatInterface, 'slideInFromLeft'); chatBox.scrollTo({ top: chatBox.scrollHeight }); }
     function openProfile() { showScreen(profileScreen, 'slideInFromRight'); }
 
-    // Click tabs to navigate
     tabFriends.addEventListener('click', () => { if(friendsScreen.style.display !== 'flex') openFriends(); });
     tabChat.addEventListener('click', () => { 
         if(chatInterface.style.display !== 'flex') {
@@ -364,126 +333,154 @@
     });
     tabProfile.addEventListener('click', () => { if(profileScreen.style.display !== 'flex') openProfile(); });
 
-    // --- UNIFIED MOUSE & TOUCH SWIPE LOGIC ---
-    let startX = 0, startY = 0;
-    let isDragging = false;
+    // --- UNIFIED SWIPE LOGIC ---
+    let startX = 0, startY = 0, isDragging = false;
 
-    function handleInputStart(x, y) {
-        startX = x; startY = y; isDragging = true;
-    }
-
+    function handleInputStart(x, y) { startX = x; startY = y; isDragging = true; }
     function handleInputEnd(e, currentScreen, isTouch) {
         if (!isDragging) return;
         isDragging = false;
-
         let clientX = isTouch ? e.changedTouches[0].clientX : e.clientX;
         let clientY = isTouch ? e.changedTouches[0].clientY : e.clientY;
+        let diffX = startX - clientX; let diffY = startY - clientY; 
+        let absX = Math.abs(diffX); let absY = Math.abs(diffY);
 
-        let diffX = startX - clientX; // >0 means swiped left. <0 means swiped right.
-        let diffY = startY - clientY; // >0 means swiped up. <0 means swiped down.
-
-        let absX = Math.abs(diffX);
-        let absY = Math.abs(diffY);
-
-        // Horizontal Swipes (Switch Screens)
         if (absX > 50 && absX > absY) {
-            // Swiped Left (Finger moves left, view shifts right)
-            if (diffX > 0) {
+            if (diffX > 0) { // Swiped Left
                 if (currentScreen === 'friends') openChatFromFriends();
                 else if (currentScreen === 'chat') openProfile();
-            }
-            // Swiped Right (Finger moves right, view shifts left)
-            else if (diffX < 0) {
+            } else if (diffX < 0) { // Swiped Right
                 if (currentScreen === 'profile') openChatFromProfile();
                 else if (currentScreen === 'chat') openFriends();
             }
-        }
-        // Vertical Swipes (Skip Stranger only in Chat)
-        else if (absY > 50 && absY > absX) {
+        } else if (absY > 50 && absY > absX) {
             if (currentScreen === 'chat') handleSkipIntent(e, true);
         }
     }
 
-    // Bindings for Friends Screen
-    friendsScreen.addEventListener('touchstart', (e) => handleInputStart(e.touches[0].clientX, e.touches[0].clientY));
-    friendsScreen.addEventListener('touchend', (e) => handleInputEnd(e, 'friends', true));
-    friendsScreen.addEventListener('mousedown', (e) => handleInputStart(e.clientX, e.clientY));
-    friendsScreen.addEventListener('mouseup', (e) => handleInputEnd(e, 'friends', false));
-    friendsScreen.addEventListener('mouseleave', () => isDragging = false);
+    ['touchstart', 'mousedown'].forEach(evt => {
+        friendsScreen.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
+        chatInterface.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
+        profileScreen.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
+    });
+    ['touchend', 'mouseup'].forEach(evt => {
+        friendsScreen.addEventListener(evt, e => handleInputEnd(e, 'friends', !!e.changedTouches));
+        chatInterface.addEventListener(evt, e => handleInputEnd(e, 'chat', !!e.changedTouches));
+        profileScreen.addEventListener(evt, e => handleInputEnd(e, 'profile', !!e.changedTouches));
+    });
+    [friendsScreen, chatInterface, profileScreen].forEach(el => el.addEventListener('mouseleave', () => isDragging = false));
 
-    // Bindings for Chat Interface
-    chatInterface.addEventListener('touchstart', (e) => handleInputStart(e.touches[0].clientX, e.touches[0].clientY));
-    chatInterface.addEventListener('touchend', (e) => handleInputEnd(e, 'chat', true));
-    chatInterface.addEventListener('mousedown', (e) => handleInputStart(e.clientX, e.clientY));
-    chatInterface.addEventListener('mouseup', (e) => handleInputEnd(e, 'chat', false));
-    chatInterface.addEventListener('mouseleave', () => isDragging = false);
-
-    // Bindings for Profile Screen
-    profileScreen.addEventListener('touchstart', (e) => handleInputStart(e.touches[0].clientX, e.touches[0].clientY));
-    profileScreen.addEventListener('touchend', (e) => handleInputEnd(e, 'profile', true));
-    profileScreen.addEventListener('mousedown', (e) => handleInputStart(e.clientX, e.clientY));
-    profileScreen.addEventListener('mouseup', (e) => handleInputEnd(e, 'profile', false));
-    profileScreen.addEventListener('mouseleave', () => isDragging = false);
-
-
-    // --- SETTINGS MODAL LOGIC ---
+    // --- SETTINGS MODAL ---
     openSettingsBtn.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
     closeSettingsBtn.addEventListener('click', () => { settingsModal.style.display = 'none'; });
     settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
 
-
-    // --- AUTHENTICATION LOGIC ---
+    // --- AUTHENTICATION & INITIALIZATION ---
     onAuthStateChanged(auth, (user) => {
         if (user) {
             myUserId = user.uid;
-            tabProfilePic.src = user.photoURL; 
-            pageProfilePic.src = user.photoURL; 
-            pageProfileName.textContent = user.displayName;
-            pageProfileEmail.textContent = user.email;
+            tabProfilePic.src = user.photoURL; pageProfilePic.src = user.photoURL; 
+            pageProfileName.textContent = user.displayName; pageProfileEmail.textContent = user.email;
             
             bottomNav.style.display = 'flex'; 
             showScreen(chatInterface);
+            startFriendsListener(); // Load friends!
         } else {
             myUserId = null;
             if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e => console.error(e));
+            if (unsubscribeFriends) unsubscribeFriends();
             resetChat();
-            bottomNav.style.display = 'none'; 
-            showScreen(loginScreen);
-            hasStarted = false;
-            startBtn.style.display = 'block';
-            skipHint.style.display = 'none';
+            
+            bottomNav.style.display = 'none'; showScreen(loginScreen);
+            hasStarted = false; startBtn.style.display = 'block'; skipHint.style.display = 'none';
         }
     });
 
-    loginBtn.addEventListener('click', () => {
-        signInWithPopup(auth, provider).catch((error) => {
-            console.error("Error signing in:", error);
-            alert("Failed to sign in.");
+    loginBtn.addEventListener('click', () => { signInWithPopup(auth, provider).catch(error => alert("Failed to sign in.")); });
+    btnLogout.addEventListener('click', () => { settingsModal.style.display = 'none'; signOut(auth); });
+
+    // --- FRIENDS LOGIC ---
+    function startFriendsListener() {
+        if (unsubscribeFriends) unsubscribeFriends();
+        
+        // Listen to any room where you are a participant AND it is saved as a friend room
+        const q = query(collection(db, "rooms"), where("participants", "array-contains", myUserId), where("isFriend", "==", true));
+        
+        unsubscribeFriends = onSnapshot(q, (snapshot) => {
+            friendsListContainer.innerHTML = '';
+            
+            if (snapshot.empty) {
+                friendsListContainer.innerHTML = '<div class="empty-friends">No friends yet. Add strangers while chatting!</div>';
+                return;
+            }
+
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const friendId = data.participants.find(id => id !== myUserId) || "Unknown";
+                
+                // Get last message for preview
+                let lastMsg = "Click to chat";
+                if (data.messages && data.messages.length > 0) {
+                    lastMsg = data.messages[data.messages.length - 1].text;
+                }
+
+                const div = document.createElement('div');
+                div.className = 'friend-item';
+                div.innerHTML = `
+                    <div class="friend-avatar">${friendId.substring(0,1).toUpperCase()}</div>
+                    <div class="friend-info">
+                        <div class="friend-name">User ${friendId.substring(0,4)}</div>
+                        <div class="friend-msg">${lastMsg}</div>
+                    </div>
+                `;
+                div.onclick = () => openFriendChat(docSnap.id);
+                friendsListContainer.appendChild(div);
+            });
         });
+    }
+
+    addFriendBtn.addEventListener('click', async () => {
+        if (!currentRoomId || isCurrentChatFriend) return;
+        
+        // Update DB to mark as friend
+        await updateDoc(doc(db, "rooms", currentRoomId), { isFriend: true });
+        
+        addFriendBtn.classList.add('active-friend-icon');
+        appendMessage("You saved this conversation to your Friends list!", "system-msg");
+        isCurrentChatFriend = true; // Protects against skipping
+        skipHint.style.display = 'none';
     });
 
-    btnLogout.addEventListener('click', () => {
-        settingsModal.style.display = 'none'; signOut(auth); 
-    });
-
+    function openFriendChat(roomId) {
+        if (unsubscribeRoom) unsubscribeRoom();
+        currentRoomId = roomId;
+        chatBox.innerHTML = '';
+        displayedMessageCount = 0;
+        
+        // Setup UI for friend chat
+        chatHeader.textContent = "Friend Chat";
+        addFriendBtn.style.display = 'flex';
+        addFriendBtn.classList.add('active-friend-icon');
+        startBtn.style.display = 'none';
+        skipHint.style.display = 'none';
+        
+        openChatFromFriends(); // Slide over
+        setupRoomListener(roomId);
+    }
 
     // --- CORE CHAT LOGIC ---
     function appendMessage(text, type) {
         const div = document.createElement('div');
-        div.className = `message ${type}`;
-        div.textContent = text;
-        chatBox.appendChild(div);
-        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        div.className = `message ${type}`; div.textContent = text;
+        chatBox.appendChild(div); chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
     }
 
     function resetChat() {
-        chatBox.innerHTML = '';
-        msgInput.disabled = true;
-        sendBtn.disabled = true;
-        isChatting = false;
-        displayedMessageCount = 0;
-        if (unsubscribeRoom) unsubscribeRoom();
-        currentRoomId = null;
+        chatBox.innerHTML = ''; chatHeader.textContent = "Random Chat";
+        msgInput.disabled = true; sendBtn.disabled = true;
+        isChatting = false; isCurrentChatFriend = false; displayedMessageCount = 0;
+        addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon');
+        if (unsubscribeRoom) unsubscribeRoom(); currentRoomId = null;
     }
 
     function setupRoomListener(roomId) {
@@ -492,17 +489,32 @@
             const data = snapshot.data();
             if (!data) return;
 
+            // Check if this is a friend room
+            isCurrentChatFriend = data.isFriend === true;
+            if (isCurrentChatFriend) {
+                addFriendBtn.classList.add('active-friend-icon');
+                skipHint.style.display = 'none';
+                chatHeader.textContent = "Friend Chat";
+            } else {
+                addFriendBtn.classList.remove('active-friend-icon');
+            }
+
             if (data.status === "chatting" && !isChatting) {
                 isChatting = true;
-                appendMessage("You are now chatting! Say hi 👋", "system-msg");
+                appendMessage(isCurrentChatFriend ? "Loaded conversation." : "You are now chatting! Say hi 👋", "system-msg");
                 msgInput.disabled = false; sendBtn.disabled = false; msgInput.focus();
+                if (!isCurrentChatFriend) addFriendBtn.style.display = 'flex';
             }
-            if (data.status === "closed" && isChatting) {
+            
+            // If random stranger leaves
+            if (data.status === "closed" && isChatting && !isCurrentChatFriend) {
                 appendMessage("Stranger disconnected.", "system-msg");
-                isChatting = false; msgInput.disabled = true; sendBtn.disabled = true;
+                isChatting = false; msgInput.disabled = true; sendBtn.disabled = true; addFriendBtn.style.display = 'none';
                 appendMessage("⏬ Swipe or press ↓ to find someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
             }
+
+            // Render Messages
             if (isChatting && data.messages && data.messages.length > displayedMessageCount) {
                 const newMessages = data.messages.slice(displayedMessageCount);
                 newMessages.forEach(msg => { if (msg.senderId !== myUserId) appendMessage(msg.text, "stranger-msg"); });
@@ -522,10 +534,17 @@
 
         if (!querySnapshot.empty) {
             currentRoomId = querySnapshot.docs[0].id;
-            await updateDoc(doc(db, "rooms", currentRoomId), { status: "chatting", peerId: myUserId });
+            // Update the room with my ID in the participants array!
+            await updateDoc(doc(db, "rooms", currentRoomId), { 
+                status: "chatting", peerId: myUserId, participants: arrayUnion(myUserId) 
+            });
             setupRoomListener(currentRoomId);
         } else {
-            const newRoom = await addDoc(roomsRef, { status: "waiting", creatorId: myUserId, createdAt: serverTimestamp(), messages: [] });
+            // Create the room with me as the sole participant initially
+            const newRoom = await addDoc(roomsRef, { 
+                status: "waiting", creatorId: myUserId, participants: [myUserId], 
+                createdAt: serverTimestamp(), messages: [] 
+            });
             currentRoomId = newRoom.id;
             setupRoomListener(currentRoomId);
         }
@@ -535,8 +554,7 @@
         const text = msgInput.value.trim();
         if (!text || !currentRoomId) return;
         msgInput.value = '';
-        appendMessage(text, "my-msg"); 
-        displayedMessageCount++; 
+        appendMessage(text, "my-msg"); displayedMessageCount++; 
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
 
@@ -548,6 +566,9 @@
 
     function handleSkipIntent(e, isScrollEvent) {
         if (!hasStarted || isSkipping || isConfirming || !myUserId || chatInterface.style.display !== 'flex') return;
+        
+        // SAFETY: Do not allow skipping if talking to a saved friend!
+        if (isCurrentChatFriend) return; 
 
         if (isScrollEvent && e && e.target && e.target.closest('#chat-box')) {
             const box = chatBox;
@@ -561,7 +582,7 @@
 
     async function executeSkipAnimation() {
         isSkipping = true;
-        if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e => console.error(e));
+        if (currentRoomId && !isCurrentChatFriend) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e => console.error(e));
 
         container.style.transform = 'translateY(-100vh) scale(0.9)'; container.style.opacity = '0';
         setTimeout(() => {
@@ -579,10 +600,8 @@
 
     window.addEventListener('keydown', (e) => {
         if (document.activeElement === msgInput || isConfirming || settingsModal.style.display === 'flex') return;
-
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-            handleSkipIntent(e, false);
-        } else if (e.key === 'ArrowRight') {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') handleSkipIntent(e, false);
+        else if (e.key === 'ArrowRight') {
             if (friendsScreen.style.display === 'flex') openChatFromFriends();
             else if (chatInterface.style.display === 'flex' || chatInterface.style.display === '') openProfile();
         } else if (e.key === 'ArrowLeft') {
@@ -593,7 +612,7 @@
 
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-    window.addEventListener('beforeunload', () => { if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }); });
+    window.addEventListener('beforeunload', () => { if (currentRoomId && !isCurrentChatFriend) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }); });
 </script>
 </body>
 </html>
