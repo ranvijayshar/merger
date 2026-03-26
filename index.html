@@ -80,6 +80,11 @@
         .top-nav h2 { margin: 0; font-weight: 600; letter-spacing: 1px; color: #eee; font-size: 1.25em; } 
         .nav-spacer { width: 24px; } 
 
+        /* NEW: Friend Chat Header clickable area */
+        .friend-chat-info { display: flex; align-items: center; gap: 10px; cursor: pointer; transition: transform 0.2s ease; user-select: none; }
+        .friend-chat-info:hover { transform: scale(1.05); }
+        .fc-avatar { width: 32px; height: 32px; border-radius: 50%; background: #222; border: 2px solid #007bff; display: flex; justify-content: center; align-items: center; font-weight: bold; overflow: hidden; font-size: 0.9em; flex-shrink: 0;}
+
         /* 1. Login Screen */
         #login-screen { justify-content: center; align-items: center; text-align: center; padding-bottom: 40px;}
         #login-screen h1 { font-size: 2.2em; margin-bottom: 10px; background: -webkit-linear-gradient(#007bff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -120,10 +125,10 @@
         #start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5); }
         #skip-hint { display: none; text-align: center; color: #777; font-size: 0.8em; margin-top: 10px; animation: pulse 2s infinite; flex-shrink: 0;}
 
-        /* --- NEW: PUSH NOTIFICATION BANNER --- */
+        /* --- PUSH NOTIFICATION BANNER --- */
         .notification-banner {
             position: absolute;
-            top: -100px; /* Hidden initially above screen */
+            top: -100px; 
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
@@ -136,10 +141,10 @@
             display: flex;
             align-items: center;
             padding: 12px 15px;
-            z-index: 2000; /* Higher than everything else */
+            z-index: 2000; 
             transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .notification-banner.show { top: 20px; } /* Slides into view */
+        .notification-banner.show { top: 20px; } 
         .notif-content { flex-grow: 1; overflow: hidden; margin-right: 10px; }
         .notif-title { font-weight: bold; font-size: 0.9em; color: #fff; margin-bottom: 2px; }
         .notif-msg { font-size: 0.85em; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -301,7 +306,10 @@
                 <button id="back-to-friends-btn" class="icon-btn" title="Back">
                     <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
                 </button>
-                <h2 id="friend-chat-header">Friend</h2>
+                <div id="friend-chat-info" class="friend-chat-info" title="View Profile">
+                    <div id="fc-avatar" class="fc-avatar"></div>
+                    <h2 id="friend-chat-header" style="font-size: 1.1em; margin: 0;">Friend</h2>
+                </div>
                 <button id="view-friend-profile-btn" class="icon-btn" title="View Profile">
                     <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                 </button>
@@ -505,7 +513,6 @@
     const btnStay = document.getElementById('btn-stay');
     const btnLeave = document.getElementById('btn-leave');
     
-    // NEW: Notification Banner State
     const notificationBanner = document.getElementById('notification-banner');
     const notifAvatarContainer = document.getElementById('notif-avatar-container');
     const notifMsg = document.getElementById('notif-msg');
@@ -711,14 +718,18 @@
     document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
     settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
 
-    viewFriendProfileBtn.addEventListener('click', () => {
+    // NEW: Open Friend Profile when clicking the Header Group or the right icon
+    function openFriendModal() {
         const avatarContainer = document.getElementById('fp-avatar-container');
         if (currentFriendPhoto) avatarContainer.innerHTML = `<img src="${currentFriendPhoto}" style="width:100%; height:100%; object-fit:cover;">`;
         else avatarContainer.innerHTML = currentFriendName.substring(0,1).toUpperCase();
         
         document.getElementById('fp-name').textContent = currentFriendName;
         friendProfileModal.style.display = 'flex';
-    });
+    }
+    
+    viewFriendProfileBtn.addEventListener('click', openFriendModal);
+    document.getElementById('friend-chat-info').addEventListener('click', openFriendModal); // The new header click area
 
     document.getElementById('close-friend-profile-btn').addEventListener('click', () => friendProfileModal.style.display = 'none');
     
@@ -822,14 +833,13 @@
                 if (isRequestForMe) {
                     requestsData.push({ id: docSnap.id, data: data, strangerId: strangerId });
                     
-                    // NEW: Banner Notification Logic
                     if (!initialFriendsLoad && !notifiedRequestIds.has(docSnap.id)) {
                         notifiedRequestIds.add(docSnap.id);
                         const sName = (data.names && data.names[strangerId]) ? data.names[strangerId] : "Someone";
                         const sPhoto = (data.photos && data.photos[strangerId]) ? data.photos[strangerId] : null;
                         showNotificationBanner(sName, sPhoto);
                     } else if (initialFriendsLoad) {
-                        notifiedRequestIds.add(docSnap.id); // Remember so we don't alert later
+                        notifiedRequestIds.add(docSnap.id); 
                     }
                 } 
                 else if (isAcceptedFriend) {
@@ -856,7 +866,7 @@
                 }
             });
 
-            initialFriendsLoad = false; // After first scan, we allow notifications
+            initialFriendsLoad = false; 
 
             if (totalUnreadMessages > 0) {
                 globalUnreadBadge.textContent = totalUnreadMessages;
@@ -921,8 +931,13 @@
 
     function openFriendChatUI(roomId, friendName, strangerId, strangerPhoto) {
         friendsListView.style.display = 'none'; friendChatView.style.display = 'flex';
-        friendChatHeader.textContent = friendName; currentFriendRoomId = roomId; 
         
+        // NEW: Dynamically update the clickable header area
+        friendChatHeader.textContent = friendName; 
+        const fcAvatar = document.getElementById('fc-avatar');
+        fcAvatar.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; object-fit:cover;">` : friendName.substring(0,1).toUpperCase();
+
+        currentFriendRoomId = roomId; 
         currentFriendId = strangerId;
         currentFriendName = friendName;
         currentFriendPhoto = strangerPhoto;
