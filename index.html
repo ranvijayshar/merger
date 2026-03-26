@@ -26,7 +26,7 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* Main Chat Window - NOW WITH TRANSITIONS FOR SWIPING */
+        /* Main Chat Window */
         .chat-container { 
             width: 100%;
             max-width: 450px; 
@@ -40,10 +40,9 @@
             max-height: 750px;
             z-index: 10; 
             border: 1px solid #2a2a2a;
-            
-            /* This is the magic that makes the whole box slide smoothly */
             transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease-in-out;
             will-change: transform, opacity;
+            position: relative; /* Needed for the modal overlay */
         }
 
         h2 { text-align: center; margin-top: 0; font-weight: 600; letter-spacing: 1px; color: #eee; }
@@ -101,6 +100,42 @@
 
         #skip-hint { display: none; text-align: center; color: #777; font-size: 0.85em; margin-top: 15px; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+        /* --- NEW MODAL STYLES --- */
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            animation: fadeIn 0.2s ease forwards;
+        }
+
+        .modal-content {
+            background: #222;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            width: 80%;
+            border: 1px solid #444;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal-content h3 { margin-top: 0; color: #fff; margin-bottom: 10px; }
+        .modal-content p { color: #ccc; font-size: 0.9em; margin-bottom: 25px; line-height: 1.4; }
+        
+        .modal-buttons { display: flex; gap: 15px; justify-content: center; }
+        .modal-buttons button { padding: 12px 20px; border-radius: 8px; flex: 1; font-size: 1em; }
+        #btn-stay { background: #444; color: white; }
+        #btn-stay:hover { background: #555; }
+        #btn-leave { background: #dc3545; color: white; }
+        #btn-leave:hover { background: #c82333; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -116,13 +151,23 @@
     </div>
     <button id="start-btn">Start Chatting</button>
     <div id="skip-hint">⏬ Swipe up, scroll, or press ↓ to skip ⏬</div>
+
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Skip Stranger?</h3>
+            <p>Are you sure you want to leave this conversation?</p>
+            <div class="modal-buttons">
+                <button id="btn-stay">Stay</button>
+                <button id="btn-leave">Leave</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
-    // Notice we added arrayUnion here!
-    import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDsFseykAMdcZhtW3fpg0nQiMd6datK55E",
@@ -144,13 +189,19 @@
     const sendBtn = document.getElementById('send-btn');
     const startBtn = document.getElementById('start-btn');
     const skipHint = document.getElementById('skip-hint');
+    
+    // Modal Elements
+    const confirmModal = document.getElementById('confirm-modal');
+    const btnStay = document.getElementById('btn-stay');
+    const btnLeave = document.getElementById('btn-leave');
 
     let currentRoomId = null;
     let unsubscribeRoom = null;
     let hasStarted = false;
     let isSkipping = false; 
     let isChatting = false; 
-    let displayedMessageCount = 0; // Tracks how many messages are currently on screen
+    let isConfirming = false; // Tracks if the popup is currently open
+    let displayedMessageCount = 0; 
     const myUserId = "user_" + Math.random().toString(36).substr(2, 9);
 
     function appendMessage(text, type) {
@@ -171,7 +222,6 @@
         currentRoomId = null;
     }
 
-    // WE COMBINED THE LISTENERS INTO ONE
     function setupRoomListener(roomId) {
         if (unsubscribeRoom) unsubscribeRoom();
         
@@ -179,7 +229,6 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // 1. Check for Room Status Changes
             if (data.status === "chatting" && !isChatting) {
                 isChatting = true;
                 appendMessage("You are now chatting! Say hi 👋", "system-msg");
@@ -194,18 +243,18 @@
                 msgInput.disabled = true;
                 sendBtn.disabled = true;
                 appendMessage("⏬ Swipe or press ↓ to find someone new ⏬", "system-msg");
+                
+                // If they got disconnected while the modal was open, close it
+                if (isConfirming) hideConfirmModal();
             }
 
-            // 2. Check for New Messages in the Array
             if (isChatting && data.messages && data.messages.length > displayedMessageCount) {
-                // Slice out only the new messages we haven't rendered yet
                 const newMessages = data.messages.slice(displayedMessageCount);
                 newMessages.forEach(msg => {
                     if (msg.senderId !== myUserId) {
                         appendMessage(msg.text, "stranger-msg");
                     }
                 });
-                // Update our tracker
                 displayedMessageCount = data.messages.length;
             }
         });
@@ -216,7 +265,7 @@
         appendMessage("Looking for a stranger...", "system-msg");
 
         const roomsRef = collection(db, "rooms");
-        const q = query(roomsRef, where("status", "==", "waiting"));
+        const q = query(roomsRef, where("status", "==", "waiting"), limit(1)); // Speed upgrade applied!
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
@@ -234,7 +283,7 @@
                 status: "waiting",
                 creatorId: myUserId,
                 createdAt: serverTimestamp(),
-                messages: [] // INITIALIZE THE EMPTY ARRAY HERE
+                messages: [] 
             });
             currentRoomId = newRoom.id;
             
@@ -248,11 +297,8 @@
 
         msgInput.value = '';
         appendMessage(text, "my-msg"); 
-        
-        // Increment our local counter so we don't print our own message twice
         displayedMessageCount++; 
 
-        // PUSH MESSAGE INTO THE SINGLE DOCUMENT ARRAY
         await updateDoc(doc(db, "rooms", currentRoomId), {
             messages: arrayUnion({
                 text: text,
@@ -262,8 +308,49 @@
         });
     }
 
-    async function skipToNext() {
-        if (!hasStarted || isSkipping) return;
+    // --- MODAL LOGIC ---
+    function showConfirmModal() {
+        isConfirming = true;
+        confirmModal.style.display = 'flex';
+    }
+
+    function hideConfirmModal() {
+        isConfirming = false;
+        confirmModal.style.display = 'none';
+    }
+
+    btnStay.addEventListener('click', hideConfirmModal);
+    
+    btnLeave.addEventListener('click', () => {
+        hideConfirmModal();
+        executeSkipAnimation();
+    });
+
+    // --- SMART SCROLL INTENT LOGIC ---
+    function handleSkipIntent(e, isScrollEvent) {
+        if (!hasStarted || isSkipping || isConfirming) return;
+
+        // The Smart Scroll fix:
+        if (isScrollEvent && e.target.closest('#chat-box')) {
+            const box = chatBox;
+            // Check if user is scrolled to the absolute bottom (allowing 2px for browser rendering math)
+            const isAtBottom = Math.abs((box.scrollHeight - box.scrollTop) - box.clientHeight) < 2;
+            
+            // If they are NOT at the bottom, they are just reading old messages. Let them scroll.
+            if (!isAtBottom) return; 
+        }
+
+        // Only show popup if they are actively talking to someone
+        if (isChatting && currentRoomId) {
+            showConfirmModal();
+        } else {
+            // If they are just waiting or the stranger disconnected, let them skip instantly without asking
+            executeSkipAnimation();
+        }
+    }
+
+    // --- ACTUAL SKIP ANIMATION ---
+    async function executeSkipAnimation() {
         isSkipping = true;
 
         if (currentRoomId) {
@@ -293,6 +380,7 @@
         }, 300); 
     }
 
+    // --- EVENT LISTENERS ---
     startBtn.addEventListener('click', () => {
         startBtn.style.display = 'none'; 
         skipHint.style.display = 'block'; 
@@ -301,8 +389,7 @@
     });
 
     window.addEventListener('wheel', (e) => {
-        if (e.target.closest('#chat-box')) return; 
-        if (e.deltaY > 20) skipToNext();
+        if (e.deltaY > 20) handleSkipIntent(e, true);
     });
 
     let touchStartY = 0;
@@ -313,14 +400,13 @@
     window.addEventListener('touchend', (e) => {
         let touchEndY = e.changedTouches[0].screenY;
         if (touchStartY - touchEndY > 50) {
-            if (e.target.closest('#chat-box')) return;
-            skipToNext();
+            handleSkipIntent(e, true);
         }
     });
 
     window.addEventListener('keydown', (e) => {
         if (document.activeElement === msgInput) return;
-        if (e.key === 'ArrowDown') skipToNext();
+        if (e.key === 'ArrowDown') handleSkipIntent(e, false);
     });
 
     sendBtn.addEventListener('click', sendMessage);
