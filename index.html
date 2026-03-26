@@ -12,12 +12,8 @@
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
             color: #ffffff;
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-            overflow: hidden; 
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; margin: 0; overflow: hidden; 
         }
 
         @keyframes gradientBG {
@@ -28,57 +24,67 @@
 
         /* Main App Container */
         .chat-container { 
-            width: 100%;
-            max-width: 450px; 
-            background: #1a1a1a; 
-            border-radius: 20px; 
+            width: 100%; max-width: 450px; 
+            background: #1a1a1a; border-radius: 20px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px rgba(0, 123, 255, 0.1); 
-            padding: 25px; 
-            display: flex; 
-            flex-direction: column; 
-            height: 85vh; 
-            max-height: 750px;
-            z-index: 10; 
-            border: 1px solid #2a2a2a;
-            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease-in-out;
-            will-change: transform, opacity;
-            position: relative; 
-            overflow: hidden; 
+            display: flex; flex-direction: column; 
+            height: 85vh; max-height: 750px;
+            z-index: 10; border: 1px solid #2a2a2a;
+            position: relative; overflow: hidden; 
+            padding: 0; /* Padding moved to screens */
         }
 
-        /* Top Nav Bar */
+        /* --- BOTTOM NAVIGATION BAR --- */
+        #bottom-nav {
+            display: none; /* Flex when logged in */
+            justify-content: space-around; align-items: center;
+            padding: 12px 0 15px 0; background: #0f0f0f;
+            border-top: 1px solid #2a2a2a; z-index: 20;
+        }
+        .nav-tab {
+            display: flex; flex-direction: column; align-items: center;
+            color: #666; cursor: pointer; transition: all 0.2s; width: 50%;
+            font-size: 0.85em; font-weight: 600;
+        }
+        .nav-tab:hover { color: #aaa; }
+        .nav-tab.active { color: #007bff; }
+        .nav-icon { font-size: 1.5em; margin-bottom: 4px; transition: transform 0.2s; }
+        .nav-tab.active .nav-icon { transform: scale(1.15); }
+
+        /* Instagram Style Profile Icon in Tab */
+        .tab-profile-pic {
+            width: 24px; height: 24px; border-radius: 50%; object-fit: cover;
+            margin-bottom: 4px; border: 2px solid transparent; transition: all 0.2s;
+        }
+        .nav-tab.active .tab-profile-pic { border-color: #007bff; transform: scale(1.1); }
+
+        /* --- SCREENS --- */
+        #login-screen, #chat-interface, #profile-screen {
+            display: none; flex-direction: column; flex-grow: 1; 
+            width: 100%; box-sizing: border-box; padding: 20px 25px;
+            overflow: hidden; /* Contains the sliding animation */
+        }
+
+        /* Slide Animations */
+        @keyframes slideInFromRight { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideInFromLeft { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Top Navs */
         .top-nav {
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #333;
         }
         .top-nav h2 { margin: 0; font-weight: 600; letter-spacing: 1px; color: #eee; font-size: 1.4em; }
-        
-        .profile-pic-btn {
-            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
-            border: 2px solid #007bff; transition: transform 0.2s; object-fit: cover;
-        }
-        .profile-pic-btn:hover { transform: scale(1.1); }
-
-        /* --- SCREENS --- */
-        #login-screen, #chat-interface, #profile-screen {
-            display: none; flex-direction: column; height: 100%; width: 100%; 
-        }
-
-        /* Horizontal Slide Animations */
-        @keyframes slideInFromRight { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes slideInFromLeft { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .nav-item { width: 40px; } /* Balances the header */
+        .settings-btn { background: none; border: none; font-size: 1.6em; cursor: pointer; padding: 0; text-align: right; transition: transform 0.3s ease; width: 100%; color: #aaa; }
+        .settings-btn:hover { transform: rotate(90deg); color: white; }
 
         /* 1. Login Screen */
-        #login-screen { justify-content: center; align-items: center; text-align: center; animation: fadeIn 0.4s ease; }
+        #login-screen { justify-content: center; align-items: center; text-align: center; animation: fadeIn 0.4s ease; padding-bottom: 40px;}
         #login-screen h1 { font-size: 2.2em; margin-bottom: 10px; background: -webkit-linear-gradient(#007bff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         #login-screen p { color: #888; margin-bottom: 30px; }
-        
-        .google-btn {
-            background: white; color: #333; border: none; padding: 12px 24px; border-radius: 25px;
-            font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; gap: 10px;
-            box-shadow: 0 4px 15px rgba(255,255,255,0.2); transition: all 0.2s;
-        }
+        .google-btn { background: white; color: #333; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(255,255,255,0.2); transition: all 0.2s; }
         .google-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,255,255,0.3); }
         .google-btn img { width: 20px; }
 
@@ -90,7 +96,6 @@
 
         .message { padding: 12px 18px; border-radius: 20px; max-width: 75%; word-wrap: break-word; line-height: 1.4; font-size: 0.95em; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform-origin: bottom; }
         @keyframes popIn { 0% { opacity: 0; transform: translateY(20px) scale(0.9); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-
         .my-msg { background: linear-gradient(135deg, #0062cc, #007bff); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2); }
         .stranger-msg { background: #2d2d2d; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
         .system-msg { text-align: center; color: #888; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 20px; }
@@ -110,13 +115,6 @@
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
         /* 3. Profile Screen */
-        .nav-item { width: 60px; } 
-        .swipe-back-hint { color: #555; font-size: 0.85em; cursor: pointer; transition: color 0.2s; }
-        .swipe-back-hint:hover { color: #007bff; }
-        
-        .settings-btn { background: none; border: none; font-size: 1.6em; cursor: pointer; padding: 0; text-align: right; transition: transform 0.3s ease; width: 100%; color: #aaa; }
-        .settings-btn:hover { transform: rotate(90deg); color: white; }
-
         .profile-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; user-select: none; }
         .profile-img-large { width: 120px; height: 120px; border-radius: 50%; margin-bottom: 20px; border: 4px solid #007bff; object-fit: cover; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .profile-content h3 { margin: 0 0 5px 0; font-size: 1.8em; color: #fff; }
@@ -128,7 +126,7 @@
         .close-modal-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #888; font-size: 1.5em; cursor: pointer; }
         .close-modal-btn:hover { color: white; }
 
-        /* Skip Confirmation Modal */
+        /* Modal Buttons */
         .modal-content h3 { margin-top: 0; color: #fff; margin-bottom: 10px; }
         .modal-content p { color: #ccc; font-size: 0.9em; margin-bottom: 25px; line-height: 1.4; }
         .modal-buttons { display: flex; gap: 15px; justify-content: center; }
@@ -159,9 +157,8 @@
     </div>
 
     <div id="chat-interface">
-        <div class="top-nav">
+        <div class="top-nav" style="justify-content: center;">
             <h2>Random Chat</h2>
-            <img id="nav-profile-pic" class="profile-pic-btn" src="" alt="Profile" title="Swipe Left or Press ➔">
         </div>
 
         <div id="chat-box">
@@ -179,9 +176,7 @@
 
     <div id="profile-screen">
         <div class="top-nav">
-            <div class="nav-item">
-                <span id="back-hint" class="swipe-back-hint">← Back</span>
-            </div>
+            <div class="nav-item"></div>
             <h2>My Profile</h2>
             <div class="nav-item">
                 <button id="open-settings-btn" class="settings-btn" title="Settings">⚙️</button>
@@ -192,6 +187,17 @@
             <img id="page-profile-pic" class="profile-img-large" src="" alt="Profile">
             <h3 id="page-profile-name">User Name</h3>
             <p id="page-profile-email">user@email.com</p>
+        </div>
+    </div>
+
+    <div id="bottom-nav">
+        <div class="nav-tab active" id="tab-chat">
+            <span class="nav-icon">💬</span>
+            <span class="nav-label">Chat</span>
+        </div>
+        <div class="nav-tab" id="tab-profile">
+            <img id="tab-profile-pic" class="tab-profile-pic" src="" alt="Profile">
+            <span class="nav-label">Profile</span>
         </div>
     </div>
 
@@ -244,6 +250,12 @@
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
     
+    // Bottom Nav Elements
+    const bottomNav = document.getElementById('bottom-nav');
+    const tabChat = document.getElementById('tab-chat');
+    const tabProfile = document.getElementById('tab-profile');
+    const tabProfilePic = document.getElementById('tab-profile-pic');
+    
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
@@ -251,8 +263,6 @@
     const skipHint = document.getElementById('skip-hint');
     
     const loginBtn = document.getElementById('login-btn');
-    const navProfilePic = document.getElementById('nav-profile-pic');
-    const backHint = document.getElementById('back-hint'); 
     const pageProfilePic = document.getElementById('page-profile-pic');
     const pageProfileName = document.getElementById('page-profile-name');
     const pageProfileEmail = document.getElementById('page-profile-email');
@@ -282,59 +292,59 @@
         profileScreen.style.display = 'none';
         
         screenElement.style.display = 'flex';
+        
         if (animationClass) {
             screenElement.style.animation = `${animationClass} 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards`;
         } else {
             screenElement.style.animation = `fadeIn 0.3s ease forwards`;
         }
+
+        // Highlight correct bottom tab
+        if (screenElement === chatInterface) {
+            tabChat.classList.add('active');
+            tabProfile.classList.remove('active');
+        } else if (screenElement === profileScreen) {
+            tabProfile.classList.add('active');
+            tabChat.classList.remove('active');
+        }
     }
 
-    function openProfile() {
-        showScreen(profileScreen, 'slideInFromRight');
+    function openProfile() { showScreen(profileScreen, 'slideInFromRight'); }
+    function closeProfileToChat() { 
+        showScreen(chatInterface, 'slideInFromLeft'); 
+        chatBox.scrollTo({ top: chatBox.scrollHeight }); 
     }
 
-    function closeProfileToChat() {
-        showScreen(chatInterface, 'slideInFromLeft');
-        chatBox.scrollTo({ top: chatBox.scrollHeight });
-    }
-
-    navProfilePic.addEventListener('click', openProfile);
-    backHint.addEventListener('click', closeProfileToChat);
+    // Bottom Tab Click Listeners
+    tabChat.addEventListener('click', () => { if(chatInterface.style.display !== 'flex') closeProfileToChat(); });
+    tabProfile.addEventListener('click', () => { if(profileScreen.style.display !== 'flex') openProfile(); });
 
     // --- MOUSE / TOUCH HORIZONTAL SWIPE LOGIC ---
     let touchStartX = 0;
     let touchStartY_H = 0; 
     let isDragging = false; 
 
+    // Mobile touch swipes
     profileScreen.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
         touchStartY_H = e.changedTouches[0].screenY;
     });
-
     profileScreen.addEventListener('touchend', (e) => {
         let touchEndX = e.changedTouches[0].screenX;
-        let touchEndY = e.changedTouches[0].screenY;
-        
         let diffX = touchEndX - touchStartX;
-        let diffY = Math.abs(touchEndY - touchStartY_H);
-
-        if (diffX > 50 && diffX > diffY) closeProfileToChat();
+        let diffY = Math.abs(e.changedTouches[0].screenY - touchStartY_H);
+        if (diffX > 50 && diffX > diffY) closeProfileToChat(); // Swiped Right
     });
-
-    profileScreen.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        touchStartX = e.clientX;
+    chatInterface.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY_H = e.changedTouches[0].screenY;
     });
-    
-    profileScreen.addEventListener('mouseup', (e) => {
-        if (isDragging) {
-            let diffX = e.clientX - touchStartX;
-            if (diffX > 50) closeProfileToChat();
-            isDragging = false;
-        }
+    chatInterface.addEventListener('touchend', (e) => {
+        let touchEndX = e.changedTouches[0].screenX;
+        let diffX = touchStartX - touchEndX; // Swiped Left
+        let diffY = Math.abs(e.changedTouches[0].screenY - touchStartY_H);
+        if (diffX > 50 && diffX > diffY) openProfile(); 
     });
-    
-    profileScreen.addEventListener('mouseleave', () => { isDragging = false; });
 
 
     // --- SETTINGS MODAL LOGIC ---
@@ -349,15 +359,21 @@
     onAuthStateChanged(auth, (user) => {
         if (user) {
             myUserId = user.uid;
-            navProfilePic.src = user.photoURL;
-            pageProfilePic.src = user.photoURL;
+            
+            // Populate image across the app
+            tabProfilePic.src = user.photoURL; // Bottom Tab Image!
+            pageProfilePic.src = user.photoURL; // Main Profile Page Image
             pageProfileName.textContent = user.displayName;
             pageProfileEmail.textContent = user.email;
+            
+            bottomNav.style.display = 'flex'; // Show nav bar
             showScreen(chatInterface);
         } else {
             myUserId = null;
             if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e => console.error(e));
             resetChat();
+            
+            bottomNav.style.display = 'none'; // Hide nav bar
             showScreen(loginScreen);
             hasStarted = false;
             startBtn.style.display = 'block';
@@ -511,45 +527,31 @@
         startBtn.style.display = 'none'; skipHint.style.display = 'block'; hasStarted = true; findStranger();
     });
 
-    // 1. Mouse Wheel (Vertical Skip)
+    // Vertical Skips
     window.addEventListener('wheel', (e) => { if (e.deltaY > 20) handleSkipIntent(e, true); });
 
-    // 2. Touch Swipes (Vertical Skip)
     let verticalTouchStartY = 0;
     let verticalTouchStartX = 0;
-    
     window.addEventListener('touchstart', (e) => { 
         verticalTouchStartY = e.changedTouches[0].screenY; 
         verticalTouchStartX = e.changedTouches[0].screenX;
     });
-    
     window.addEventListener('touchend', (e) => {
-        let touchEndY = e.changedTouches[0].screenY;
-        let touchEndX = e.changedTouches[0].screenX;
-        
-        let diffY = verticalTouchStartY - touchEndY;
-        let diffX = Math.abs(verticalTouchStartX - touchEndX);
-        
+        let diffY = verticalTouchStartY - e.changedTouches[0].screenY;
+        let diffX = Math.abs(verticalTouchStartX - e.changedTouches[0].screenX);
         if (diffY > 50 && diffY > diffX) handleSkipIntent(e, true);
     });
 
-    // 3. KEYBOARD SHORTCUTS
+    // Keyboards
     window.addEventListener('keydown', (e) => {
-        // Ignore key presses if typing, or if a modal popup is open
         if (document.activeElement === msgInput || isConfirming || settingsModal.style.display === 'flex') return;
 
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             handleSkipIntent(e, false);
         } else if (e.key === 'ArrowRight') {
-            // Open profile if on chat screen
-            if (chatInterface.style.display === 'flex' || chatInterface.style.display === '') {
-                openProfile();
-            }
+            if (chatInterface.style.display === 'flex' || chatInterface.style.display === '') openProfile();
         } else if (e.key === 'ArrowLeft') {
-            // Go back to chat if on profile screen
-            if (profileScreen.style.display === 'flex') {
-                closeProfileToChat();
-            }
+            if (profileScreen.style.display === 'flex') closeProfileToChat();
         }
     });
 
