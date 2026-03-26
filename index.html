@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Chat - Premium Edition</title>
+    <title>Random Chat - 3 Pane Layout</title>
     <style>
         /* Base Theme */
         body { 
@@ -69,7 +69,7 @@
         .google-btn { background: white; color: #333; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(255,255,255,0.2); transition: all 0.2s; }
         .google-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,255,255,0.3); }
 
-        /* Generic Chat Box Styles */
+        /* Generic Chat Box Styles (Used for both Random and Friend chats) */
         .chat-box-style { flex-grow: 1; border-radius: 12px; padding: 12px; overflow-y: auto; margin-bottom: 10px; background: #111111; display: flex; flex-direction: column; gap: 10px; }
         .chat-box-style::-webkit-scrollbar { width: 6px; }
         .chat-box-style::-webkit-scrollbar-track { background: transparent; }
@@ -110,7 +110,7 @@
         
         .friend-item { display: flex; align-items: center; padding: 12px; background: #111; border-radius: 12px; cursor: pointer; transition: background 0.2s; border: 1px solid #222;}
         .friend-item:hover { background: #222; }
-        .friend-avatar { width: 40px; height: 40px; border-radius: 50%; background: #222; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; border: 2px solid #007bff; flex-shrink: 0;}
+        .friend-avatar { width: 40px; height: 40px; border-radius: 50%; background: #222; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; border: 2px solid #007bff; flex-shrink: 0; overflow: hidden;}
         .friend-info { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
         .friend-name { font-weight: bold; color: #eee; font-size: 1em; margin-bottom: 3px; }
         .friend-msg { color: #888; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
@@ -120,6 +120,7 @@
         .req-btn:hover { transform: scale(1.1); }
         .req-accept { background: #28a745; color: white; }
         .req-reject { background: #dc3545; color: white; }
+
         .empty-friends { text-align: center; color: #555; margin-top: 30px; font-style: italic; font-size: 0.9em;}
 
         /* Modals */
@@ -164,10 +165,12 @@
                 <h2>Friends</h2>
                 <div class="nav-spacer"></div>
             </div>
+            
             <div id="requests-section" style="display: none;">
                 <div class="section-title">Friend Requests</div>
                 <div id="requests-container" style="margin-bottom: 15px;"></div>
             </div>
+
             <div class="section-title">My Friends</div>
             <div class="friends-list" id="friends-container">
                 <div class="empty-friends">No friends yet.</div>
@@ -293,7 +296,7 @@
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
     
-    // Bottom Nav
+    // Bottom Nav Elements
     const bottomNav = document.getElementById('bottom-nav');
     const tabFriends = document.getElementById('tab-friends');
     const tabChat = document.getElementById('tab-chat');
@@ -338,7 +341,11 @@
     let isSkipping = false; 
     let isConfirming = false; 
     let displayedMessageCount = 0; 
+    
+    // --- NEW: Store personal user data to share with strangers ---
     let myUserId = null; 
+    let myUserName = "Unknown User";
+    let myUserPhoto = "";
 
     // --- NAVIGATION LOGIC ---
     function showScreen(screenElement, animationClass) {
@@ -413,15 +420,20 @@
     // --- AUTHENTICATION ---
     onAuthStateChanged(auth, (user) => {
         if (user) {
+            // SET GLOBAL USER VARIABLES
             myUserId = user.uid;
-            document.getElementById('tab-profile-pic').src = user.photoURL; 
-            document.getElementById('page-profile-pic').src = user.photoURL; 
-            document.getElementById('page-profile-name').textContent = user.displayName;
+            myUserName = user.displayName || "Unknown User";
+            myUserPhoto = user.photoURL || "";
+
+            // Populate UI
+            document.getElementById('tab-profile-pic').src = myUserPhoto; 
+            document.getElementById('page-profile-pic').src = myUserPhoto; 
+            document.getElementById('page-profile-name').textContent = myUserName;
             document.getElementById('page-profile-email').textContent = user.email;
             
             bottomNav.style.display = 'flex'; 
             showScreen(chatInterface);
-            startFriendsListener(); 
+            startFriendsListener(); // Initialize Friends List
         } else {
             myUserId = null;
             if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e=>e);
@@ -454,17 +466,27 @@
                 const isRequestForMe = data.friendStatus === 'pending' && data.requester !== myUserId;
                 const isAcceptedFriend = data.friendStatus === 'accepted';
                 
+                // --- NEW: GRAB REAL NAMES AND PHOTOS ---
+                const strangerName = (data.names && data.names[strangerId]) ? data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
+                const strangerPhoto = (data.photos && data.photos[strangerId]) ? data.photos[strangerId] : null;
+                
+                // Build the Avatar Graphic
+                let avatarHtml = '';
+                if (strangerPhoto) {
+                    avatarHtml = `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                } else {
+                    avatarHtml = strangerName.substring(0,1).toUpperCase();
+                }
+
                 let lastMsg = "New conversation";
                 if (data.messages && data.messages.length > 0) lastMsg = data.messages[data.messages.length - 1].text;
-                const avatarLetter = strangerId.substring(0,1).toUpperCase();
-                const displayName = `User ${strangerId.substring(0,4)}`;
 
                 if (isRequestForMe) {
                     requestCount++;
                     const div = document.createElement('div'); div.className = 'friend-item';
                     div.innerHTML = `
-                        <div class="friend-avatar" style="border-color: #ffc107;">${avatarLetter}</div>
-                        <div class="friend-info"><div class="friend-name">${displayName}</div><div class="friend-msg">Wants to be friends</div></div>
+                        <div class="friend-avatar" style="border-color: #ffc107;">${avatarHtml}</div>
+                        <div class="friend-info"><div class="friend-name">${strangerName}</div><div class="friend-msg">Wants to be friends</div></div>
                         <div class="request-actions">
                             <button class="req-btn req-accept" onclick="respondRequest('${roomId}', 'accepted')"><svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></button>
                             <button class="req-btn req-reject" onclick="respondRequest('${roomId}', 'rejected')"><svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg></button>
@@ -476,10 +498,10 @@
                     friendCount++;
                     const div = document.createElement('div'); div.className = 'friend-item';
                     div.innerHTML = `
-                        <div class="friend-avatar">${avatarLetter}</div>
-                        <div class="friend-info"><div class="friend-name">${displayName}</div><div class="friend-msg">${lastMsg}</div></div>
+                        <div class="friend-avatar">${avatarHtml}</div>
+                        <div class="friend-info"><div class="friend-name">${strangerName}</div><div class="friend-msg">${lastMsg}</div></div>
                     `;
-                    div.onclick = () => openFriendChatUI(roomId, displayName);
+                    div.onclick = () => openFriendChatUI(roomId, strangerName);
                     friendsContainer.appendChild(div);
                 }
             });
@@ -588,10 +610,24 @@
 
         if (!querySnapshot.empty) {
             currentRoomId = querySnapshot.docs[0].id;
-            await updateDoc(doc(db, "rooms", currentRoomId), { status: "chatting", participants: arrayUnion(myUserId) });
+            // JOIN ROOM: Add my name and photo to the room data!
+            await updateDoc(doc(db, "rooms", currentRoomId), { 
+                status: "chatting", 
+                participants: arrayUnion(myUserId),
+                [`names.${myUserId}`]: myUserName,
+                [`photos.${myUserId}`]: myUserPhoto
+            });
             setupRoomListener(currentRoomId);
         } else {
-            const newRoom = await addDoc(collection(db, "rooms"), { status: "waiting", participants: [myUserId], createdAt: serverTimestamp(), messages: [] });
+            // CREATE ROOM: Initialize the room with my name and photo!
+            const newRoom = await addDoc(collection(db, "rooms"), { 
+                status: "waiting", 
+                participants: [myUserId], 
+                names: { [myUserId]: myUserName },
+                photos: { [myUserId]: myUserPhoto },
+                createdAt: serverTimestamp(), 
+                messages: [] 
+            });
             currentRoomId = newRoom.id; setupRoomListener(currentRoomId);
         }
     }
@@ -638,15 +674,10 @@
     startBtn.addEventListener('click', () => { startBtn.style.display = 'none'; skipHint.style.display = 'block'; hasStarted = true; findStranger(); });
     window.addEventListener('wheel', (e) => { if (e.deltaY > 20) handleSkipIntent(e, true); });
 
-    // FIXED KEYBOARD LOGIC
     window.addEventListener('keydown', (e) => {
-        // Prevent key commands if typing or looking at a modal
         if (document.activeElement.tagName === 'INPUT' || isConfirming || settingsModal.style.display === 'flex') return;
-
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-            e.preventDefault(); // Stop webpage from scrolling
-            handleSkipIntent(e, false);
-        } else if (e.key === 'ArrowRight') {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') handleSkipIntent(e, false);
+        else if (e.key === 'ArrowRight') {
             if (friendsScreen.style.display === 'flex' && friendChatView.style.display !== 'flex') openChatFromFriends();
             else if (chatInterface.style.display === 'flex') openProfile();
         } else if (e.key === 'ArrowLeft') {
