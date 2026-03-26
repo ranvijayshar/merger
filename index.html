@@ -51,7 +51,7 @@
         }
         .nav-tab {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #666; cursor: pointer; transition: color 0.2s ease; width: 33%; font-size: 0.75em; font-weight: 600; gap: 4px; position: relative;
+            color: #666; cursor: pointer; transition: color 0.2s ease; width: 25%; font-size: 0.75em; font-weight: 600; gap: 4px; position: relative;
         }
         .nav-tab:hover { color: #aaa; }
         .nav-tab.active { color: #007bff; }
@@ -61,12 +61,12 @@
 
         /* Global Unread Badge */
         #global-unread-badge {
-            position: absolute; top: -5px; right: 25px; background: #25D366; color: white;
+            position: absolute; top: -5px; right: 15px; background: #25D366; color: white;
             font-size: 0.7em; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none; pointer-events: none;
         }
 
         /* --- SCREENS --- */
-        #login-screen, #chat-interface, #profile-screen, #friends-screen {
+        #login-screen, #home-screen, #chat-interface, #profile-screen, #friends-screen {
             display: none; flex-direction: column; flex-grow: 1; 
             width: 100%; padding: 15px 20px; overflow: hidden; 
         }
@@ -86,6 +86,9 @@
         #login-screen p { color: #888; margin-bottom: 30px; }
         .google-btn { background: white; color: #333; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(255,255,255,0.2); transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .google-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,255,255,0.3); }
+
+        /* 2. Home Screen (Blank) */
+        #home-screen { justify-content: center; align-items: center; }
 
         /* Generic Chat Box Styles */
         .chat-box-style { flex-grow: 1; border-radius: 12px; padding: 12px; overflow-y: auto; margin-bottom: 10px; background: #111111; display: flex; flex-direction: column; gap: 10px; }
@@ -182,8 +185,8 @@
         /* --- FLOATING LIKE SYSTEM (UPDATED TO MIDDLE-RIGHT) --- */
         #like-stream-container {
             position: absolute;
-            top: 50%; /* Moves to the vertical middle */
-            transform: translateY(-50%); /* Centers perfectly */
+            top: 50%;
+            transform: translateY(-50%);
             right: 15px;
             z-index: 100;
             display: flex;
@@ -210,7 +213,7 @@
 
         .floating-heart {
             position: absolute;
-            top: 0; /* Starts directly on top of the button */
+            top: 0;
             font-size: 24px;
             animation: flyUp 2s ease-out forwards;
             pointer-events: none;
@@ -237,25 +240,21 @@
     </div>
 
     <div id="friends-screen">
-        
         <div id="friends-list-view">
             <div class="top-nav">
                 <div class="nav-spacer"></div>
                 <h2>Friends</h2>
                 <div class="nav-spacer"></div>
             </div>
-            
             <div id="requests-section" style="display: none;">
                 <div class="section-title">Requests</div>
                 <div id="requests-container"></div>
             </div>
-
             <div class="section-title">My Friends</div>
             <div class="friends-list" id="friends-container">
                 <div class="empty-friends">No friends yet.</div>
             </div>
         </div>
-
         <div id="friend-chat-view">
             <div class="top-nav">
                 <button id="back-to-friends-btn" class="icon-btn" title="Back">
@@ -267,7 +266,6 @@
                 </button>
             </div>
             <div id="friend-chat-box" class="chat-box-style"></div>
-            
             <div class="controls">
                 <button class="emoji-toggle-btn" id="friend-emoji-btn">😀</button>
                 <div class="emoji-picker-container" id="friend-emoji-picker">
@@ -279,6 +277,16 @@
                 </button>
             </div>
         </div>
+    </div>
+
+    <div id="home-screen">
+        <div class="top-nav">
+            <div class="nav-spacer"></div>
+            <h2>Home</h2>
+            <div class="nav-spacer"></div>
+        </div>
+        <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; color: #666;">
+            </div>
     </div>
 
     <div id="chat-interface">
@@ -328,7 +336,6 @@
                 <span style="font-size: 1.2em;">❤️</span>
                 <span id="page-profile-likes" style="font-weight: bold; font-size: 1.1em; color: #ff4d4d;">0 Likes</span>
             </div>
-
         </div>
     </div>
 
@@ -338,7 +345,11 @@
             <span class="nav-label">Friends</span>
             <div id="global-unread-badge">0</div>
         </div>
-        <div class="nav-tab active" id="tab-chat">
+        <div class="nav-tab active" id="tab-home">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <span class="nav-label">Home</span>
+        </div>
+        <div class="nav-tab" id="tab-chat">
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
             <span class="nav-label">Chat</span>
         </div>
@@ -406,6 +417,7 @@
     // DOM Elements - Screens
     const container = document.getElementById('main-container'); 
     const loginScreen = document.getElementById('login-screen');
+    const homeScreen = document.getElementById('home-screen'); // NEW
     const friendsScreen = document.getElementById('friends-screen');
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
@@ -413,6 +425,7 @@
     // Bottom Nav Elements
     const bottomNav = document.getElementById('bottom-nav');
     const tabFriends = document.getElementById('tab-friends');
+    const tabHome = document.getElementById('tab-home'); // NEW
     const tabChat = document.getElementById('tab-chat');
     const tabProfile = document.getElementById('tab-profile');
     const globalUnreadBadge = document.getElementById('global-unread-badge');
@@ -451,7 +464,7 @@
     const btnStay = document.getElementById('btn-stay');
     const btnLeave = document.getElementById('btn-leave');
 
-    // NEW: Like System Elements & State
+    // Like System Elements & State
     const pulseLikeBtn = document.getElementById('pulse-like-btn');
     const likeStreamContainer = document.getElementById('like-stream-container');
     const pageProfileLikes = document.getElementById('page-profile-likes');
@@ -526,69 +539,104 @@
 
 
     // --- NAVIGATION LOGIC ---
-    function showScreen(screenElement, animationClass) {
-        loginScreen.style.display = 'none'; friendsScreen.style.display = 'none';
-        chatInterface.style.display = 'none'; profileScreen.style.display = 'none';
-        
-        screenElement.style.display = 'flex';
-        if (animationClass) screenElement.style.animation = `${animationClass} 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards`;
-        else screenElement.style.animation = `fadeIn 0.3s ease forwards`;
+    // Updated Screen Order: Friends [0] -> Home [1] -> Chat [2] -> Profile [3]
+    const screens = [
+        { element: friendsScreen, tab: tabFriends, name: 'friends' },
+        { element: homeScreen, tab: tabHome, name: 'home' },
+        { element: chatInterface, tab: tabChat, name: 'chat' },
+        { element: profileScreen, tab: tabProfile, name: 'profile' }
+    ];
 
-        tabFriends.classList.remove('active'); tabChat.classList.remove('active'); tabProfile.classList.remove('active');
-        if (screenElement === friendsScreen) tabFriends.classList.add('active');
-        else if (screenElement === chatInterface) tabChat.classList.add('active');
-        else if (screenElement === profileScreen) tabProfile.classList.add('active');
+    function showScreen(targetName, animationClass) {
+        loginScreen.style.display = 'none';
+        
+        screens.forEach(s => {
+            s.element.style.display = 'none';
+            s.tab.classList.remove('active');
+            
+            if (s.name === targetName) {
+                s.element.style.display = 'flex';
+                s.tab.classList.add('active');
+                if (animationClass) {
+                    s.element.style.animation = `${animationClass} 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards`;
+                } else {
+                    s.element.style.animation = `fadeIn 0.3s ease forwards`;
+                }
+                
+                // Specific focus logic
+                if (targetName === 'chat' && isChatting) {
+                    chatBox.scrollTo({ top: chatBox.scrollHeight });
+                    msgInput.focus();
+                }
+            }
+        });
     }
 
-    function openFriends() { showScreen(friendsScreen, 'slideInFromLeft'); }
-    function openChatFromFriends() { showScreen(chatInterface, 'slideInFromRight'); chatBox.scrollTo({ top: chatBox.scrollHeight }); }
-    function openChatFromProfile() { showScreen(chatInterface, 'slideInFromLeft'); chatBox.scrollTo({ top: chatBox.scrollHeight }); }
-    function openProfile() { showScreen(profileScreen, 'slideInFromRight'); }
+    // Helper functions for directional animations
+    function openFriendsFrom(sourceIndex) { showScreen('friends', sourceIndex > 0 ? 'slideInFromLeft' : 'fadeIn'); }
+    function openHomeFrom(sourceIndex) { showScreen('home', sourceIndex > 1 ? 'slideInFromLeft' : 'slideInFromRight'); }
+    function openChatFrom(sourceIndex) { showScreen('chat', sourceIndex > 2 ? 'slideInFromLeft' : 'slideInFromRight'); }
+    function openProfileFrom(sourceIndex) { showScreen('profile', sourceIndex < 3 ? 'slideInFromRight' : 'fadeIn'); }
 
-    tabFriends.addEventListener('click', () => { if(friendsScreen.style.display !== 'flex') openFriends(); });
-    tabChat.addEventListener('click', () => { 
-        if(chatInterface.style.display !== 'flex') {
-            if (profileScreen.style.display === 'flex') openChatFromProfile();
-            else openChatFromFriends();
-        } 
+    // Tab Click Listeners
+    tabFriends.addEventListener('click', () => { 
+        const currentIdx = screens.findIndex(s => s.element.style.display === 'flex');
+        if(currentIdx !== 0) openFriendsFrom(currentIdx); 
     });
-    tabProfile.addEventListener('click', () => { if(profileScreen.style.display !== 'flex') openProfile(); });
+    tabHome.addEventListener('click', () => { 
+        const currentIdx = screens.findIndex(s => s.element.style.display === 'flex');
+        if(currentIdx !== 1) openHomeFrom(currentIdx); 
+    });
+    tabChat.addEventListener('click', () => { 
+        const currentIdx = screens.findIndex(s => s.element.style.display === 'flex');
+        if(currentIdx !== 2) openChatFrom(currentIdx); 
+    });
+    tabProfile.addEventListener('click', () => { 
+        const currentIdx = screens.findIndex(s => s.element.style.display === 'flex');
+        if(currentIdx !== 3) openProfileFrom(currentIdx); 
+    });
 
     // --- UNIFIED SWIPE LOGIC ---
     let startX = 0, startY = 0, isDragging = false;
     function handleInputStart(x, y) { startX = x; startY = y; isDragging = true; }
-    function handleInputEnd(e, currentScreen, isTouch) {
+    function handleInputEnd(e, isTouch) {
         if (!isDragging) return;
         isDragging = false;
+        
+        const currentIdx = screens.findIndex(s => s.element.style.display === 'flex');
+        if (currentIdx === -1) return; // Not on a main screen (e.g. login)
+
         let clientX = isTouch ? e.changedTouches[0].clientX : e.clientX;
         let clientY = isTouch ? e.changedTouches[0].clientY : e.clientY;
         let diffX = startX - clientX; let diffY = startY - clientY; 
         let absX = Math.abs(diffX); let absY = Math.abs(diffY);
 
         if (absX > 50 && absX > absY) {
-            if (diffX > 0) { // Swiped Left
-                if (currentScreen === 'friends') openChatFromFriends();
-                else if (currentScreen === 'chat') openProfile();
-            } else if (diffX < 0) { // Swiped Right
-                if (currentScreen === 'profile') openChatFromProfile();
-                else if (currentScreen === 'chat') openFriends();
+            if (diffX > 0) { // Swiped Left -> Go to Right Screen
+                if (currentIdx < 3) {
+                    if (currentIdx === 0) openHomeFrom(0);
+                    else if (currentIdx === 1) openChatFrom(1);
+                    else if (currentIdx === 2) openProfileFrom(2);
+                }
+            } else if (diffX < 0) { // Swiped Right -> Go to Left Screen
+                if (currentIdx > 0) {
+                    if (currentIdx === 3) openChatFrom(3);
+                    else if (currentIdx === 2) openHomeFrom(2);
+                    else if (currentIdx === 1) openFriendsFrom(1);
+                }
             }
-        } else if (absY > 50 && absY > absX && currentScreen === 'chat') {
+        } else if (absY > 50 && absY > absX && screens[currentIdx].name === 'chat') {
             handleSkipIntent(e, true);
         }
     }
 
     ['touchstart', 'mousedown'].forEach(evt => {
-        friendsScreen.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
-        chatInterface.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
-        profileScreen.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
+        screens.forEach(s => s.element.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY)));
     });
     ['touchend', 'mouseup'].forEach(evt => {
-        friendsScreen.addEventListener(evt, e => handleInputEnd(e, 'friends', !!e.changedTouches));
-        chatInterface.addEventListener(evt, e => handleInputEnd(e, 'chat', !!e.changedTouches));
-        profileScreen.addEventListener(evt, e => handleInputEnd(e, 'profile', !!e.changedTouches));
+        screens.forEach(s => s.element.addEventListener(evt, e => handleInputEnd(e, !!e.changedTouches)));
     });
-    [friendsScreen, chatInterface, profileScreen].forEach(el => el.addEventListener('mouseleave', () => isDragging = false));
+    screens.forEach(s => s.element.addEventListener('mouseleave', () => isDragging = false));
 
 
     // --- MODALS (Settings & Friend Profile) ---
@@ -652,7 +700,8 @@
             });
             
             bottomNav.style.display = 'flex'; 
-            showScreen(chatInterface);
+            // Default to Home Screen on login
+            showScreen('home');
             startFriendsListener(); 
         } else {
             myUserId = null;
@@ -661,7 +710,10 @@
             if (unsubscribeMyUser) unsubscribeMyUser();
             resetChat();
             
-            bottomNav.style.display = 'none'; showScreen(loginScreen);
+            bottomNav.style.display = 'none'; 
+            loginScreen.style.display = 'flex';
+            screens.forEach(s => s.element.style.display = 'none');
+            
             hasStarted = false; startBtn.style.display = 'block'; skipHint.style.display = 'none';
         }
     });
@@ -1011,13 +1063,19 @@
     window.addEventListener('keydown', (e) => {
         if (document.activeElement.tagName === 'INPUT' || isConfirming || settingsModal.style.display === 'flex') return;
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); handleSkipIntent(e, false); }
-        else if (e.key === 'ArrowRight') {
-            if (friendsScreen.style.display === 'flex' && friendChatView.style.display !== 'flex') openChatFromFriends();
-            else if (chatInterface.style.display === 'flex') openProfile();
+        
+        // Updated Keyboard Navigation
+        const currentIdx = screens.findIndex(s => s.element.style.display === 'flex');
+        if (e.key === 'ArrowRight') {
+            if (currentIdx < 3) screens[currentIdx + 1].tab.click();
         } else if (e.key === 'ArrowLeft') {
-            if (profileScreen.style.display === 'flex') openChatFromProfile();
-            else if (chatInterface.style.display === 'flex') openFriends();
-            else if (friendsScreen.style.display === 'flex' && friendChatView.style.display === 'flex') backToFriendsBtn.click();
+            if (currentIdx > 0) {
+                if (currentIdx === 0 && friendChatView.style.display === 'flex') {
+                    backToFriendsBtn.click();
+                } else {
+                    screens[currentIdx - 1].tab.click();
+                }
+            }
         }
     });
 
