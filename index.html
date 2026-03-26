@@ -384,7 +384,6 @@
 </div>
 
 <script type="module">
-    // UPDATED IMPORTS: Added increment and setDoc for the Like System tracking
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit, increment, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -456,6 +455,7 @@
     const likeStreamContainer = document.getElementById('like-stream-container');
     const pageProfileLikes = document.getElementById('page-profile-likes');
     let hasLikedThisPersonInThisSession = false;
+    let roomLikeGiven = false; // THE NEW LOCK
     let currentStrangerId = null;
 
     // State Variables
@@ -466,7 +466,7 @@
     let currentFriendRoomId = null; 
     let unsubscribeFriendChat = null;
     let unsubscribeFriendsList = null;
-    let unsubscribeMyUser = null; // New listener for my profile
+    let unsubscribeMyUser = null; 
     
     let currentFriendId = null;
     let currentFriendName = "";
@@ -484,24 +484,29 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
-    // --- NEW: LIKE PULSE LOGIC ---
+    // --- NEW: LIKE PULSE LOGIC WITH LOCK ---
     function createFloatingHeart() {
         const heart = document.createElement('div');
         heart.textContent = '❤️';
         heart.className = 'floating-heart';
-        // Randomize slight left/right float trajectory
         heart.style.left = (Math.random() * 20 - 10) + 'px';
         likeStreamContainer.appendChild(heart);
-        setTimeout(() => heart.remove(), 2000); // Cleanup DOM
+        setTimeout(() => heart.remove(), 2000); 
     }
 
     pulseLikeBtn.addEventListener('click', async () => {
-        createFloatingHeart(); // Always show visual feedback
+        createFloatingHeart(); // Show local animation for vibes
 
-        // Only increment the database ONCE per person per session
-        if (!hasLikedThisPersonInThisSession && currentStrangerId) {
+        // Check if no one has locked this room yet
+        if (!hasLikedThisPersonInThisSession && currentStrangerId && !roomLikeGiven) {
             hasLikedThisPersonInThisSession = true;
+            roomLikeGiven = true; // Lock locally immediately to prevent double clicks
+
             try {
+                // 1. Update the room to tell the other person they missed out
+                await updateDoc(doc(db, "rooms", currentRoomId), { likeGiven: true });
+
+                // 2. Actually add the permanent Like to the winner's profile
                 const strangerRef = doc(db, "users", currentStrangerId);
                 await setDoc(strangerRef, { totalLikes: increment(1) }, { merge: true });
             } catch (e) { console.error("Error sending like:", e); }
@@ -637,7 +642,6 @@
             document.getElementById('page-profile-name').textContent = myUserName;
             document.getElementById('page-profile-email').textContent = user.email;
             
-            // NEW: Create/Update user doc to store likes and listen for changes
             const userRef = doc(db, "users", myUserId);
             await setDoc(userRef, { name: myUserName, email: user.email, photo: myUserPhoto }, { merge: true });
             
@@ -863,8 +867,9 @@
         chatBox.innerHTML = ''; msgInput.disabled = true; sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Friend Request";
         
-        // NEW: Reset Like Tracker Status
+        // Reset Like Tracker Status & Room Lock
         hasLikedThisPersonInThisSession = false;
+        roomLikeGiven = false; 
         currentStrangerId = null;
         likeStreamContainer.style.display = 'none';
 
@@ -876,6 +881,11 @@
         unsubscribeRoom = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
             const data = snapshot.data();
             if (!data) return;
+
+            // NEW: Check if anyone has locked the room yet
+            if (data.likeGiven) {
+                roomLikeGiven = true;
+            }
 
             const strangerId = data.participants.find(id => id !== myUserId);
             const isAlreadyFriend = strangerId && myFriendIds.includes(strangerId);
@@ -895,14 +905,13 @@
                 appendMessage("You are now chatting! Say hi 👋", "system-msg");
                 msgInput.disabled = false; sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
                 
-                // NEW: Show Like stream interface and set stranger
                 currentStrangerId = strangerId;
                 if(currentStrangerId) likeStreamContainer.style.display = 'flex';
             }
             if (data.status === "closed" && isChatting) {
                 appendMessage("Stranger disconnected.", "system-msg");
                 isChatting = false; msgInput.disabled = true; sendBtn.disabled = true; addFriendBtn.style.display = 'none';
-                likeStreamContainer.style.display = 'none'; // Hide like button
+                likeStreamContainer.style.display = 'none'; 
                 appendMessage("⏬ Swipe or press ↓ to find someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
             }
@@ -943,10 +952,12 @@
             });
             setupRoomListener(currentRoomId);
         } else {
+            // NEW: Initialize the room with the likeGiven: false lock
             const newRoom = await addDoc(collection(db, "rooms"), { 
                 status: "waiting", creatorId: myUserId, participants: [myUserId], 
                 names: { [myUserId]: myUserName }, photos: { [myUserId]: myUserPhoto },
-                createdAt: serverTimestamp(), messages: [], friendMessages: [], lastRead: { [myUserId]: Date.now() }
+                createdAt: serverTimestamp(), messages: [], friendMessages: [], lastRead: { [myUserId]: Date.now() },
+                likeGiven: false 
             });
             currentRoomId = newRoom.id; setupRoomListener(currentRoomId);
         }
