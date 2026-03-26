@@ -12,63 +12,62 @@
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
 
     <style>
-        /* Base Theme */
+        /* Base Theme - Professional Light Corporate */
         * { 
             box-sizing: border-box; 
-            font-family: 'Segoe UI', Roboto, 'Noto Color Emoji', Helvetica, Arial, sans-serif; 
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
         }
         
         body { 
-            background: linear-gradient(-45deg, #0a0a0a, #1a1a2e, #16213e, #0f0c29);
-            background-size: 400% 400%; animation: gradientBG 15s ease infinite;
-            color: #ffffff; display: flex; justify-content: center; align-items: center; 
+            background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+            color: #102a43; /* Deep Slate Text */
+            display: flex; justify-content: center; align-items: center; 
             height: 100vh; margin: 0; overflow: hidden; 
         }
 
-        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-
-        /* Main Container */
+        /* Main Container - Crisp White Card */
         .chat-container { 
             width: 100%; max-width: 450px; 
-            background: #1a1a1a; border-radius: 20px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px rgba(0, 123, 255, 0.1); 
+            background: #ffffff; border-radius: 24px; 
+            box-shadow: 0 20px 40px rgba(16, 42, 67, 0.08), 0 1px 3px rgba(0,0,0,0.05); 
             display: flex; flex-direction: column; 
             height: 96vh; max-height: 900px; 
-            z-index: 10; border: 1px solid #2a2a2a; position: relative; overflow: hidden; padding: 0; 
+            z-index: 10; border: 1px solid #e1e8ef; position: relative; overflow: hidden; padding: 0; 
         }
 
         /* --- VECTOR ICONS --- */
         svg { fill: currentColor; width: 24px; height: 24px; transition: transform 0.2s ease; }
-        .icon-btn { background: none; border: none; color: #aaa; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: color 0.2s ease, transform 0.2s ease;}
-        .icon-btn:hover:not(:disabled) { color: white; transform: scale(1.1); }
+        .icon-btn { background: none; border: none; color: #829ab1; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: color 0.2s ease, transform 0.2s ease;}
+        .icon-btn:hover:not(:disabled) { color: #102a43; transform: scale(1.1); }
         .icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .active-friend-icon { color: #00ff88 !important; }
+        .active-friend-icon { color: #10b981 !important; } /* Emerald Green */
 
         /* --- BOTTOM NAVIGATION --- */
         #bottom-nav {
             display: none; justify-content: space-around; align-items: center;
-            padding: 10px 0; background: #0f0f0f; border-top: 1px solid #2a2a2a; z-index: 20;
+            padding: 12px 0; background: #ffffff; border-top: 1px solid #e1e8ef; z-index: 20;
         }
         .nav-tab {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #666; cursor: pointer; transition: color 0.2s ease; width: 25%; font-size: 0.75em; font-weight: 600; gap: 4px; position: relative;
+            color: #829ab1; cursor: pointer; transition: color 0.2s ease; width: 25%; font-size: 0.75em; font-weight: 600; gap: 4px; position: relative;
         }
-        .nav-tab:hover { color: #aaa; }
-        .nav-tab.active { color: #007bff; }
+        .nav-tab:hover { color: #486581; }
+        .nav-tab.active { color: #2563eb; } /* Trust Blue */
         .nav-tab.active svg { transform: scale(1.15); }
         .tab-profile-pic { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s ease, transform 0.2s ease; }
-        .nav-tab.active .tab-profile-pic { border-color: #007bff; transform: scale(1.1); }
+        .nav-tab.active .tab-profile-pic { border-color: #2563eb; transform: scale(1.1); }
 
         /* Global Unread Badge */
         #global-unread-badge {
-            position: absolute; top: -5px; right: 15px; background: #25D366; color: white;
+            position: absolute; top: -5px; right: 15px; background: #ef4444; color: white;
             font-size: 0.7em; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none; pointer-events: none;
+            box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
         }
 
         /* --- SCREENS --- */
         #login-screen, #home-screen, #chat-interface, #profile-screen, #friends-screen {
             display: none; flex-direction: column; flex-grow: 1; 
-            width: 100%; padding: 15px 20px; overflow: hidden; 
+            width: 100%; padding: 15px 20px; overflow: hidden; background: #ffffff;
         }
 
         @keyframes slideInFromRight { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -76,54 +75,53 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* Top Navs */
-        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #333; flex-shrink: 0;}
-        .top-nav h2 { margin: 0; font-weight: 600; letter-spacing: 1px; color: #eee; font-size: 1.25em; } 
+        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #f0f4f8; flex-shrink: 0;}
+        .top-nav h2 { margin: 0; font-weight: 700; letter-spacing: 0.5px; color: #102a43; font-size: 1.3em; } 
         .nav-spacer { width: 24px; } 
 
         /* Friend Chat Header clickable area */
         .friend-chat-info { display: flex; align-items: center; gap: 10px; cursor: pointer; transition: transform 0.2s ease; user-select: none; }
-        .friend-chat-info:hover { transform: scale(1.05); }
-        .fc-avatar { width: 32px; height: 32px; border-radius: 50%; background: #222; border: 2px solid #007bff; display: flex; justify-content: center; align-items: center; font-weight: bold; overflow: hidden; font-size: 0.9em; flex-shrink: 0;}
+        .friend-chat-info:hover { transform: scale(1.02); }
+        .fc-avatar { width: 34px; height: 34px; border-radius: 50%; background: #eff6ff; border: 2px solid #2563eb; color: #2563eb; display: flex; justify-content: center; align-items: center; font-weight: bold; overflow: hidden; font-size: 0.95em; flex-shrink: 0;}
 
         /* 1. Login Screen */
         #login-screen { justify-content: center; align-items: center; text-align: center; padding-bottom: 40px;}
-        #login-screen h1 { font-size: 2.2em; margin-bottom: 10px; background: -webkit-linear-gradient(#007bff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        #login-screen p { color: #888; margin-bottom: 30px; }
-        .google-btn { background: white; color: #333; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(255,255,255,0.2); transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .google-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,255,255,0.3); }
-
-        /* 2. Home Screen (Blank) */
-        #home-screen { justify-content: center; align-items: center; }
+        #login-screen h1 { font-size: 2.4em; margin-bottom: 10px; background: linear-gradient(135deg, #2563eb, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+        #login-screen p { color: #627d98; margin-bottom: 35px; font-size: 1.05em; }
+        .google-btn { background: #ffffff; color: #334e68; border: 1px solid #d9e2ec; padding: 12px 28px; border-radius: 30px; font-weight: 600; font-size: 1.05em; cursor: pointer; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .google-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.08); border-color: #bcccdc;}
 
         /* Generic Chat Box Styles */
-        .chat-box-style { flex-grow: 1; border-radius: 12px; padding: 12px; overflow-y: auto; margin-bottom: 10px; background: #111111; display: flex; flex-direction: column; gap: 10px; }
+        .chat-box-style { flex-grow: 1; border-radius: 16px; padding: 15px; overflow-y: auto; margin-bottom: 10px; background: #f8fafc; display: flex; flex-direction: column; gap: 12px; border: 1px solid #f1f5f9; }
         .chat-box-style::-webkit-scrollbar { width: 6px; }
         .chat-box-style::-webkit-scrollbar-track { background: transparent; }
-        .chat-box-style::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-        .message { padding: 10px 15px; border-radius: 20px; max-width: 75%; word-wrap: break-word; line-height: 1.4; font-size: 0.95em; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform-origin: bottom; }
-        @keyframes popIn { 0% { opacity: 0; transform: translateY(20px) scale(0.9); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-        .my-msg { background: linear-gradient(135deg, #0062cc, #007bff); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2); }
-        .stranger-msg { background: #2d2d2d; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
-        .system-msg { text-align: center; color: #888; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 20px; }
+        .chat-box-style::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .message { padding: 12px 16px; border-radius: 18px; max-width: 78%; word-wrap: break-word; line-height: 1.45; font-size: 0.95em; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform-origin: bottom; }
+        @keyframes popIn { 0% { opacity: 0; transform: translateY(15px) scale(0.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        .my-msg { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.2); }
+        .stranger-msg { background: #ffffff; color: #334e68; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
+        .system-msg { text-align: center; color: #64748b; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: #e2e8f0; padding: 6px 12px; border-radius: 20px; font-weight: 600;}
         
         /* Controls & Emoji */
-        .controls { display: flex; gap: 8px; flex-shrink: 0; align-items: center; position: relative;}
-        .emoji-toggle-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; color: #aaa; transition: transform 0.2s ease; padding: 0 5px; outline: none; }
-        .emoji-toggle-btn:hover { transform: scale(1.1); }
+        .controls { display: flex; gap: 8px; flex-shrink: 0; align-items: center; position: relative; background: #ffffff; padding: 5px 0;}
+        .emoji-toggle-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; color: #94a3b8; transition: transform 0.2s ease; padding: 0 5px; outline: none; }
+        .emoji-toggle-btn:hover { transform: scale(1.1); color: #64748b; }
         
-        .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 20px rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; }
-        emoji-picker { --background: #222; --border-color: #333; --input-border-color: #444; --button-hover-background: #333; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
+        .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;}
+        /* Light Theme Emoji Picker */
+        emoji-picker { --background: #ffffff; --border-color: #e2e8f0; --input-border-color: #cbd5e1; --button-hover-background: #f1f5f9; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
 
-        input[type="text"] { flex-grow: 1; padding: 12px 16px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 0.95em; transition: border-color 0.3s ease; }
-        input[type="text"]:focus { border-color: #007bff; }
-        input[type="text"]:disabled { background: #1a1a1a; cursor: not-allowed; }
-        button.action-btn { padding: 0 16px; height: 42px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; }
-        button.action-btn:hover:not(:disabled) { background: #0056b3; transform: translateY(-2px); }
-        button.action-btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
+        input[type="text"] { flex-grow: 1; padding: 12px 18px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
+        input[type="text"]:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        input[type="text"]:disabled { background: #f1f5f9; cursor: not-allowed; border-color: #e2e8f0; color: #94a3b8;}
         
-        #start-btn { background: linear-gradient(135deg, #ff416c, #ff4b2b); margin-top: 10px; width: 100%; font-size: 1.05em; padding: 12px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3); transition: transform 0.2s ease, box-shadow 0.2s ease; flex-shrink: 0;}
-        #start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5); }
-        #skip-hint { display: none; text-align: center; color: #777; font-size: 0.8em; margin-top: 10px; animation: pulse 2s infinite; flex-shrink: 0;}
+        button.action-btn { padding: 0 16px; height: 44px; border: none; background: #2563eb; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(37,99,235,0.2); }
+        button.action-btn:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
+        button.action-btn:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        #start-btn { background: linear-gradient(135deg, #10b981, #059669); margin-top: 10px; width: 100%; font-size: 1.1em; padding: 14px; border-radius: 14px; border: none; color: white; cursor: pointer; font-weight: 700; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: transform 0.2s ease, box-shadow 0.2s ease; flex-shrink: 0; letter-spacing: 0.5px;}
+        #start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4); }
+        #skip-hint { display: none; text-align: center; color: #94a3b8; font-size: 0.8em; margin-top: 12px; animation: pulse 2s infinite; flex-shrink: 0; font-weight: 600;}
 
         /* --- PUSH NOTIFICATION BANNER --- */
         .notification-banner {
@@ -133,90 +131,94 @@
             transform: translateX(-50%);
             width: 90%;
             max-width: 400px;
-            background: rgba(30, 30, 30, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid #444;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
-            padding: 12px 15px;
+            padding: 14px 16px;
             z-index: 2000; 
             transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .notification-banner.show { top: 20px; } 
         .notif-content { flex-grow: 1; overflow: hidden; margin-right: 10px; }
-        .notif-title { font-weight: bold; font-size: 0.9em; color: #fff; margin-bottom: 2px; }
-        .notif-msg { font-size: 0.85em; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .notif-actions { display: flex; gap: 8px; }
-        #notif-view-btn { background: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8em; transition: background 0.2s;}
-        #notif-view-btn:hover { background: #0056b3; }
-        #notif-close-btn { background: none; border: none; color: #888; font-size: 1.5em; cursor: pointer; padding: 0 5px; line-height: 1; }
-        #notif-close-btn:hover { color: white; }
+        .notif-title { font-weight: 700; font-size: 0.9em; color: #1e293b; margin-bottom: 2px; }
+        .notif-msg { font-size: 0.85em; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .notif-actions { display: flex; gap: 8px; align-items: center;}
+        #notif-view-btn { background: #eff6ff; color: #2563eb; border: none; padding: 6px 14px; border-radius: 20px; font-weight: 700; cursor: pointer; font-size: 0.8em; transition: background 0.2s;}
+        #notif-view-btn:hover { background: #dbeafe; }
+        #notif-close-btn { background: none; border: none; color: #94a3b8; font-size: 1.5em; cursor: pointer; padding: 0 5px; line-height: 1; }
+        #notif-close-btn:hover { color: #475569; }
 
         /* 3. Profile Screen */
         .profile-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; user-select: none; }
-        .profile-img-large { width: 110px; height: 110px; border-radius: 50%; margin-bottom: 20px; border: 4px solid #007bff; object-fit: cover; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .profile-content h3 { margin: 0 0 5px 0; font-size: 1.6em; color: #fff; }
-        .profile-content p { color: #aaa; font-size: 0.95em; margin-bottom: 25px; }
+        .profile-img-large { width: 120px; height: 120px; border-radius: 50%; margin-bottom: 20px; border: 4px solid #ffffff; box-shadow: 0 0 0 4px #eff6ff, 0 10px 20px rgba(0,0,0,0.08); object-fit: cover; }
+        .profile-content h3 { margin: 0 0 5px 0; font-size: 1.6em; color: #102a43; font-weight: 800;}
+        .profile-content p { color: #627d98; font-size: 0.95em; margin-bottom: 25px; }
 
         /* 4. Friends Screen */
         #friends-list-view { display: flex; flex-direction: column; height: 100%; }
         #friend-chat-view { display: none; flex-direction: column; height: 100%; animation: slideInFromRight 0.3s ease forwards;}
         
-        .section-title { color: #888; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; margin: 10px 0; font-weight: bold; }
+        .section-title { color: #64748b; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1.2px; margin: 15px 0 10px; font-weight: 700; }
         
         .friends-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;}
         .friends-list::-webkit-scrollbar { width: 4px; }
-        .friends-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .friends-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
-        .friend-item { display: flex; align-items: center; padding: 12px; background-color: #111; border-radius: 12px; cursor: pointer; transition: background-color 0.2s ease; border: 1px solid #222; user-select: none;}
-        .friend-item:hover { background-color: #222; }
-        .friend-avatar { width: 40px; height: 40px; border-radius: 50%; background: #222; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; border: 2px solid #007bff; flex-shrink: 0; overflow: hidden;}
+        .friend-item { display: flex; align-items: center; padding: 12px 15px; background-color: #ffffff; border-radius: 16px; cursor: pointer; transition: all 0.2s ease; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); user-select: none;}
+        .friend-item:hover { background-color: #f8fafc; border-color: #e2e8f0; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.04);}
+        .friend-avatar { width: 44px; height: 44px; border-radius: 50%; background: #eff6ff; color: #2563eb; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid transparent; flex-shrink: 0; overflow: hidden;}
         .friend-info { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; pointer-events: none; }
-        .friend-name { font-weight: bold; color: #eee; font-size: 1em; margin-bottom: 3px; }
-        .friend-msg { color: #888; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+        .friend-name { font-weight: 700; color: #1e293b; font-size: 1.05em; margin-bottom: 3px; }
+        .friend-msg { color: #64748b; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
         
-        .unread-badge { background: #25D366; color: white; border-radius: 50%; padding: 2px 8px; font-size: 0.8em; font-weight: bold; margin-left: auto; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(37, 211, 102, 0.4);}
+        .unread-badge { background: #ef4444; color: white; border-radius: 50%; padding: 2px 8px; font-size: 0.75em; font-weight: bold; margin-left: auto; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.2);}
 
         /* Compact Requests */
-        #requests-container { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px; margin-bottom: 5px; scrollbar-width: none; }
+        #requests-container { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 5px; margin-bottom: 5px; scrollbar-width: none; }
         #requests-container::-webkit-scrollbar { display: none; }
-        .req-compact { display: flex; flex-direction: column; align-items: center; background: #111; padding: 10px; border-radius: 12px; min-width: 80px; max-width: 90px; border: 1px solid #222; flex-shrink: 0; }
-        .req-compact .friend-avatar { margin-right: 0; margin-bottom: 8px; width: 45px; height: 45px; }
-        .req-compact .friend-name { font-size: 0.8em; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; color: #eee;}
+        .req-compact { display: flex; flex-direction: column; align-items: center; background: #ffffff; padding: 12px; border-radius: 16px; min-width: 90px; max-width: 100px; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); flex-shrink: 0; transition: transform 0.2s; }
+        .req-compact:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05);}
+        .req-compact .friend-avatar { margin-right: 0; margin-bottom: 10px; width: 48px; height: 48px; border-color: #fbbf24;}
+        .req-compact .friend-name { font-size: 0.85em; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 10px; color: #1e293b; font-weight: 600;}
         .req-actions-compact { display: flex; gap: 8px; justify-content: center; width: 100%; }
-        .req-btn { width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: transform 0.2s ease;}
+        .req-btn { width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: transform 0.2s ease;}
         .req-btn:hover { transform: scale(1.1); }
-        .req-accept { background: #28a745; color: white; }
-        .req-reject { background: #dc3545; color: white; }
-        .empty-friends { text-align: center; color: #555; margin-top: 30px; font-style: italic; font-size: 0.9em;}
+        .req-accept { background: #10b981; color: white; box-shadow: 0 2px 5px rgba(16,185,129,0.3);} /* Emerald */
+        .req-reject { background: #f1f5f9; color: #64748b; }
+        .empty-friends { text-align: center; color: #94a3b8; margin-top: 30px; font-style: italic; font-size: 0.9em;}
 
-        /* Modals */
-        .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); border-radius: 20px; display: none; justify-content: center; align-items: center; z-index: 100; animation: fadeIn 0.2s ease forwards; }
-        .modal-content { background: #222; padding: 25px; border-radius: 15px; text-align: center; width: 80%; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
-        .close-modal-btn { position: absolute; top: 8px; right: 15px; background: none; border: none; color: #888; font-size: 1.5em; cursor: pointer; }
-        .close-modal-btn:hover { color: white; }
-        .modal-content h3 { margin-top: 0; color: #fff; margin-bottom: 10px; font-size: 1.2em;}
-        .modal-content p { color: #ccc; font-size: 0.9em; margin-bottom: 20px; line-height: 1.4; }
+        /* Modals - Clean Corporate */
+        .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(16, 42, 67, 0.4); backdrop-filter: blur(4px); border-radius: 20px; display: none; justify-content: center; align-items: center; z-index: 100; animation: fadeIn 0.2s ease forwards; }
+        .modal-content { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; width: 85%; border: 1px solid #e2e8f0; box-shadow: 0 20px 40px rgba(0,0,0,0.1); position: relative; }
+        .close-modal-btn { position: absolute; top: 12px; right: 15px; background: #f1f5f9; border: none; color: #64748b; width: 30px; height: 30px; border-radius: 50%; font-size: 1.2em; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;}
+        .close-modal-btn:hover { background: #e2e8f0; color: #1e293b; }
+        .modal-content h3 { margin-top: 0; color: #1e293b; margin-bottom: 10px; font-size: 1.3em; font-weight: 800;}
+        .modal-content p { color: #64748b; font-size: 0.95em; margin-bottom: 25px; line-height: 1.5; }
         .modal-buttons { display: flex; gap: 12px; justify-content: center; }
-        .modal-buttons button { padding: 10px 15px; border-radius: 8px; flex: 1; font-size: 0.95em; border: none; cursor: pointer; font-weight: bold; }
-        #btn-stay { background: #444; color: white; }
-        #btn-leave { background: #dc3545; color: white; }
+        .modal-buttons button { padding: 12px 15px; border-radius: 12px; flex: 1; font-size: 0.95em; border: none; cursor: pointer; font-weight: bold; transition: background 0.2s;}
+        #btn-stay { background: #f1f5f9; color: #475569; }
+        #btn-stay:hover { background: #e2e8f0; }
+        #btn-leave { background: #ef4444; color: white; }
+        #btn-leave:hover { background: #dc2626; }
+        
         .settings-content { text-align: left; }
-        .settings-content h3 { text-align: center; border-bottom: 1px solid #444; padding-bottom: 12px; margin-bottom: 15px; }
-        .settings-item { background: #333; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; text-align: left; font-size: 0.95em; cursor: pointer; margin-bottom: 10px; transition: background-color 0.2s ease; font-weight: bold; display: flex; align-items: center; gap: 10px;}
-        .settings-item:hover { background-color: #444; }
-        .danger-btn { background: #dc3545; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.95em; cursor: pointer; width: 100%; transition: background-color 0.2s ease; margin-top: 10px; }
-        .danger-btn:hover { background-color: #c82333; }
+        .settings-content h3 { text-align: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 15px; }
+        .settings-item { background: #ffffff; color: #1e293b; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 12px; width: 100%; text-align: left; font-size: 0.95em; cursor: pointer; margin-bottom: 10px; transition: all 0.2s ease; font-weight: 600; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
+        .settings-item svg { color: #64748b; }
+        .settings-item:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .danger-btn { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 0.95em; cursor: pointer; width: 100%; transition: all 0.2s ease; margin-top: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .danger-btn:hover { background: #fee2e2; border-color: #fca5a5; }
         
         .fp-avatar-container {
-            width: 110px; height: 110px; border-radius: 50%; border: 4px solid #007bff; 
-            margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; 
-            overflow: hidden; font-size: 3em; font-weight: bold; background: #222; color: #fff;
+            width: 120px; height: 120px; border-radius: 50%; border: 4px solid #ffffff; box-shadow: 0 0 0 4px #eff6ff, 0 10px 20px rgba(0,0,0,0.08);
+            margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; 
+            overflow: hidden; font-size: 3.5em; font-weight: 800; background: #eff6ff; color: #2563eb;
         }
 
-        /* --- FLOATING LIKE SYSTEM (GREEN) --- */
+        /* --- FLOATING LIKE SYSTEM (EMERALD GREEN) --- */
         #like-stream-container {
             position: absolute;
             top: 50%;
@@ -229,26 +231,26 @@
         }
 
         #pulse-like-btn {
-            background: rgba(20, 20, 20, 0.8);
+            background: #ffffff;
             border-radius: 50%;
-            width: 45px; height: 45px;
-            backdrop-filter: blur(5px);
-            border: 1px solid #444;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            transition: transform 0.1s ease;
-            font-size: 20px;
+            width: 48px; height: 48px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+            font-size: 22px;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #25D366; /* Green */
+            color: #10B981; /* Emerald Green */
         }
-        #pulse-like-btn:active { transform: scale(0.85); }
+        #pulse-like-btn:active { transform: scale(0.85); box-shadow: 0 2px 6px rgba(0,0,0,0.05);}
+        #pulse-like-btn:hover { border-color: #10B981; background: #ecfdf5; }
 
         .floating-heart {
             position: absolute;
             top: 0;
-            font-size: 24px;
+            font-size: 26px;
             animation: flyUp 2s ease-out forwards;
             pointer-events: none;
             z-index: 99;
@@ -256,7 +258,7 @@
 
         @keyframes flyUp {
             0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-150px) scale(1.5) translateX(-10px); opacity: 0; }
+            100% { transform: translateY(-160px) scale(1.5) translateX(-15px); opacity: 0; }
         }
     </style>
 </head>
@@ -265,10 +267,10 @@
 <div class="chat-container" id="main-container">
 
     <div id="notification-banner" class="notification-banner">
-        <div id="notif-avatar-container" class="friend-avatar" style="margin-right: 15px; border-color:#007bff; flex-shrink:0;"></div>
+        <div id="notif-avatar-container" class="friend-avatar" style="margin-right: 15px; flex-shrink:0;"></div>
         <div class="notif-content">
             <div class="notif-title">Friend Request</div>
-            <div id="notif-msg" class="notif-msg">Someone wants to be friends!</div>
+            <div id="notif-msg" class="notif-msg">Someone wants to connect!</div>
         </div>
         <div class="notif-actions">
             <button id="notif-view-btn">View</button>
@@ -278,9 +280,9 @@
     
     <div id="login-screen">
         <h1>Random Chat</h1>
-        <p>Connect with strangers instantly.</p>
+        <p>The Professional Networking Space.</p>
         <button id="login-btn" class="google-btn">
-            <svg viewBox="0 0 24 24" style="width: 20px; height: 20px;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            <svg viewBox="0 0 24 24" style="width: 22px; height: 22px;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             Sign in with Google
         </button>
     </div>
@@ -289,16 +291,16 @@
         <div id="friends-list-view">
             <div class="top-nav">
                 <div class="nav-spacer"></div>
-                <h2>Friends</h2>
+                <h2>Connections</h2>
                 <div class="nav-spacer"></div>
             </div>
             <div id="requests-section" style="display: none;">
-                <div class="section-title">Requests</div>
+                <div class="section-title">Pending Requests</div>
                 <div id="requests-container"></div>
             </div>
-            <div class="section-title">My Friends</div>
+            <div class="section-title">My Network</div>
             <div class="friends-list" id="friends-container">
-                <div class="empty-friends">No friends yet.</div>
+                <div class="empty-friends">No connections yet.</div>
             </div>
         </div>
         <div id="friend-chat-view">
@@ -308,7 +310,7 @@
                 </button>
                 <div id="friend-chat-info" class="friend-chat-info" title="View Profile">
                     <div id="fc-avatar" class="fc-avatar"></div>
-                    <h2 id="friend-chat-header" style="font-size: 1.1em; margin: 0;">Friend</h2>
+                    <h2 id="friend-chat-header" style="font-size: 1.1em; margin: 0;">Connection</h2>
                 </div>
                 <button id="view-friend-profile-btn" class="icon-btn" title="View Profile">
                     <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -320,7 +322,7 @@
                 <div class="emoji-picker-container" id="friend-emoji-picker">
                     <emoji-picker></emoji-picker>
                 </div>
-                <input type="text" id="friend-msg-input" placeholder="Message friend..." autocomplete="off">
+                <input type="text" id="friend-msg-input" placeholder="Message connection..." autocomplete="off">
                 <button id="friend-send-btn" class="action-btn">
                     <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                 </button>
@@ -337,15 +339,15 @@
             </div>
             <div class="profile-content">
                 <div id="fps-avatar-container" class="fp-avatar-container"></div>
-                <h3 id="fps-name">Friend Name</h3>
-                <p style="color:#25D366; font-size:0.9em; font-weight:bold; margin-bottom: 10px;">Connected ✅</p>
+                <h3 id="fps-name">Name</h3>
+                <p style="color:#10b981; font-size:0.9em; font-weight:700; margin-bottom: 15px;">Connected ✅</p>
                 
-                <div style="background: rgba(37, 211, 102, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(37, 211, 102, 0.3); display: flex; align-items: center; gap: 8px; margin-bottom: 30px;">
-                    <span style="font-size: 1.2em;">💚</span>
-                    <span id="fps-likes" style="font-weight: bold; font-size: 1.1em; color: #25D366;">Admired by - 0</span>
+                <div style="background: #ecfdf5; padding: 12px 24px; border-radius: 20px; border: 1px solid #d1fae5; display: flex; align-items: center; gap: 10px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(16,185,129,0.05);">
+                    <span style="font-size: 1.3em;">💚</span>
+                    <span id="fps-likes" style="font-weight: 800; font-size: 1.15em; color: #059669;">Admired by - 0</span>
                 </div>
 
-                <button id="btn-block-friend" class="danger-btn" style="max-width: 200px;">Block User</button>
+                <button id="btn-block-friend" class="danger-btn" style="max-width: 200px;">Remove Connection</button>
             </div>
         </div>
     </div>
@@ -356,20 +358,20 @@
             <h2>Home</h2>
             <div class="nav-spacer"></div>
         </div>
-        <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; color: #666;">
+        <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-weight: 500;">
             </div>
     </div>
 
     <div id="chat-interface">
         <div class="top-nav">
             <div class="nav-spacer"></div>
-            <h2 id="chat-header">Random Chat</h2>
-            <button id="add-friend-btn" class="icon-btn" style="display:none;" title="Send Friend Request">
+            <h2 id="chat-header">Network Discovery</h2>
+            <button id="add-friend-btn" class="icon-btn" style="display:none;" title="Send Connect Request">
                 <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             </button>
         </div>
         <div id="chat-box" class="chat-box-style">
-            <div class="message system-msg">Click below to start your first chat!</div>
+            <div class="message system-msg">Ready to network? Click below.</div>
         </div>
 
         <div id="like-stream-container" style="display: none;">
@@ -386,7 +388,7 @@
                 <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
         </div>
-        <button id="start-btn">Start Chatting</button>
+        <button id="start-btn">Start Discovery</button>
         <div id="skip-hint">⏬ Swipe/Arrow Keys to navigate ⏬</div>
     </div>
 
@@ -403,9 +405,9 @@
             <h3 id="page-profile-name">User Name</h3>
             <p id="page-profile-email">user@email.com</p>
             
-            <div style="background: rgba(37, 211, 102, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(37, 211, 102, 0.3); display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
-                <span style="font-size: 1.2em;">🤍</span>
-                <span id="page-profile-likes" style="font-weight: bold; font-size: 1.1em; color: #25D366;">Admired by - 0</span>
+            <div style="background: #ecfdf5; padding: 12px 24px; border-radius: 20px; border: 1px solid #d1fae5; display: flex; align-items: center; gap: 10px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(16,185,129,0.05);">
+                <span style="font-size: 1.3em;">💚</span>
+                <span id="page-profile-likes" style="font-weight: 800; font-size: 1.15em; color: #059669;">Admired by - 0</span>
             </div>
         </div>
     </div>
@@ -413,7 +415,7 @@
     <div id="bottom-nav">
         <div class="nav-tab" id="tab-friends">
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-            <span class="nav-label">Friends</span>
+            <span class="nav-label">Network</span>
             <div id="global-unread-badge">0</div>
         </div>
         <div class="nav-tab active" id="tab-home">
@@ -422,7 +424,7 @@
         </div>
         <div class="nav-tab" id="tab-chat">
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-            <span class="nav-label">Chat</span>
+            <span class="nav-label">Discover</span>
         </div>
         <div class="nav-tab" id="tab-profile">
             <img id="tab-profile-pic" class="tab-profile-pic" src="" alt="Profile">
@@ -443,8 +445,8 @@
 
     <div id="confirm-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3>Skip Stranger?</h3>
-            <p>Are you sure you want to leave this conversation?</p>
+            <h3>End Conversation?</h3>
+            <p>Are you sure you want to disconnect and find someone new?</p>
             <div class="modal-buttons">
                 <button id="btn-stay">Stay</button>
                 <button id="btn-leave">Leave</button>
@@ -570,7 +572,7 @@
     // --- PUSH NOTIFICATION LOGIC ---
     function showNotificationBanner(strangerName, strangerPhoto) {
         notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
-        notifMsg.textContent = `${strangerName} sent you a request!`;
+        notifMsg.textContent = `${strangerName} wants to connect!`;
         
         notificationBanner.classList.add('show');
         
@@ -592,7 +594,7 @@
     // --- LIKE PULSE LOGIC WITH AUTO-HIDE ---
     function createFloatingHeart() {
         const heart = document.createElement('div');
-        heart.textContent = '💚'; // Green Heart
+        heart.textContent = '💚'; 
         heart.className = 'floating-heart';
         heart.style.left = (Math.random() * 20 - 10) + 'px';
         likeStreamContainer.appendChild(heart);
@@ -766,7 +768,7 @@
     document.getElementById('btn-block-friend').addEventListener('click', async () => {
         if (!currentFriendRoomId || !currentFriendId) return;
         
-        if (!confirm(`Are you sure you want to block ${currentFriendName}? You will not be able to message them anymore.`)) return;
+        if (!confirm(`Are you sure you want to disconnect from ${currentFriendName}? You won't be able to message them anymore.`)) return;
 
         if (!myBlockedIds.includes(currentFriendId)) {
             myBlockedIds.push(currentFriendId);
@@ -807,7 +809,6 @@
             unsubscribeMyUser = onSnapshot(userRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    // Update main profile text format
                     pageProfileLikes.textContent = "Admired by - " + (data.totalLikes || 0);
                 }
             });
@@ -919,7 +920,7 @@
 
                 const div = document.createElement('div'); div.className = 'req-compact';
                 div.innerHTML = `
-                    <div class="friend-avatar" style="border-color: #ffc107;">${avatarHtml}</div>
+                    <div class="friend-avatar" style="border-color: #f59e0b;">${avatarHtml}</div>
                     <div class="friend-name">${strangerName}</div>
                     <div class="req-actions-compact">
                         <button class="req-btn req-accept" onclick="respondRequest('${req.id}', 'accepted')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></button>
@@ -935,7 +936,7 @@
                 const strangerPhoto = (friend.data.photos && friend.data.photos[friend.strangerId]) ? friend.data.photos[friend.strangerId] : null;
                 
                 let avatarHtml = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
-                let lastMsg = "New conversation";
+                let lastMsg = "Start a conversation";
                 if (friend.data.friendMessages && friend.data.friendMessages.length > 0) lastMsg = friend.data.friendMessages[friend.data.friendMessages.length - 1].text;
                 let badgeHtml = friend.unreadCount > 0 ? `<div class="unread-badge">${friend.unreadCount}</div>` : '';
 
@@ -947,7 +948,7 @@
             });
 
             requestsSection.style.display = requestsData.length > 0 ? 'block' : 'none';
-            if (friendsData.length === 0) friendsContainer.innerHTML = '<div class="empty-friends">No friends yet. Send requests in chat!</div>';
+            if (friendsData.length === 0) friendsContainer.innerHTML = '<div class="empty-friends">Your network is empty. Start discovering!</div>';
         });
     }
 
@@ -957,7 +958,7 @@
         addFriendBtn.classList.add('active-friend-icon');
         addFriendBtn.disabled = true;
         addFriendBtn.title = "Request Pending";
-        appendMessage("Friend request sent!", "system-msg");
+        appendMessage("Connection request sent!", "system-msg");
     });
 
     window.respondRequest = async (roomId, response) => {
@@ -977,7 +978,7 @@
         currentFriendName = friendName;
         currentFriendPhoto = strangerPhoto;
 
-        friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Start a new conversation.</div>';
+        friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Say hello.</div>';
         markRoomAsRead(roomId);
         
         if (unsubscribeFriendChat) unsubscribeFriendChat();
@@ -1071,16 +1072,16 @@
             if (data.friendStatus === 'pending' || data.friendStatus === 'accepted' || isAlreadyFriend) {
                 addFriendBtn.classList.add('active-friend-icon');
                 addFriendBtn.disabled = true;
-                addFriendBtn.title = isAlreadyFriend ? "Already Friends" : "Request Pending";
+                addFriendBtn.title = isAlreadyFriend ? "Already Connected" : "Request Pending";
             } else {
                 addFriendBtn.classList.remove('active-friend-icon');
                 addFriendBtn.disabled = false;
-                addFriendBtn.title = "Send Friend Request";
+                addFriendBtn.title = "Send Connect Request";
             }
 
             if (data.status === "chatting" && !isChatting) {
                 isChatting = true;
-                appendMessage("You are now chatting! Say hi 👋", "system-msg");
+                appendMessage("Connection established. Introduce yourself! 👋", "system-msg");
                 msgInput.disabled = false; sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
                 
                 currentStrangerId = strangerId;
@@ -1091,10 +1092,10 @@
                 }
             }
             if (data.status === "closed" && isChatting) {
-                appendMessage("Stranger disconnected.", "system-msg");
+                appendMessage("The other person has left the network.", "system-msg");
                 isChatting = false; msgInput.disabled = true; sendBtn.disabled = true; addFriendBtn.style.display = 'none';
                 likeStreamContainer.style.display = 'none'; 
-                appendMessage("⏬ Swipe or press ↓ to find someone new ⏬", "system-msg");
+                appendMessage("⏬ Swipe or press ↓ to discover someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
             }
             if (isChatting && data.messages && data.messages.length > displayedMessageCount) {
@@ -1107,7 +1108,7 @@
 
     async function findStranger() {
         if (!myUserId) return; 
-        resetChat(); appendMessage("Looking for a stranger...", "system-msg");
+        resetChat(); appendMessage("Searching the network...", "system-msg");
         
         const q = query(collection(db, "rooms"), where("status", "==", "waiting"), limit(10)); 
         const querySnapshot = await getDocs(q);
