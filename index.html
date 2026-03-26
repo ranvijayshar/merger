@@ -22,62 +22,64 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* Main App Container */
+        /* Main App Container - MADE TALLER */
         .chat-container { 
             width: 100%; max-width: 450px; 
             background: #1a1a1a; border-radius: 20px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px rgba(0, 123, 255, 0.1); 
             display: flex; flex-direction: column; 
-            height: 85vh; max-height: 750px;
+            height: 96vh; /* Increased from 85vh to cover more top/bottom */
+            max-height: 900px; /* Increased from 750px */
             z-index: 10; border: 1px solid #2a2a2a;
             position: relative; overflow: hidden; 
-            padding: 0; /* Padding moved to screens */
+            padding: 0; 
         }
 
-        /* --- BOTTOM NAVIGATION BAR --- */
+        /* --- BOTTOM NAVIGATION BAR - THINNER --- */
         #bottom-nav {
-            display: none; /* Flex when logged in */
+            display: none; 
             justify-content: space-around; align-items: center;
-            padding: 12px 0 15px 0; background: #0f0f0f;
+            padding: 8px 0; /* Reduced padding */
+            background: #0f0f0f;
             border-top: 1px solid #2a2a2a; z-index: 20;
         }
         .nav-tab {
             display: flex; flex-direction: column; align-items: center;
             color: #666; cursor: pointer; transition: all 0.2s; width: 50%;
-            font-size: 0.85em; font-weight: 600;
+            font-size: 0.8em; font-weight: 600;
         }
         .nav-tab:hover { color: #aaa; }
         .nav-tab.active { color: #007bff; }
-        .nav-icon { font-size: 1.5em; margin-bottom: 4px; transition: transform 0.2s; }
+        .nav-icon { font-size: 1.4em; margin-bottom: 2px; transition: transform 0.2s; }
         .nav-tab.active .nav-icon { transform: scale(1.15); }
 
-        /* Instagram Style Profile Icon in Tab */
         .tab-profile-pic {
-            width: 24px; height: 24px; border-radius: 50%; object-fit: cover;
-            margin-bottom: 4px; border: 2px solid transparent; transition: all 0.2s;
+            width: 22px; height: 22px; border-radius: 50%; object-fit: cover;
+            margin-bottom: 2px; border: 2px solid transparent; transition: all 0.2s;
         }
         .nav-tab.active .tab-profile-pic { border-color: #007bff; transform: scale(1.1); }
 
-        /* --- SCREENS --- */
+        /* --- SCREENS - REDUCED PADDING --- */
         #login-screen, #chat-interface, #profile-screen {
             display: none; flex-direction: column; flex-grow: 1; 
-            width: 100%; box-sizing: border-box; padding: 20px 25px;
-            overflow: hidden; /* Contains the sliding animation */
+            width: 100%; box-sizing: border-box; 
+            padding: 15px 20px; /* Reduced from 20px 25px */
+            overflow: hidden; 
         }
 
-        /* Slide Animations */
         @keyframes slideInFromRight { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slideInFromLeft { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Top Navs */
+        /* Top Navs - THINNER */
         .top-nav {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #333;
+            margin-bottom: 10px; /* Reduced */
+            padding-bottom: 10px; border-bottom: 1px solid #333;
         }
-        .top-nav h2 { margin: 0; font-weight: 600; letter-spacing: 1px; color: #eee; font-size: 1.4em; }
-        .nav-item { width: 40px; } /* Balances the header */
-        .settings-btn { background: none; border: none; font-size: 1.6em; cursor: pointer; padding: 0; text-align: right; transition: transform 0.3s ease; width: 100%; color: #aaa; }
+        .top-nav h2 { margin: 0; font-weight: 600; letter-spacing: 1px; color: #eee; font-size: 1.25em; } /* Slightly smaller text */
+        .nav-item { width: 40px; } 
+        .settings-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; padding: 0; text-align: right; transition: transform 0.3s ease; width: 100%; color: #aaa; }
         .settings-btn:hover { transform: rotate(90deg); color: white; }
 
         /* 1. Login Screen */
@@ -88,58 +90,59 @@
         .google-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,255,255,0.3); }
         .google-btn img { width: 20px; }
 
-        /* 2. Chat Interface */
-        #chat-box { flex-grow: 1; border-radius: 12px; padding: 15px; overflow-y: auto; margin-bottom: 15px; background: #111111; display: flex; flex-direction: column; gap: 12px; }
+        /* 2. Chat Interface - MAXIMIZED SPACE */
+        #chat-box { flex-grow: 1; border-radius: 12px; padding: 12px; overflow-y: auto; margin-bottom: 10px; background: #111111; display: flex; flex-direction: column; gap: 10px; }
         #chat-box::-webkit-scrollbar { width: 6px; }
         #chat-box::-webkit-scrollbar-track { background: transparent; }
         #chat-box::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
-        .message { padding: 12px 18px; border-radius: 20px; max-width: 75%; word-wrap: break-word; line-height: 1.4; font-size: 0.95em; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform-origin: bottom; }
+        .message { padding: 10px 15px; border-radius: 20px; max-width: 75%; word-wrap: break-word; line-height: 1.4; font-size: 0.95em; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform-origin: bottom; }
         @keyframes popIn { 0% { opacity: 0; transform: translateY(20px) scale(0.9); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
         .my-msg { background: linear-gradient(135deg, #0062cc, #007bff); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2); }
         .stranger-msg { background: #2d2d2d; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
-        .system-msg { text-align: center; color: #888; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 20px; }
+        .system-msg { text-align: center; color: #888; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 20px; }
 
-        .controls { display: flex; gap: 10px; }
-        input[type="text"] { flex-grow: 1; padding: 14px 20px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 1em; transition: all 0.3s ease; }
+        .controls { display: flex; gap: 8px; }
+        input[type="text"] { flex-grow: 1; padding: 12px 16px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; }
         input[type="text"]:focus { border-color: #007bff; }
         input[type="text"]:disabled { background: #1a1a1a; cursor: not-allowed; }
 
-        button.action-btn { padding: 0 20px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-transform: uppercase; font-size: 0.9em; }
+        button.action-btn { padding: 0 16px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-transform: uppercase; font-size: 0.85em; }
         button.action-btn:hover:not(:disabled) { background: #0056b3; transform: translateY(-2px); }
         button.action-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
 
-        #start-btn { background: linear-gradient(135deg, #ff416c, #ff4b2b); margin-top: 15px; width: 100%; font-size: 1.1em; padding: 16px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3); transition: all 0.2s; }
+        /* Start Button - THINNER */
+        #start-btn { background: linear-gradient(135deg, #ff416c, #ff4b2b); margin-top: 10px; width: 100%; font-size: 1.05em; padding: 12px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3); transition: all 0.2s; }
         #start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5); }
-        #skip-hint { display: none; text-align: center; color: #777; font-size: 0.85em; margin-top: 15px; animation: pulse 2s infinite; }
+        #skip-hint { display: none; text-align: center; color: #777; font-size: 0.8em; margin-top: 10px; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
         /* 3. Profile Screen */
         .profile-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; user-select: none; }
-        .profile-img-large { width: 120px; height: 120px; border-radius: 50%; margin-bottom: 20px; border: 4px solid #007bff; object-fit: cover; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .profile-content h3 { margin: 0 0 5px 0; font-size: 1.8em; color: #fff; }
-        .profile-content p { color: #aaa; font-size: 1em; margin-bottom: 40px; }
+        .profile-img-large { width: 110px; height: 110px; border-radius: 50%; margin-bottom: 20px; border: 4px solid #007bff; object-fit: cover; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .profile-content h3 { margin: 0 0 5px 0; font-size: 1.6em; color: #fff; }
+        .profile-content p { color: #aaa; font-size: 0.95em; margin-bottom: 40px; }
 
         /* Modals & Overlays */
         .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); border-radius: 20px; display: none; justify-content: center; align-items: center; z-index: 100; animation: fadeIn 0.2s ease forwards; }
-        .modal-content { background: #222; padding: 30px; border-radius: 15px; text-align: center; width: 80%; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
-        .close-modal-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #888; font-size: 1.5em; cursor: pointer; }
+        .modal-content { background: #222; padding: 25px; border-radius: 15px; text-align: center; width: 80%; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
+        .close-modal-btn { position: absolute; top: 8px; right: 15px; background: none; border: none; color: #888; font-size: 1.5em; cursor: pointer; }
         .close-modal-btn:hover { color: white; }
 
         /* Modal Buttons */
-        .modal-content h3 { margin-top: 0; color: #fff; margin-bottom: 10px; }
-        .modal-content p { color: #ccc; font-size: 0.9em; margin-bottom: 25px; line-height: 1.4; }
-        .modal-buttons { display: flex; gap: 15px; justify-content: center; }
-        .modal-buttons button { padding: 12px 20px; border-radius: 8px; flex: 1; font-size: 1em; border: none; cursor: pointer; font-weight: bold; }
+        .modal-content h3 { margin-top: 0; color: #fff; margin-bottom: 10px; font-size: 1.2em;}
+        .modal-content p { color: #ccc; font-size: 0.9em; margin-bottom: 20px; line-height: 1.4; }
+        .modal-buttons { display: flex; gap: 12px; justify-content: center; }
+        .modal-buttons button { padding: 10px 15px; border-radius: 8px; flex: 1; font-size: 0.95em; border: none; cursor: pointer; font-weight: bold; }
         #btn-stay { background: #444; color: white; }
         #btn-leave { background: #dc3545; color: white; }
 
         /* Settings Modal */
         .settings-content { text-align: left; }
-        .settings-content h3 { text-align: center; border-bottom: 1px solid #444; padding-bottom: 15px; margin-bottom: 20px; }
-        .settings-item { background: #333; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; text-align: left; font-size: 1em; cursor: pointer; margin-bottom: 10px; transition: background 0.2s; font-weight: bold; }
+        .settings-content h3 { text-align: center; border-bottom: 1px solid #444; padding-bottom: 12px; margin-bottom: 15px; }
+        .settings-item { background: #333; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; text-align: left; font-size: 0.95em; cursor: pointer; margin-bottom: 10px; transition: background 0.2s; font-weight: bold; }
         .settings-item:hover { background: #444; }
-        .danger-btn { background: #dc3545; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; width: 100%; transition: all 0.2s; margin-top: 10px; }
+        .danger-btn { background: #dc3545; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.95em; cursor: pointer; width: 100%; transition: all 0.2s; margin-top: 10px; }
         .danger-btn:hover { background: #c82333; }
     </style>
 </head>
@@ -299,7 +302,6 @@
             screenElement.style.animation = `fadeIn 0.3s ease forwards`;
         }
 
-        // Highlight correct bottom tab
         if (screenElement === chatInterface) {
             tabChat.classList.add('active');
             tabProfile.classList.remove('active');
@@ -315,7 +317,6 @@
         chatBox.scrollTo({ top: chatBox.scrollHeight }); 
     }
 
-    // Bottom Tab Click Listeners
     tabChat.addEventListener('click', () => { if(chatInterface.style.display !== 'flex') closeProfileToChat(); });
     tabProfile.addEventListener('click', () => { if(profileScreen.style.display !== 'flex') openProfile(); });
 
@@ -324,7 +325,6 @@
     let touchStartY_H = 0; 
     let isDragging = false; 
 
-    // Mobile touch swipes
     profileScreen.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
         touchStartY_H = e.changedTouches[0].screenY;
@@ -333,7 +333,7 @@
         let touchEndX = e.changedTouches[0].screenX;
         let diffX = touchEndX - touchStartX;
         let diffY = Math.abs(e.changedTouches[0].screenY - touchStartY_H);
-        if (diffX > 50 && diffX > diffY) closeProfileToChat(); // Swiped Right
+        if (diffX > 50 && diffX > diffY) closeProfileToChat(); 
     });
     chatInterface.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
@@ -341,11 +341,10 @@
     });
     chatInterface.addEventListener('touchend', (e) => {
         let touchEndX = e.changedTouches[0].screenX;
-        let diffX = touchStartX - touchEndX; // Swiped Left
+        let diffX = touchStartX - touchEndX; 
         let diffY = Math.abs(e.changedTouches[0].screenY - touchStartY_H);
         if (diffX > 50 && diffX > diffY) openProfile(); 
     });
-
 
     // --- SETTINGS MODAL LOGIC ---
     openSettingsBtn.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
@@ -360,20 +359,19 @@
         if (user) {
             myUserId = user.uid;
             
-            // Populate image across the app
-            tabProfilePic.src = user.photoURL; // Bottom Tab Image!
-            pageProfilePic.src = user.photoURL; // Main Profile Page Image
+            tabProfilePic.src = user.photoURL; 
+            pageProfilePic.src = user.photoURL; 
             pageProfileName.textContent = user.displayName;
             pageProfileEmail.textContent = user.email;
             
-            bottomNav.style.display = 'flex'; // Show nav bar
+            bottomNav.style.display = 'flex'; 
             showScreen(chatInterface);
         } else {
             myUserId = null;
             if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e => console.error(e));
             resetChat();
             
-            bottomNav.style.display = 'none'; // Hide nav bar
+            bottomNav.style.display = 'none'; 
             showScreen(loginScreen);
             hasStarted = false;
             startBtn.style.display = 'block';
@@ -527,7 +525,6 @@
         startBtn.style.display = 'none'; skipHint.style.display = 'block'; hasStarted = true; findStranger();
     });
 
-    // Vertical Skips
     window.addEventListener('wheel', (e) => { if (e.deltaY > 20) handleSkipIntent(e, true); });
 
     let verticalTouchStartY = 0;
@@ -542,7 +539,6 @@
         if (diffY > 50 && diffY > diffX) handleSkipIntent(e, true);
     });
 
-    // Keyboards
     window.addEventListener('keydown', (e) => {
         if (document.activeElement === msgInput || isConfirming || settingsModal.style.display === 'flex') return;
 
