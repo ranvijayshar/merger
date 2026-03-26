@@ -15,7 +15,6 @@
         /* Base Theme */
         * { 
             box-sizing: border-box; 
-            /* Added Noto Color Emoji so typed messages use Google emojis too! */
             font-family: 'Segoe UI', Roboto, 'Noto Color Emoji', Helvetica, Arial, sans-serif; 
         }
         
@@ -41,7 +40,8 @@
         /* --- VECTOR ICONS --- */
         svg { fill: currentColor; width: 24px; height: 24px; transition: transform 0.2s ease; }
         .icon-btn { background: none; border: none; color: #aaa; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: color 0.2s ease, transform 0.2s ease;}
-        .icon-btn:hover { color: white; transform: scale(1.1); }
+        .icon-btn:hover:not(:disabled) { color: white; transform: scale(1.1); }
+        .icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .active-friend-icon { color: #00ff88 !important; }
 
         /* --- BOTTOM NAVIGATION --- */
@@ -59,7 +59,7 @@
         .tab-profile-pic { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s ease, transform 0.2s ease; }
         .nav-tab.active .tab-profile-pic { border-color: #007bff; transform: scale(1.1); }
 
-        /* Global Unread Badge for the Bottom Tab */
+        /* Global Unread Badge */
         #global-unread-badge {
             position: absolute; top: -5px; right: 25px; background: #25D366; color: white;
             font-size: 0.7em; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none; pointer-events: none;
@@ -104,16 +104,7 @@
         .emoji-toggle-btn:hover { transform: scale(1.1); }
         
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 20px rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; }
-        
-        /* FIX: Force Picker to use Google Fonts */
-        emoji-picker { 
-            --background: #222; 
-            --border-color: #333; 
-            --input-border-color: #444; 
-            --button-hover-background: #333; 
-            --emoji-font-family: 'Noto Color Emoji', sans-serif;
-            height: 350px; width: 100%;
-        }
+        emoji-picker { --background: #222; --border-color: #333; --input-border-color: #444; --button-hover-background: #333; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
 
         input[type="text"] { flex-grow: 1; padding: 12px 16px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 0.95em; transition: border-color 0.3s ease; }
         input[type="text"]:focus { border-color: #007bff; }
@@ -197,19 +188,16 @@
     </div>
 
     <div id="friends-screen">
-        
         <div id="friends-list-view">
             <div class="top-nav">
                 <div class="nav-spacer"></div>
                 <h2>Friends</h2>
                 <div class="nav-spacer"></div>
             </div>
-            
             <div id="requests-section" style="display: none;">
                 <div class="section-title">Requests</div>
                 <div id="requests-container"></div>
             </div>
-
             <div class="section-title">My Friends</div>
             <div class="friends-list" id="friends-container">
                 <div class="empty-friends">No friends yet.</div>
@@ -225,7 +213,6 @@
                 <div class="nav-spacer"></div>
             </div>
             <div id="friend-chat-box" class="chat-box-style"></div>
-            
             <div class="controls">
                 <button class="emoji-toggle-btn" id="friend-emoji-btn">😀</button>
                 <div class="emoji-picker-container" id="friend-emoji-picker">
@@ -250,7 +237,6 @@
         <div id="chat-box" class="chat-box-style">
             <div class="message system-msg">Click below to start your first chat!</div>
         </div>
-        
         <div class="controls">
             <button class="emoji-toggle-btn" id="random-emoji-btn">😀</button>
             <div class="emoji-picker-container" id="random-emoji-picker">
@@ -401,6 +387,9 @@
     let myUserId = null; 
     let myUserName = "Unknown User";
     let myUserPhoto = "";
+    
+    // NEW: Array to store all our confirmed friend IDs so we don't match with them randomly!
+    let myFriendIds = [];
 
     // --- EMOJI PICKER LOGIC ---
     randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
@@ -533,16 +522,23 @@
             let requestsData = [];
             let friendsData = [];
             let totalUnreadMessages = 0; 
+            
+            // Clear out friends list each time we re-calculate
+            myFriendIds = [];
 
             snapshot.forEach(docSnap => {
                 const data = docSnap.data(); 
+                const strangerId = data.participants.find(id => id !== myUserId) || "Unknown";
                 const isRequestForMe = data.friendStatus === 'pending' && data.requester !== myUserId;
                 const isAcceptedFriend = data.friendStatus === 'accepted';
 
                 if (isRequestForMe) {
-                    requestsData.push({ id: docSnap.id, data: data });
+                    requestsData.push({ id: docSnap.id, data: data, strangerId: strangerId });
                 } 
                 else if (isAcceptedFriend) {
+                    // Populate our internal memory array to prevent random matchmaking!
+                    if (strangerId !== "Unknown") myFriendIds.push(strangerId);
+                    
                     let lastActivity = data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now();
                     if (data.friendMessages && data.friendMessages.length > 0) {
                         lastActivity = data.friendMessages[data.friendMessages.length - 1].timestamp;
@@ -560,7 +556,7 @@
                     }
 
                     totalUnreadMessages += unreadCount;
-                    friendsData.push({ id: docSnap.id, data: data, lastActivity: lastActivity, unreadCount: unreadCount });
+                    friendsData.push({ id: docSnap.id, data: data, lastActivity: lastActivity, unreadCount: unreadCount, strangerId: strangerId });
                 }
             });
 
@@ -572,9 +568,8 @@
             }
 
             requestsData.forEach(req => {
-                const strangerId = req.data.participants.find(id => id !== myUserId) || "Unknown";
-                const strangerName = (req.data.names && req.data.names[strangerId]) ? req.data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
-                const strangerPhoto = (req.data.photos && req.data.photos[strangerId]) ? req.data.photos[strangerId] : null;
+                const strangerName = (req.data.names && req.data.names[req.strangerId]) ? req.data.names[req.strangerId] : `User ${req.strangerId.substring(0,4)}`;
+                const strangerPhoto = (req.data.photos && req.data.photos[req.strangerId]) ? req.data.photos[req.strangerId] : null;
                 
                 let avatarHtml = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
 
@@ -592,9 +587,8 @@
 
             friendsData.sort((a, b) => b.lastActivity - a.lastActivity);
             friendsData.forEach(friend => {
-                const strangerId = friend.data.participants.find(id => id !== myUserId) || "Unknown";
-                const strangerName = (friend.data.names && friend.data.names[strangerId]) ? friend.data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
-                const strangerPhoto = (friend.data.photos && friend.data.photos[strangerId]) ? friend.data.photos[strangerId] : null;
+                const strangerName = (friend.data.names && friend.data.names[friend.strangerId]) ? friend.data.names[friend.strangerId] : `User ${friend.strangerId.substring(0,4)}`;
+                const strangerPhoto = (friend.data.photos && friend.data.photos[friend.strangerId]) ? friend.data.photos[friend.strangerId] : null;
                 
                 let avatarHtml = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
                 let lastMsg = "New conversation";
@@ -616,8 +610,9 @@
         if (!currentRoomId) return;
         await updateDoc(doc(db, "rooms", currentRoomId), { friendStatus: "pending", requester: myUserId });
         addFriendBtn.classList.add('active-friend-icon');
-        appendMessage("Friend request sent!", "system-msg");
         addFriendBtn.disabled = true;
+        addFriendBtn.title = "Request Pending";
+        appendMessage("Friend request sent!", "system-msg");
     });
 
     window.respondRequest = async (roomId, response) => {
@@ -679,7 +674,6 @@
         });
     }
 
-
     // ==========================================
     // --- FEATURE 2: RANDOM CHAT ---
     // ==========================================
@@ -691,7 +685,7 @@
 
     function resetChat() {
         chatBox.innerHTML = ''; msgInput.disabled = true; sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
-        addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false;
+        addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Friend Request";
         if (unsubscribeRoom) unsubscribeRoom(); currentRoomId = null;
     }
 
@@ -701,7 +695,19 @@
             const data = snapshot.data();
             if (!data) return;
 
-            if (data.friendStatus === 'pending' || data.friendStatus === 'accepted') addFriendBtn.classList.add('active-friend-icon');
+            // Handle the Add Friend button status safely
+            const strangerId = data.participants.find(id => id !== myUserId);
+            const isAlreadyFriend = strangerId && myFriendIds.includes(strangerId);
+
+            if (data.friendStatus === 'pending' || data.friendStatus === 'accepted' || isAlreadyFriend) {
+                addFriendBtn.classList.add('active-friend-icon');
+                addFriendBtn.disabled = true;
+                addFriendBtn.title = isAlreadyFriend ? "Already Friends" : "Request Pending";
+            } else {
+                addFriendBtn.classList.remove('active-friend-icon');
+                addFriendBtn.disabled = false;
+                addFriendBtn.title = "Send Friend Request";
+            }
 
             if (data.status === "chatting" && !isChatting) {
                 isChatting = true;
@@ -725,11 +731,28 @@
     async function findStranger() {
         if (!myUserId) return; 
         resetChat(); appendMessage("Looking for a stranger...", "system-msg");
-        const q = query(collection(db, "rooms"), where("status", "==", "waiting"), limit(1)); 
+        
+        // Fetch up to 10 waiting rooms to check against our friends list
+        const q = query(collection(db, "rooms"), where("status", "==", "waiting"), limit(10)); 
         const querySnapshot = await getDocs(q);
 
+        let matchedRoomId = null;
+
         if (!querySnapshot.empty) {
-            currentRoomId = querySnapshot.docs[0].id;
+            for (let docSnap of querySnapshot.docs) {
+                const roomData = docSnap.data();
+                const roomCreatorId = roomData.creatorId || roomData.participants[0];
+                
+                // NEW: Ensure we DO NOT match with anyone who is already on our friends list!
+                if (roomCreatorId !== myUserId && !myFriendIds.includes(roomCreatorId)) {
+                    matchedRoomId = docSnap.id;
+                    break;
+                }
+            }
+        }
+
+        if (matchedRoomId) {
+            currentRoomId = matchedRoomId;
             await updateDoc(doc(db, "rooms", currentRoomId), { 
                 status: "chatting", participants: arrayUnion(myUserId),
                 [`names.${myUserId}`]: myUserName, [`photos.${myUserId}`]: myUserPhoto
@@ -737,7 +760,7 @@
             setupRoomListener(currentRoomId);
         } else {
             const newRoom = await addDoc(collection(db, "rooms"), { 
-                status: "waiting", participants: [myUserId], 
+                status: "waiting", creatorId: myUserId, participants: [myUserId], 
                 names: { [myUserId]: myUserName }, photos: { [myUserId]: myUserPhoto },
                 createdAt: serverTimestamp(), messages: [], friendMessages: [], lastRead: { [myUserId]: Date.now() }
             });
