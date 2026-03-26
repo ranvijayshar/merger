@@ -296,7 +296,7 @@
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
     
-    // Bottom Nav Elements
+    // Bottom Nav
     const bottomNav = document.getElementById('bottom-nav');
     const tabFriends = document.getElementById('tab-friends');
     const tabChat = document.getElementById('tab-chat');
@@ -342,7 +342,6 @@
     let isConfirming = false; 
     let displayedMessageCount = 0; 
     
-    // --- NEW: Store personal user data to share with strangers ---
     let myUserId = null; 
     let myUserName = "Unknown User";
     let myUserPhoto = "";
@@ -420,12 +419,10 @@
     // --- AUTHENTICATION ---
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            // SET GLOBAL USER VARIABLES
             myUserId = user.uid;
             myUserName = user.displayName || "Unknown User";
             myUserPhoto = user.photoURL || "";
 
-            // Populate UI
             document.getElementById('tab-profile-pic').src = myUserPhoto; 
             document.getElementById('page-profile-pic').src = myUserPhoto; 
             document.getElementById('page-profile-name').textContent = myUserName;
@@ -433,7 +430,7 @@
             
             bottomNav.style.display = 'flex'; 
             showScreen(chatInterface);
-            startFriendsListener(); // Initialize Friends List
+            startFriendsListener(); 
         } else {
             myUserId = null;
             if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e=>e);
@@ -466,20 +463,18 @@
                 const isRequestForMe = data.friendStatus === 'pending' && data.requester !== myUserId;
                 const isAcceptedFriend = data.friendStatus === 'accepted';
                 
-                // --- NEW: GRAB REAL NAMES AND PHOTOS ---
                 const strangerName = (data.names && data.names[strangerId]) ? data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
                 const strangerPhoto = (data.photos && data.photos[strangerId]) ? data.photos[strangerId] : null;
                 
-                // Build the Avatar Graphic
                 let avatarHtml = '';
-                if (strangerPhoto) {
-                    avatarHtml = `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-                } else {
-                    avatarHtml = strangerName.substring(0,1).toUpperCase();
-                }
+                if (strangerPhoto) avatarHtml = `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                else avatarHtml = strangerName.substring(0,1).toUpperCase();
 
-                let lastMsg = "New conversation";
-                if (data.messages && data.messages.length > 0) lastMsg = data.messages[data.messages.length - 1].text;
+                // Look for the last message in the FRIEND chat, not the random chat
+                let lastMsg = "Say hi to your new friend!";
+                if (data.friendMessages && data.friendMessages.length > 0) {
+                    lastMsg = data.friendMessages[data.friendMessages.length - 1].text;
+                }
 
                 if (isRequestForMe) {
                     requestCount++;
@@ -520,26 +515,35 @@
     });
 
     window.respondRequest = async (roomId, response) => {
-        if (response === 'accepted') await updateDoc(doc(db, "rooms", roomId), { friendStatus: "accepted" });
-        else await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" });
+        if (response === 'accepted') {
+            await updateDoc(doc(db, "rooms", roomId), { friendStatus: "accepted" });
+        } else {
+            await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" });
+        }
     };
 
     function openFriendChatUI(roomId, friendName) {
         friendsListView.style.display = 'none'; friendChatView.style.display = 'flex';
-        friendChatHeader.textContent = friendName; currentFriendRoomId = roomId; friendChatBox.innerHTML = '';
+        friendChatHeader.textContent = friendName; currentFriendRoomId = roomId; 
+        
+        // Start fresh UI
+        friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Start a new conversation.</div>';
+        
         if (unsubscribeFriendChat) unsubscribeFriendChat();
         
         let localFriendMsgCount = 0;
         unsubscribeFriendChat = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
             const data = snapshot.data();
-            if (data && data.messages && data.messages.length > localFriendMsgCount) {
-                const newMsgs = data.messages.slice(localFriendMsgCount);
+            
+            // ONLY read from the new friendMessages array! 
+            if (data && data.friendMessages && data.friendMessages.length > localFriendMsgCount) {
+                const newMsgs = data.friendMessages.slice(localFriendMsgCount);
                 newMsgs.forEach(msg => {
                     const div = document.createElement('div');
                     div.className = `message ${msg.senderId === myUserId ? 'my-msg' : 'stranger-msg'}`;
                     div.textContent = msg.text; friendChatBox.appendChild(div);
                 });
-                localFriendMsgCount = data.messages.length;
+                localFriendMsgCount = data.friendMessages.length;
                 friendChatBox.scrollTo({ top: friendChatBox.scrollHeight, behavior: 'smooth' });
             }
         });
@@ -557,7 +561,11 @@
         const text = friendMsgInput.value.trim();
         if (!text || !currentFriendRoomId) return;
         friendMsgInput.value = '';
-        await updateDoc(doc(db, "rooms", currentFriendRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
+        
+        // ONLY write to the new friendMessages array!
+        await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
+            friendMessages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) 
+        });
     }
 
     // ==========================================
@@ -610,7 +618,6 @@
 
         if (!querySnapshot.empty) {
             currentRoomId = querySnapshot.docs[0].id;
-            // JOIN ROOM: Add my name and photo to the room data!
             await updateDoc(doc(db, "rooms", currentRoomId), { 
                 status: "chatting", 
                 participants: arrayUnion(myUserId),
@@ -619,14 +626,14 @@
             });
             setupRoomListener(currentRoomId);
         } else {
-            // CREATE ROOM: Initialize the room with my name and photo!
             const newRoom = await addDoc(collection(db, "rooms"), { 
                 status: "waiting", 
                 participants: [myUserId], 
                 names: { [myUserId]: myUserName },
                 photos: { [myUserId]: myUserPhoto },
                 createdAt: serverTimestamp(), 
-                messages: [] 
+                messages: [],
+                friendMessages: [] // Initialize empty friend chat!
             });
             currentRoomId = newRoom.id; setupRoomListener(currentRoomId);
         }
@@ -676,7 +683,7 @@
 
     window.addEventListener('keydown', (e) => {
         if (document.activeElement.tagName === 'INPUT' || isConfirming || settingsModal.style.display === 'flex') return;
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') handleSkipIntent(e, false);
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); handleSkipIntent(e, false); }
         else if (e.key === 'ArrowRight') {
             if (friendsScreen.style.display === 'flex' && friendChatView.style.display !== 'flex') openChatFromFriends();
             else if (chatInterface.style.display === 'flex') openProfile();
