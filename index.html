@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Chat - 3 Pane Layout</title>
+    <title>Random Chat - Premium Edition</title>
     <style>
         /* Base Theme */
         body { 
@@ -69,7 +69,7 @@
         .google-btn { background: white; color: #333; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(255,255,255,0.2); transition: all 0.2s; }
         .google-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,255,255,0.3); }
 
-        /* Generic Chat Box Styles (Used for both Random and Friend chats) */
+        /* Generic Chat Box Styles */
         .chat-box-style { flex-grow: 1; border-radius: 12px; padding: 12px; overflow-y: auto; margin-bottom: 10px; background: #111111; display: flex; flex-direction: column; gap: 10px; }
         .chat-box-style::-webkit-scrollbar { width: 6px; }
         .chat-box-style::-webkit-scrollbar-track { background: transparent; }
@@ -84,7 +84,7 @@
         input[type="text"] { flex-grow: 1; padding: 12px 16px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; }
         input[type="text"]:focus { border-color: #007bff; }
         input[type="text"]:disabled { background: #1a1a1a; cursor: not-allowed; }
-        button.action-btn { padding: 0 16px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-transform: uppercase; font-size: 0.85em; }
+        button.action-btn { padding: 0 16px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-transform: uppercase; font-size: 0.85em; display: flex; align-items: center; justify-content: center; }
         button.action-btn:hover:not(:disabled) { background: #0056b3; transform: translateY(-2px); }
         button.action-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
         
@@ -98,7 +98,7 @@
         .profile-content h3 { margin: 0 0 5px 0; font-size: 1.6em; color: #fff; }
         .profile-content p { color: #aaa; font-size: 0.95em; margin-bottom: 40px; }
 
-        /* 4. Friends Screen (Layout & Internal Chat) */
+        /* 4. Friends Screen */
         #friends-list-view { display: flex; flex-direction: column; height: 100%; }
         #friend-chat-view { display: none; flex-direction: column; height: 100%; animation: slideInFromRight 0.3s ease forwards;}
         
@@ -108,7 +108,6 @@
         .friends-list::-webkit-scrollbar { width: 4px; }
         .friends-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         
-        /* Friend Item Cards */
         .friend-item { display: flex; align-items: center; padding: 12px; background: #111; border-radius: 12px; cursor: pointer; transition: background 0.2s; border: 1px solid #222;}
         .friend-item:hover { background: #222; }
         .friend-avatar { width: 40px; height: 40px; border-radius: 50%; background: #222; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; border: 2px solid #007bff; flex-shrink: 0;}
@@ -116,13 +115,11 @@
         .friend-name { font-weight: bold; color: #eee; font-size: 1em; margin-bottom: 3px; }
         .friend-msg { color: #888; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
         
-        /* Request Actions */
         .request-actions { display: flex; gap: 8px; margin-left: 10px; }
         .req-btn { width: 35px; height: 35px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: transform 0.2s;}
         .req-btn:hover { transform: scale(1.1); }
         .req-accept { background: #28a745; color: white; }
         .req-reject { background: #dc3545; color: white; }
-
         .empty-friends { text-align: center; color: #555; margin-top: 30px; font-style: italic; font-size: 0.9em;}
 
         /* Modals */
@@ -167,12 +164,10 @@
                 <h2>Friends</h2>
                 <div class="nav-spacer"></div>
             </div>
-            
             <div id="requests-section" style="display: none;">
                 <div class="section-title">Friend Requests</div>
                 <div id="requests-container" style="margin-bottom: 15px;"></div>
             </div>
-
             <div class="section-title">My Friends</div>
             <div class="friends-list" id="friends-container">
                 <div class="empty-friends">No friends yet.</div>
@@ -195,13 +190,12 @@
                 </button>
             </div>
         </div>
-
     </div>
 
     <div id="chat-interface">
         <div class="top-nav">
             <div class="nav-spacer"></div>
-            <h2>Random Chat</h2>
+            <h2 id="chat-header">Random Chat</h2>
             <button id="add-friend-btn" class="icon-btn" style="display:none;" title="Send Friend Request">
                 <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             </button>
@@ -328,13 +322,15 @@
     // Modals
     const settingsModal = document.getElementById('settings-modal');
     const confirmModal = document.getElementById('confirm-modal');
+    const btnStay = document.getElementById('btn-stay');
+    const btnLeave = document.getElementById('btn-leave');
 
     // State Variables
-    let currentRoomId = null; // For Random Chat
+    let currentRoomId = null; 
     let unsubscribeRoom = null;
     let isChatting = false; 
 
-    let currentFriendRoomId = null; // For Friends Private Chat
+    let currentFriendRoomId = null; 
     let unsubscribeFriendChat = null;
     let unsubscribeFriendsList = null;
     
@@ -425,7 +421,7 @@
             
             bottomNav.style.display = 'flex'; 
             showScreen(chatInterface);
-            startFriendsListener(); // Initialize Friends List!
+            startFriendsListener(); 
         } else {
             myUserId = null;
             if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e=>e);
@@ -444,26 +440,20 @@
     // --- FEATURE 1: FRIENDS SYSTEM ---
     // ==========================================
     
-    // 1A. Listen for incoming Requests & accepted Friends
     function startFriendsListener() {
         if (unsubscribeFriendsList) unsubscribeFriendsList();
-        // Query ALL rooms you are a part of
         const q = query(collection(db, "rooms"), where("participants", "array-contains", myUserId));
         
         unsubscribeFriendsList = onSnapshot(q, (snapshot) => {
-            requestsContainer.innerHTML = '';
-            friendsContainer.innerHTML = '';
-            let requestCount = 0;
-            let friendCount = 0;
+            requestsContainer.innerHTML = ''; friendsContainer.innerHTML = '';
+            let requestCount = 0; let friendCount = 0;
 
             snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                const roomId = docSnap.id;
+                const data = docSnap.data(); const roomId = docSnap.id;
                 const strangerId = data.participants.find(id => id !== myUserId) || "Unknown";
                 const isRequestForMe = data.friendStatus === 'pending' && data.requester !== myUserId;
                 const isAcceptedFriend = data.friendStatus === 'accepted';
                 
-                // Format UI details
                 let lastMsg = "New conversation";
                 if (data.messages && data.messages.length > 0) lastMsg = data.messages[data.messages.length - 1].text;
                 const avatarLetter = strangerId.substring(0,1).toUpperCase();
@@ -499,35 +489,22 @@
         });
     }
 
-    // 1B. Send a Friend Request (from Random Chat)
     addFriendBtn.addEventListener('click', async () => {
         if (!currentRoomId) return;
-        await updateDoc(doc(db, "rooms", currentRoomId), {
-            friendStatus: "pending", requester: myUserId
-        });
+        await updateDoc(doc(db, "rooms", currentRoomId), { friendStatus: "pending", requester: myUserId });
         addFriendBtn.classList.add('active-friend-icon');
         appendMessage("Friend request sent!", "system-msg");
-        addFriendBtn.disabled = true; // Prevent spamming
+        addFriendBtn.disabled = true;
     });
 
-    // 1C. Respond to a Request (Need to attach to window so inline onclick works)
     window.respondRequest = async (roomId, response) => {
-        if (response === 'accepted') {
-            await updateDoc(doc(db, "rooms", roomId), { friendStatus: "accepted" });
-        } else {
-            // If rejected, just remove the friend status so it disappears from the list
-            await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" });
-        }
+        if (response === 'accepted') await updateDoc(doc(db, "rooms", roomId), { friendStatus: "accepted" });
+        else await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" });
     };
 
-    // 1D. Open & Handle Private Friend Chat View
     function openFriendChatUI(roomId, friendName) {
-        friendsListView.style.display = 'none';
-        friendChatView.style.display = 'flex';
-        friendChatHeader.textContent = friendName;
-        currentFriendRoomId = roomId;
-        friendChatBox.innerHTML = '';
-        
+        friendsListView.style.display = 'none'; friendChatView.style.display = 'flex';
+        friendChatHeader.textContent = friendName; currentFriendRoomId = roomId; friendChatBox.innerHTML = '';
         if (unsubscribeFriendChat) unsubscribeFriendChat();
         
         let localFriendMsgCount = 0;
@@ -538,8 +515,7 @@
                 newMsgs.forEach(msg => {
                     const div = document.createElement('div');
                     div.className = `message ${msg.senderId === myUserId ? 'my-msg' : 'stranger-msg'}`;
-                    div.textContent = msg.text;
-                    friendChatBox.appendChild(div);
+                    div.textContent = msg.text; friendChatBox.appendChild(div);
                 });
                 localFriendMsgCount = data.messages.length;
                 friendChatBox.scrollTo({ top: friendChatBox.scrollHeight, behavior: 'smooth' });
@@ -548,10 +524,8 @@
     }
 
     backToFriendsBtn.addEventListener('click', () => {
-        friendChatView.style.display = 'none';
-        friendsListView.style.display = 'flex';
-        if (unsubscribeFriendChat) unsubscribeFriendChat();
-        currentFriendRoomId = null;
+        friendChatView.style.display = 'none'; friendsListView.style.display = 'flex';
+        if (unsubscribeFriendChat) unsubscribeFriendChat(); currentFriendRoomId = null;
     });
 
     friendSendBtn.addEventListener('click', sendFriendMessage);
@@ -561,13 +535,11 @@
         const text = friendMsgInput.value.trim();
         if (!text || !currentFriendRoomId) return;
         friendMsgInput.value = '';
-        await updateDoc(doc(db, "rooms", currentFriendRoomId), {
-            messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() })
-        });
+        await updateDoc(doc(db, "rooms", currentFriendRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
 
     // ==========================================
-    // --- FEATURE 2: RANDOM CHAT (Center Pane)---
+    // --- FEATURE 2: RANDOM CHAT ---
     // ==========================================
     
     function appendMessage(text, type) {
@@ -576,8 +548,7 @@
     }
 
     function resetChat() {
-        chatBox.innerHTML = ''; msgInput.disabled = true; sendBtn.disabled = true;
-        isChatting = false; displayedMessageCount = 0;
+        chatBox.innerHTML = ''; msgInput.disabled = true; sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false;
         if (unsubscribeRoom) unsubscribeRoom(); currentRoomId = null;
     }
@@ -588,25 +559,19 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // Check if request was sent/accepted while chatting
-            if (data.friendStatus === 'pending' || data.friendStatus === 'accepted') {
-                addFriendBtn.classList.add('active-friend-icon');
-            }
+            if (data.friendStatus === 'pending' || data.friendStatus === 'accepted') addFriendBtn.classList.add('active-friend-icon');
 
             if (data.status === "chatting" && !isChatting) {
                 isChatting = true;
                 appendMessage("You are now chatting! Say hi 👋", "system-msg");
-                msgInput.disabled = false; sendBtn.disabled = false; msgInput.focus();
-                addFriendBtn.style.display = 'flex';
+                msgInput.disabled = false; sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
             }
-            
             if (data.status === "closed" && isChatting) {
                 appendMessage("Stranger disconnected.", "system-msg");
                 isChatting = false; msgInput.disabled = true; sendBtn.disabled = true; addFriendBtn.style.display = 'none';
                 appendMessage("⏬ Swipe or press ↓ to find someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
             }
-
             if (isChatting && data.messages && data.messages.length > displayedMessageCount) {
                 const newMessages = data.messages.slice(displayedMessageCount);
                 newMessages.forEach(msg => { if (msg.senderId !== myUserId) appendMessage(msg.text, "stranger-msg"); });
@@ -618,7 +583,6 @@
     async function findStranger() {
         if (!myUserId) return; 
         resetChat(); appendMessage("Looking for a stranger...", "system-msg");
-
         const q = query(collection(db, "rooms"), where("status", "==", "waiting"), limit(1)); 
         const querySnapshot = await getDocs(q);
 
@@ -627,11 +591,8 @@
             await updateDoc(doc(db, "rooms", currentRoomId), { status: "chatting", participants: arrayUnion(myUserId) });
             setupRoomListener(currentRoomId);
         } else {
-            const newRoom = await addDoc(collection(db, "rooms"), { 
-                status: "waiting", participants: [myUserId], createdAt: serverTimestamp(), messages: [] 
-            });
-            currentRoomId = newRoom.id;
-            setupRoomListener(currentRoomId);
+            const newRoom = await addDoc(collection(db, "rooms"), { status: "waiting", participants: [myUserId], createdAt: serverTimestamp(), messages: [] });
+            currentRoomId = newRoom.id; setupRoomListener(currentRoomId);
         }
     }
 
@@ -644,7 +605,7 @@
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
-    // --- RANDOM CHAT SKIP LOGIC ---
+    // --- KEYBOARD & SKIP LOGIC ---
     function showConfirmModal() { isConfirming = true; confirmModal.style.display = 'flex'; }
     function hideConfirmModal() { isConfirming = false; confirmModal.style.display = 'none'; }
     btnStay.addEventListener('click', hideConfirmModal);
@@ -660,13 +621,9 @@
         else executeSkipAnimation();
     }
 
-    async function executeSkipAnimation() {
+    function executeSkipAnimation() {
         isSkipping = true;
-        // Mark room closed ONLY if there isn't a pending/accepted friend request keeping it alive
-        if (currentRoomId) {
-            const docSnap = await getDocs(query(collection(db, "rooms"), where("status", "==", "chatting"))); // Just a safety check
-            updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e=>e);
-        }
+        if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e=>console.error(e));
 
         container.style.transform = 'translateY(-100vh) scale(0.9)'; container.style.opacity = '0';
         setTimeout(() => {
@@ -681,15 +638,21 @@
     startBtn.addEventListener('click', () => { startBtn.style.display = 'none'; skipHint.style.display = 'block'; hasStarted = true; findStranger(); });
     window.addEventListener('wheel', (e) => { if (e.deltaY > 20) handleSkipIntent(e, true); });
 
+    // FIXED KEYBOARD LOGIC
     window.addEventListener('keydown', (e) => {
+        // Prevent key commands if typing or looking at a modal
         if (document.activeElement.tagName === 'INPUT' || isConfirming || settingsModal.style.display === 'flex') return;
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') handleSkipIntent(e, false);
-        else if (e.key === 'ArrowRight') {
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault(); // Stop webpage from scrolling
+            handleSkipIntent(e, false);
+        } else if (e.key === 'ArrowRight') {
             if (friendsScreen.style.display === 'flex' && friendChatView.style.display !== 'flex') openChatFromFriends();
             else if (chatInterface.style.display === 'flex') openProfile();
         } else if (e.key === 'ArrowLeft') {
             if (profileScreen.style.display === 'flex') openChatFromProfile();
             else if (chatInterface.style.display === 'flex') openFriends();
+            else if (friendsScreen.style.display === 'flex' && friendChatView.style.display === 'flex') backToFriendsBtn.click();
         }
     });
 
