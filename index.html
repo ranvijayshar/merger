@@ -5,13 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Random Chat - Premium Edition</title>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
 
     <style>
         /* Base Theme */
-        * { box-sizing: border-box; }
+        * { 
+            box-sizing: border-box; 
+            /* Added Noto Color Emoji so typed messages use Google emojis too! */
+            font-family: 'Segoe UI', Roboto, 'Noto Color Emoji', Helvetica, Arial, sans-serif; 
+        }
+        
         body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             background: linear-gradient(-45deg, #0a0a0a, #1a1a2e, #16213e, #0f0c29);
             background-size: 400% 400%; animation: gradientBG 15s ease infinite;
             color: #ffffff; display: flex; justify-content: center; align-items: center; 
@@ -96,7 +104,16 @@
         .emoji-toggle-btn:hover { transform: scale(1.1); }
         
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 20px rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; }
-        emoji-picker { --background: #222; --border-color: #333; --input-border-color: #444; --button-hover-background: #333; height: 350px; width: 100%;}
+        
+        /* FIX: Force Picker to use Google Fonts */
+        emoji-picker { 
+            --background: #222; 
+            --border-color: #333; 
+            --input-border-color: #444; 
+            --button-hover-background: #333; 
+            --emoji-font-family: 'Noto Color Emoji', sans-serif;
+            height: 350px; width: 100%;
+        }
 
         input[type="text"] { flex-grow: 1; padding: 12px 16px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 0.95em; transition: border-color 0.3s ease; }
         input[type="text"]:focus { border-color: #007bff; }
@@ -125,7 +142,6 @@
         .friends-list::-webkit-scrollbar { width: 4px; }
         .friends-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         
-        /* Fixed Flicker Issue on Hover */
         .friend-item { display: flex; align-items: center; padding: 12px; background-color: #111; border-radius: 12px; cursor: pointer; transition: background-color 0.2s ease; border: 1px solid #222; user-select: none;}
         .friend-item:hover { background-color: #222; }
         .friend-avatar { width: 40px; height: 40px; border-radius: 50%; background: #222; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; border: 2px solid #007bff; flex-shrink: 0; overflow: hidden;}
@@ -365,6 +381,8 @@
     
     const settingsModal = document.getElementById('settings-modal');
     const confirmModal = document.getElementById('confirm-modal');
+    const btnStay = document.getElementById('btn-stay');
+    const btnLeave = document.getElementById('btn-leave');
 
     // State Variables
     let currentRoomId = null; 
@@ -384,7 +402,7 @@
     let myUserName = "Unknown User";
     let myUserPhoto = "";
 
-    // --- EMOJI PICKER LOGIC (FIXED) ---
+    // --- EMOJI PICKER LOGIC ---
     randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
     friendEmojiBtn.addEventListener('click', () => { friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
     
@@ -496,12 +514,10 @@
     document.getElementById('login-btn').addEventListener('click', () => signInWithPopup(auth, provider));
     document.getElementById('btn-logout').addEventListener('click', () => { settingsModal.style.display = 'none'; signOut(auth); });
 
-
     // ==========================================
-    // --- FEATURE 1: FRIENDS SYSTEM (WITH INFINITE LOOP FIX) ---
+    // --- FEATURE 1: FRIENDS SYSTEM ---
     // ==========================================
     
-    // SAFE: Called only on user interaction (opening chat or sending msg)
     async function markRoomAsRead(roomId) {
         if (!myUserId || !roomId) return;
         try { await updateDoc(doc(db, "rooms", roomId), { [`lastRead.${myUserId}`]: Date.now() }); } catch(e) {}
@@ -539,7 +555,6 @@
                         unreadCount = data.friendMessages.filter(m => m.timestamp > myLastReadTime && m.senderId !== myUserId).length;
                     }
 
-                    // FIX: Visual reset only, DO NOT trigger database update here!
                     if (friendChatView.style.display === 'flex' && currentFriendRoomId === docSnap.id) {
                         unreadCount = 0;
                     }
@@ -556,11 +571,11 @@
                 globalUnreadBadge.style.display = 'none';
             }
 
-            // Render Requests
             requestsData.forEach(req => {
                 const strangerId = req.data.participants.find(id => id !== myUserId) || "Unknown";
                 const strangerName = (req.data.names && req.data.names[strangerId]) ? req.data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
                 const strangerPhoto = (req.data.photos && req.data.photos[strangerId]) ? req.data.photos[strangerId] : null;
+                
                 let avatarHtml = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
 
                 const div = document.createElement('div'); div.className = 'req-compact';
@@ -575,7 +590,6 @@
                 requestsContainer.appendChild(div);
             });
 
-            // Render Friends List
             friendsData.sort((a, b) => b.lastActivity - a.lastActivity);
             friendsData.forEach(friend => {
                 const strangerId = friend.data.participants.find(id => id !== myUserId) || "Unknown";
@@ -617,7 +631,6 @@
         
         friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Start a new conversation.</div>';
         
-        // FIX: Only mark read explicitly when opening the chat
         markRoomAsRead(roomId);
         
         if (unsubscribeFriendChat) unsubscribeFriendChat();
@@ -640,7 +653,6 @@
                 localFriendMsgCount = data.friendMessages.length;
                 friendChatBox.scrollTo({ top: friendChatBox.scrollHeight, behavior: 'smooth' });
 
-                // FIX: Only update database if we actually received a new message from them while looking
                 if (requiresReadUpdate && friendChatView.style.display === 'flex' && currentFriendRoomId === roomId) {
                     markRoomAsRead(roomId);
                 }
@@ -741,7 +753,6 @@
     }
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-
 
     // --- KEYBOARD & SKIP LOGIC ---
     function showConfirmModal() { isConfirming = true; confirmModal.style.display = 'flex'; }
