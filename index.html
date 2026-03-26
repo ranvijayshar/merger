@@ -61,11 +61,16 @@
 
         /* --- SCREENS --- */
         #login-screen, #chat-interface, #profile-screen {
-            display: none; flex-direction: column; height: 100%; width: 100%; animation: fadeIn 0.3s ease;
+            display: none; flex-direction: column; height: 100%; width: 100%; 
         }
 
+        /* Horizontal Slide Animations */
+        @keyframes slideInFromRight { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideInFromLeft { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
         /* 1. Login Screen */
-        #login-screen { justify-content: center; align-items: center; text-align: center; }
+        #login-screen { justify-content: center; align-items: center; text-align: center; animation: fadeIn 0.4s ease; }
         #login-screen h1 { font-size: 2.2em; margin-bottom: 10px; background: -webkit-linear-gradient(#007bff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         #login-screen p { color: #888; margin-bottom: 30px; }
         
@@ -85,7 +90,6 @@
 
         .message { padding: 12px 18px; border-radius: 20px; max-width: 75%; word-wrap: break-word; line-height: 1.4; font-size: 0.95em; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform-origin: bottom; }
         @keyframes popIn { 0% { opacity: 0; transform: translateY(20px) scale(0.9); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .my-msg { background: linear-gradient(135deg, #0062cc, #007bff); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2); }
         .stranger-msg { background: #2d2d2d; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
@@ -106,27 +110,21 @@
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
         /* 3. Profile Screen */
-        .nav-item { width: 60px; } /* Keeps the title centered */
-        .back-btn { background: none; border: none; color: #007bff; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; padding: 0; font-weight: bold; }
-        .back-btn:hover { color: #0056b3; }
+        .nav-item { width: 60px; } 
+        .swipe-back-hint { color: #555; font-size: 0.85em; cursor: pointer; transition: color 0.2s; }
+        .swipe-back-hint:hover { color: #007bff; }
         
-        /* New Settings Gear Button */
         .settings-btn { background: none; border: none; font-size: 1.6em; cursor: pointer; padding: 0; text-align: right; transition: transform 0.3s ease; width: 100%; color: #aaa; }
         .settings-btn:hover { transform: rotate(90deg); color: white; }
 
-        .profile-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .profile-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; user-select: none; }
         .profile-img-large { width: 120px; height: 120px; border-radius: 50%; margin-bottom: 20px; border: 4px solid #007bff; object-fit: cover; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .profile-content h3 { margin: 0 0 5px 0; font-size: 1.8em; color: #fff; }
         .profile-content p { color: #aaa; font-size: 1em; margin-bottom: 40px; }
-        
-        .danger-btn { background: #dc3545; color: white; border: none; padding: 15px 30px; border-radius: 12px; font-weight: bold; font-size: 1.1em; cursor: pointer; width: 100%; transition: all 0.2s; }
-        .danger-btn:hover { background: #c82333; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3); }
 
-        /* Modals */
+        /* Modals & Overlays */
         .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); border-radius: 20px; display: none; justify-content: center; align-items: center; z-index: 100; animation: fadeIn 0.2s ease forwards; }
         .modal-content { background: #222; padding: 30px; border-radius: 15px; text-align: center; width: 80%; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
-        
-        /* Close button for settings */
         .close-modal-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #888; font-size: 1.5em; cursor: pointer; }
         .close-modal-btn:hover { color: white; }
 
@@ -138,11 +136,13 @@
         #btn-stay { background: #444; color: white; }
         #btn-leave { background: #dc3545; color: white; }
 
-        /* New Settings Modal specific styles */
+        /* Settings Modal */
         .settings-content { text-align: left; }
         .settings-content h3 { text-align: center; border-bottom: 1px solid #444; padding-bottom: 15px; margin-bottom: 20px; }
         .settings-item { background: #333; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; text-align: left; font-size: 1em; cursor: pointer; margin-bottom: 10px; transition: background 0.2s; font-weight: bold; }
         .settings-item:hover { background: #444; }
+        .danger-btn { background: #dc3545; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; width: 100%; transition: all 0.2s; margin-top: 10px; }
+        .danger-btn:hover { background: #c82333; }
     </style>
 </head>
 <body>
@@ -161,7 +161,7 @@
     <div id="chat-interface">
         <div class="top-nav">
             <h2>Random Chat</h2>
-            <img id="nav-profile-pic" class="profile-pic-btn" src="" alt="Profile" title="Open Profile">
+            <img id="nav-profile-pic" class="profile-pic-btn" src="" alt="Profile" title="Swipe Left for Profile">
         </div>
 
         <div id="chat-box">
@@ -180,7 +180,7 @@
     <div id="profile-screen">
         <div class="top-nav">
             <div class="nav-item">
-                <button id="back-to-chat-btn" class="back-btn">← Back</button>
+                <span id="back-hint" class="swipe-back-hint">← Swipe</span>
             </div>
             <h2>My Profile</h2>
             <div class="nav-item">
@@ -202,7 +202,7 @@
             <button class="settings-item">✏️ Edit Profile</button>
             <button class="settings-item">🔔 Notifications</button>
             <button class="settings-item">🔒 Privacy Policy</button>
-            <button id="btn-logout" class="danger-btn" style="margin-top: 20px;">Sign Out</button>
+            <button id="btn-logout" class="danger-btn">Sign Out</button>
         </div>
     </div>
 
@@ -244,33 +244,28 @@
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
     
-    // Chat Elements
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
     const startBtn = document.getElementById('start-btn');
     const skipHint = document.getElementById('skip-hint');
     
-    // Auth & Profile Elements
     const loginBtn = document.getElementById('login-btn');
     const navProfilePic = document.getElementById('nav-profile-pic');
-    const backToChatBtn = document.getElementById('back-to-chat-btn');
+    const backHint = document.getElementById('back-hint'); // Fallback click
     const pageProfilePic = document.getElementById('page-profile-pic');
     const pageProfileName = document.getElementById('page-profile-name');
     const pageProfileEmail = document.getElementById('page-profile-email');
     
-    // Settings & Logout Elements
     const openSettingsBtn = document.getElementById('open-settings-btn');
     const settingsModal = document.getElementById('settings-modal');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const btnLogout = document.getElementById('btn-logout');
 
-    // Confirm Skip Elements
     const confirmModal = document.getElementById('confirm-modal');
     const btnStay = document.getElementById('btn-stay');
     const btnLeave = document.getElementById('btn-leave');
 
-    // State
     let currentRoomId = null;
     let unsubscribeRoom = null;
     let hasStarted = false;
@@ -280,26 +275,79 @@
     let displayedMessageCount = 0; 
     let myUserId = null; 
 
-    // --- NAVIGATION LOGIC ---
-    function showScreen(screenElement) {
+    // --- NAVIGATION LOGIC & ANIMATIONS ---
+    function showScreen(screenElement, animationClass) {
         loginScreen.style.display = 'none';
         chatInterface.style.display = 'none';
         profileScreen.style.display = 'none';
+        
         screenElement.style.display = 'flex';
+        if (animationClass) {
+            screenElement.style.animation = `${animationClass} 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards`;
+        } else {
+            screenElement.style.animation = `fadeIn 0.3s ease forwards`;
+        }
     }
 
-    navProfilePic.addEventListener('click', () => { showScreen(profileScreen); });
-    
-    backToChatBtn.addEventListener('click', () => {
-        showScreen(chatInterface);
+    function openProfile() {
+        showScreen(profileScreen, 'slideInFromRight');
+    }
+
+    function closeProfileToChat() {
+        showScreen(chatInterface, 'slideInFromLeft');
         chatBox.scrollTo({ top: chatBox.scrollHeight });
+    }
+
+    // Clicking the profile pic opens profile
+    navProfilePic.addEventListener('click', openProfile);
+    
+    // Clicking the subtle hint goes back (Fallback for desktop without touch)
+    backHint.addEventListener('click', closeProfileToChat);
+
+    // --- NEW: HORIZONTAL SWIPE LOGIC ---
+    let touchStartX = 0;
+    let touchStartY_H = 0; // Needed to prevent accidental vertical triggering
+    let isDragging = false; // For mouse swiping
+
+    // 1. Touch Events (Phones)
+    profileScreen.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY_H = e.changedTouches[0].screenY;
     });
+
+    profileScreen.addEventListener('touchend', (e) => {
+        let touchEndX = e.changedTouches[0].screenX;
+        let touchEndY = e.changedTouches[0].screenY;
+        
+        let diffX = touchEndX - touchStartX;
+        let diffY = Math.abs(touchEndY - touchStartY_H);
+
+        // If swiped right by more than 50px, AND they dragged more horizontally than vertically
+        if (diffX > 50 && diffX > diffY) {
+            closeProfileToChat();
+        }
+    });
+
+    // 2. Mouse Events (PC fallback so you can click-and-drag to swipe)
+    profileScreen.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        touchStartX = e.clientX;
+    });
+    
+    profileScreen.addEventListener('mouseup', (e) => {
+        if (isDragging) {
+            let diffX = e.clientX - touchStartX;
+            if (diffX > 50) closeProfileToChat();
+            isDragging = false;
+        }
+    });
+    
+    profileScreen.addEventListener('mouseleave', () => { isDragging = false; });
+
 
     // --- SETTINGS MODAL LOGIC ---
     openSettingsBtn.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
     closeSettingsBtn.addEventListener('click', () => { settingsModal.style.display = 'none'; });
-    
-    // Close settings if you click the dark background outside the modal
     settingsModal.addEventListener('click', (e) => {
         if(e.target === settingsModal) settingsModal.style.display = 'none';
     });
@@ -309,24 +357,16 @@
     onAuthStateChanged(auth, (user) => {
         if (user) {
             myUserId = user.uid;
-            
             navProfilePic.src = user.photoURL;
             pageProfilePic.src = user.photoURL;
             pageProfileName.textContent = user.displayName;
             pageProfileEmail.textContent = user.email;
-
             showScreen(chatInterface);
         } else {
             myUserId = null;
-            
-            if (currentRoomId) {
-                updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e => console.error(e));
-            }
+            if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e => console.error(e));
             resetChat();
-            
             showScreen(loginScreen);
-            
-            // Reset chat UI state
             hasStarted = false;
             startBtn.style.display = 'block';
             skipHint.style.display = 'none';
@@ -336,17 +376,17 @@
     loginBtn.addEventListener('click', () => {
         signInWithPopup(auth, provider).catch((error) => {
             console.error("Error signing in:", error);
-            alert("Failed to sign in. Did you enable Google Auth in the Firebase Console?");
+            alert("Failed to sign in.");
         });
     });
 
     btnLogout.addEventListener('click', () => {
-        settingsModal.style.display = 'none'; // Close the modal
-        signOut(auth); // Sign out
+        settingsModal.style.display = 'none'; 
+        signOut(auth); 
     });
 
-    // --- CORE CHAT LOGIC ---
 
+    // --- CORE CHAT LOGIC ---
     function appendMessage(text, type) {
         const div = document.createElement('div');
         div.className = `message ${type}`;
@@ -392,9 +432,7 @@
             if (isChatting && data.messages && data.messages.length > displayedMessageCount) {
                 const newMessages = data.messages.slice(displayedMessageCount);
                 newMessages.forEach(msg => {
-                    if (msg.senderId !== myUserId) {
-                        appendMessage(msg.text, "stranger-msg");
-                    }
+                    if (msg.senderId !== myUserId) appendMessage(msg.text, "stranger-msg");
                 });
                 displayedMessageCount = data.messages.length;
             }
@@ -403,7 +441,6 @@
 
     async function findStranger() {
         if (!myUserId) return; 
-        
         resetChat();
         appendMessage("Looking for a stranger...", "system-msg");
 
@@ -412,24 +449,12 @@
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-            const roomDoc = querySnapshot.docs[0];
-            currentRoomId = roomDoc.id;
-            
-            await updateDoc(doc(db, "rooms", currentRoomId), {
-                status: "chatting",
-                peerId: myUserId
-            });
-            
+            currentRoomId = querySnapshot.docs[0].id;
+            await updateDoc(doc(db, "rooms", currentRoomId), { status: "chatting", peerId: myUserId });
             setupRoomListener(currentRoomId);
         } else {
-            const newRoom = await addDoc(roomsRef, {
-                status: "waiting",
-                creatorId: myUserId,
-                createdAt: serverTimestamp(),
-                messages: [] 
-            });
+            const newRoom = await addDoc(roomsRef, { status: "waiting", creatorId: myUserId, createdAt: serverTimestamp(), messages: [] });
             currentRoomId = newRoom.id;
-            
             setupRoomListener(currentRoomId);
         }
     }
@@ -443,15 +468,11 @@
         displayedMessageCount++; 
 
         await updateDoc(doc(db, "rooms", currentRoomId), {
-            messages: arrayUnion({
-                text: text,
-                senderId: myUserId,
-                timestamp: Date.now()
-            })
+            messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() })
         });
     }
 
-    // --- SKIP / MODAL LOGIC ---
+    // --- REELS (VERTICAL) SKIP LOGIC ---
     function showConfirmModal() { isConfirming = true; confirmModal.style.display = 'flex'; }
     function hideConfirmModal() { isConfirming = false; confirmModal.style.display = 'none'; }
     btnStay.addEventListener('click', hideConfirmModal);
@@ -475,11 +496,7 @@
 
     async function executeSkipAnimation() {
         isSkipping = true;
-
-        if (currentRoomId) {
-            const roomToClose = currentRoomId; 
-            updateDoc(doc(db, "rooms", roomToClose), { status: "closed" }).catch(e => console.error(e));
-        }
+        if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e => console.error(e));
 
         container.style.transform = 'translateY(-100vh) scale(0.9)';
         container.style.opacity = '0';
@@ -487,11 +504,8 @@
         setTimeout(() => {
             container.style.transition = 'none'; 
             container.style.transform = 'translateY(100vh) scale(0.9)'; 
-            
             findStranger(); 
-
             void container.offsetWidth; 
-
             container.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease-in-out';
             container.style.transform = 'translateY(0) scale(1)'; 
             container.style.opacity = '1';
@@ -501,19 +515,28 @@
     }
 
     startBtn.addEventListener('click', () => {
-        startBtn.style.display = 'none'; 
-        skipHint.style.display = 'block'; 
-        hasStarted = true;
-        findStranger();
+        startBtn.style.display = 'none'; skipHint.style.display = 'block'; hasStarted = true; findStranger();
     });
 
     window.addEventListener('wheel', (e) => { if (e.deltaY > 20) handleSkipIntent(e, true); });
 
-    let touchStartY = 0;
-    window.addEventListener('touchstart', (e) => { touchStartY = e.changedTouches[0].screenY; });
+    let verticalTouchStartY = 0;
+    let verticalTouchStartX = 0;
+    
+    window.addEventListener('touchstart', (e) => { 
+        verticalTouchStartY = e.changedTouches[0].screenY; 
+        verticalTouchStartX = e.changedTouches[0].screenX;
+    });
+    
     window.addEventListener('touchend', (e) => {
         let touchEndY = e.changedTouches[0].screenY;
-        if (touchStartY - touchEndY > 50) handleSkipIntent(e, true);
+        let touchEndX = e.changedTouches[0].screenX;
+        
+        let diffY = verticalTouchStartY - touchEndY;
+        let diffX = Math.abs(verticalTouchStartX - touchEndX);
+        
+        // Prevent vertical swipe if they are clearly swiping horizontally
+        if (diffY > 50 && diffY > diffX) handleSkipIntent(e, true);
     });
 
     window.addEventListener('keydown', (e) => {
