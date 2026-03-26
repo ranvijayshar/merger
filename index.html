@@ -121,7 +121,7 @@
         .profile-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; user-select: none; }
         .profile-img-large { width: 110px; height: 110px; border-radius: 50%; margin-bottom: 20px; border: 4px solid #007bff; object-fit: cover; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .profile-content h3 { margin: 0 0 5px 0; font-size: 1.6em; color: #fff; }
-        .profile-content p { color: #aaa; font-size: 0.95em; margin-bottom: 40px; }
+        .profile-content p { color: #aaa; font-size: 0.95em; margin-bottom: 25px; }
 
         /* 4. Friends Screen */
         #friends-list-view { display: flex; flex-direction: column; height: 100%; }
@@ -173,11 +173,52 @@
         .danger-btn { background: #dc3545; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.95em; cursor: pointer; width: 100%; transition: background-color 0.2s ease; margin-top: 10px; }
         .danger-btn:hover { background-color: #c82333; }
         
-        /* New Custom Avatar Container for Friend Profile Modal */
         .fp-avatar-container {
             width: 110px; height: 110px; border-radius: 50%; border: 4px solid #007bff; 
             margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; 
             overflow: hidden; font-size: 3em; font-weight: bold; background: #222; color: #fff;
+        }
+
+        /* --- NEW: FLOATING LIKE SYSTEM --- */
+        #like-stream-container {
+            position: absolute;
+            bottom: 80px; 
+            right: 15px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #pulse-like-btn {
+            background: rgba(20, 20, 20, 0.8);
+            border-radius: 50%;
+            width: 45px; height: 45px;
+            backdrop-filter: blur(5px);
+            border: 1px solid #444;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: transform 0.1s ease;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ff4d4d;
+        }
+        #pulse-like-btn:active { transform: scale(0.85); }
+
+        .floating-heart {
+            position: absolute;
+            bottom: 45px;
+            font-size: 24px;
+            animation: flyUp 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 99;
+        }
+
+        @keyframes flyUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-250px) scale(1.5) translateX(10px); opacity: 0; }
         }
     </style>
 </head>
@@ -250,6 +291,10 @@
         <div id="chat-box" class="chat-box-style">
             <div class="message system-msg">Click below to start your first chat!</div>
         </div>
+
+        <div id="like-stream-container" style="display: none;">
+            <button id="pulse-like-btn" title="Send a Like">❤️</button>
+        </div>
         
         <div class="controls">
             <button class="emoji-toggle-btn" id="random-emoji-btn">😀</button>
@@ -277,6 +322,12 @@
             <img id="page-profile-pic" class="profile-img-large" src="" alt="Profile">
             <h3 id="page-profile-name">User Name</h3>
             <p id="page-profile-email">user@email.com</p>
+            
+            <div style="background: rgba(255, 77, 77, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(255, 77, 77, 0.3); display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+                <span style="font-size: 1.2em;">❤️</span>
+                <span id="page-profile-likes" style="font-weight: bold; font-size: 1.1em; color: #ff4d4d;">0 Likes</span>
+            </div>
+
         </div>
     </div>
 
@@ -333,8 +384,9 @@
 </div>
 
 <script type="module">
+    // UPDATED IMPORTS: Added increment and setDoc for the Like System tracking
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit, increment, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -399,6 +451,13 @@
     const btnStay = document.getElementById('btn-stay');
     const btnLeave = document.getElementById('btn-leave');
 
+    // NEW: Like System Elements & State
+    const pulseLikeBtn = document.getElementById('pulse-like-btn');
+    const likeStreamContainer = document.getElementById('like-stream-container');
+    const pageProfileLikes = document.getElementById('page-profile-likes');
+    let hasLikedThisPersonInThisSession = false;
+    let currentStrangerId = null;
+
     // State Variables
     let currentRoomId = null; 
     let unsubscribeRoom = null;
@@ -407,6 +466,7 @@
     let currentFriendRoomId = null; 
     let unsubscribeFriendChat = null;
     let unsubscribeFriendsList = null;
+    let unsubscribeMyUser = null; // New listener for my profile
     
     let currentFriendId = null;
     let currentFriendName = "";
@@ -422,8 +482,32 @@
     let myUserPhoto = "";
     
     let myFriendIds = [];
-    // NEW: Load blocked IDs from local memory so we don't match with them
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
+
+    // --- NEW: LIKE PULSE LOGIC ---
+    function createFloatingHeart() {
+        const heart = document.createElement('div');
+        heart.textContent = '❤️';
+        heart.className = 'floating-heart';
+        // Randomize slight left/right float trajectory
+        heart.style.left = (Math.random() * 20 - 10) + 'px';
+        likeStreamContainer.appendChild(heart);
+        setTimeout(() => heart.remove(), 2000); // Cleanup DOM
+    }
+
+    pulseLikeBtn.addEventListener('click', async () => {
+        createFloatingHeart(); // Always show visual feedback
+
+        // Only increment the database ONCE per person per session
+        if (!hasLikedThisPersonInThisSession && currentStrangerId) {
+            hasLikedThisPersonInThisSession = true;
+            try {
+                const strangerRef = doc(db, "users", currentStrangerId);
+                await setDoc(strangerRef, { totalLikes: increment(1) }, { merge: true });
+            } catch (e) { console.error("Error sending like:", e); }
+        }
+    });
+
 
     // --- EMOJI PICKER LOGIC ---
     randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
@@ -521,32 +605,28 @@
 
     document.getElementById('close-friend-profile-btn').addEventListener('click', () => friendProfileModal.style.display = 'none');
     
-    // NEW: Block User Logic
     document.getElementById('btn-block-friend').addEventListener('click', async () => {
         if (!currentFriendRoomId || !currentFriendId) return;
         
         if (!confirm(`Are you sure you want to block ${currentFriendName}? You will not be able to message them anymore.`)) return;
 
-        // Save to local memory so we don't match randomly later
         if (!myBlockedIds.includes(currentFriendId)) {
             myBlockedIds.push(currentFriendId);
             localStorage.setItem('blockedIds', JSON.stringify(myBlockedIds));
         }
 
-        // Update database to sever connection
         await updateDoc(doc(db, "rooms", currentFriendRoomId), {
             friendStatus: "blocked",
             blockedBy: myUserId
         });
 
-        // Close everything and go back to friends list
         friendProfileModal.style.display = 'none';
         backToFriendsBtn.click();
     });
 
 
     // --- AUTHENTICATION ---
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
             myUserId = user.uid;
             myUserName = user.displayName || "Unknown User";
@@ -557,6 +637,18 @@
             document.getElementById('page-profile-name').textContent = myUserName;
             document.getElementById('page-profile-email').textContent = user.email;
             
+            // NEW: Create/Update user doc to store likes and listen for changes
+            const userRef = doc(db, "users", myUserId);
+            await setDoc(userRef, { name: myUserName, email: user.email, photo: myUserPhoto }, { merge: true });
+            
+            if (unsubscribeMyUser) unsubscribeMyUser();
+            unsubscribeMyUser = onSnapshot(userRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    pageProfileLikes.textContent = (data.totalLikes || 0) + " Likes";
+                }
+            });
+            
             bottomNav.style.display = 'flex'; 
             showScreen(chatInterface);
             startFriendsListener(); 
@@ -564,6 +656,7 @@
             myUserId = null;
             if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e=>e);
             if (unsubscribeFriendsList) unsubscribeFriendsList();
+            if (unsubscribeMyUser) unsubscribeMyUser();
             resetChat();
             
             bottomNav.style.display = 'none'; showScreen(loginScreen);
@@ -599,7 +692,6 @@
             snapshot.forEach(docSnap => {
                 const data = docSnap.data(); 
                 
-                // NEW: IF BLOCKED, SKIP THIS ENTIRELY
                 if (data.friendStatus === 'blocked') return;
 
                 const strangerId = data.participants.find(id => id !== myUserId) || "Unknown";
@@ -671,7 +763,6 @@
                 const div = document.createElement('div'); div.className = 'friend-item';
                 div.innerHTML = `<div class="friend-avatar">${avatarHtml}</div><div class="friend-info"><div class="friend-name">${strangerName}</div><div class="friend-msg">${lastMsg}</div></div>${badgeHtml}`;
                 
-                // Pass photo and ID as well to load into profile view!
                 div.onclick = () => openFriendChatUI(friend.id, strangerName, friend.strangerId, strangerPhoto);
                 friendsContainer.appendChild(div);
             });
@@ -699,7 +790,6 @@
         friendsListView.style.display = 'none'; friendChatView.style.display = 'flex';
         friendChatHeader.textContent = friendName; currentFriendRoomId = roomId; 
         
-        // Update State for Modal
         currentFriendId = strangerId;
         currentFriendName = friendName;
         currentFriendPhoto = strangerPhoto;
@@ -712,7 +802,6 @@
         unsubscribeFriendChat = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
             const data = snapshot.data();
             
-            // Safety check: if we are looking at this chat and they blocked us, kick us out
             if (data.friendStatus === 'blocked') {
                 alert("This user is no longer available.");
                 backToFriendsBtn.click();
@@ -773,6 +862,12 @@
     function resetChat() {
         chatBox.innerHTML = ''; msgInput.disabled = true; sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Friend Request";
+        
+        // NEW: Reset Like Tracker Status
+        hasLikedThisPersonInThisSession = false;
+        currentStrangerId = null;
+        likeStreamContainer.style.display = 'none';
+
         if (unsubscribeRoom) unsubscribeRoom(); currentRoomId = null;
     }
 
@@ -799,10 +894,15 @@
                 isChatting = true;
                 appendMessage("You are now chatting! Say hi 👋", "system-msg");
                 msgInput.disabled = false; sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
+                
+                // NEW: Show Like stream interface and set stranger
+                currentStrangerId = strangerId;
+                if(currentStrangerId) likeStreamContainer.style.display = 'flex';
             }
             if (data.status === "closed" && isChatting) {
                 appendMessage("Stranger disconnected.", "system-msg");
                 isChatting = false; msgInput.disabled = true; sendBtn.disabled = true; addFriendBtn.style.display = 'none';
+                likeStreamContainer.style.display = 'none'; // Hide like button
                 appendMessage("⏬ Swipe or press ↓ to find someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
             }
@@ -828,7 +928,6 @@
                 const roomData = docSnap.data();
                 const roomCreatorId = roomData.creatorId || roomData.participants[0];
                 
-                // NEW: Ensure we DO NOT match with friends OR blocked users!
                 if (roomCreatorId !== myUserId && !myFriendIds.includes(roomCreatorId) && !myBlockedIds.includes(roomCreatorId)) {
                     matchedRoomId = docSnap.id;
                     break;
