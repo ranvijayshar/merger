@@ -172,6 +172,13 @@
         .settings-item:hover { background-color: #444; }
         .danger-btn { background: #dc3545; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.95em; cursor: pointer; width: 100%; transition: background-color 0.2s ease; margin-top: 10px; }
         .danger-btn:hover { background-color: #c82333; }
+        
+        /* New Custom Avatar Container for Friend Profile Modal */
+        .fp-avatar-container {
+            width: 110px; height: 110px; border-radius: 50%; border: 4px solid #007bff; 
+            margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; 
+            overflow: hidden; font-size: 3em; font-weight: bold; background: #222; color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -188,16 +195,19 @@
     </div>
 
     <div id="friends-screen">
+        
         <div id="friends-list-view">
             <div class="top-nav">
                 <div class="nav-spacer"></div>
                 <h2>Friends</h2>
                 <div class="nav-spacer"></div>
             </div>
+            
             <div id="requests-section" style="display: none;">
                 <div class="section-title">Requests</div>
                 <div id="requests-container"></div>
             </div>
+
             <div class="section-title">My Friends</div>
             <div class="friends-list" id="friends-container">
                 <div class="empty-friends">No friends yet.</div>
@@ -210,9 +220,12 @@
                     <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
                 </button>
                 <h2 id="friend-chat-header">Friend</h2>
-                <div class="nav-spacer"></div>
+                <button id="view-friend-profile-btn" class="icon-btn" title="View Profile">
+                    <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                </button>
             </div>
             <div id="friend-chat-box" class="chat-box-style"></div>
+            
             <div class="controls">
                 <button class="emoji-toggle-btn" id="friend-emoji-btn">😀</button>
                 <div class="emoji-picker-container" id="friend-emoji-picker">
@@ -237,6 +250,7 @@
         <div id="chat-box" class="chat-box-style">
             <div class="message system-msg">Click below to start your first chat!</div>
         </div>
+        
         <div class="controls">
             <button class="emoji-toggle-btn" id="random-emoji-btn">😀</button>
             <div class="emoji-picker-container" id="random-emoji-picker">
@@ -290,6 +304,18 @@
             <button class="settings-item"><svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg> Notifications</button>
             <button class="settings-item"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Privacy Policy</button>
             <button id="btn-logout" class="danger-btn">Sign Out</button>
+        </div>
+    </div>
+
+    <div id="friend-profile-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="close-friend-profile-btn" class="close-modal-btn">&times;</button>
+            <div class="profile-content" style="margin-top: 20px;">
+                <div id="fp-avatar-container" class="fp-avatar-container"></div>
+                <h3 id="fp-name">Friend Name</h3>
+                <p style="color:#25D366; font-size:0.9em; font-weight:bold;">Connected ✅</p>
+                <button id="btn-block-friend" class="danger-btn" style="margin-top:20px;">Block User</button>
+            </div>
         </div>
     </div>
 
@@ -364,9 +390,12 @@
     const friendMsgInput = document.getElementById('friend-msg-input');
     const friendSendBtn = document.getElementById('friend-send-btn');
     const backToFriendsBtn = document.getElementById('back-to-friends-btn');
+    const viewFriendProfileBtn = document.getElementById('view-friend-profile-btn');
     
+    // Modals
     const settingsModal = document.getElementById('settings-modal');
     const confirmModal = document.getElementById('confirm-modal');
+    const friendProfileModal = document.getElementById('friend-profile-modal');
     const btnStay = document.getElementById('btn-stay');
     const btnLeave = document.getElementById('btn-leave');
 
@@ -379,6 +408,10 @@
     let unsubscribeFriendChat = null;
     let unsubscribeFriendsList = null;
     
+    let currentFriendId = null;
+    let currentFriendName = "";
+    let currentFriendPhoto = "";
+
     let hasStarted = false;
     let isSkipping = false; 
     let isConfirming = false; 
@@ -388,8 +421,9 @@
     let myUserName = "Unknown User";
     let myUserPhoto = "";
     
-    // NEW: Array to store all our confirmed friend IDs so we don't match with them randomly!
     let myFriendIds = [];
+    // NEW: Load blocked IDs from local memory so we don't match with them
+    let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
     // --- EMOJI PICKER LOGIC ---
     randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
@@ -469,10 +503,47 @@
     });
     [friendsScreen, chatInterface, profileScreen].forEach(el => el.addEventListener('mouseleave', () => isDragging = false));
 
-    // --- MODALS ---
+
+    // --- MODALS (Settings & Friend Profile) ---
     document.getElementById('open-settings-btn').addEventListener('click', () => settingsModal.style.display = 'flex');
     document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
     settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
+
+    // Open Friend Profile
+    viewFriendProfileBtn.addEventListener('click', () => {
+        const avatarContainer = document.getElementById('fp-avatar-container');
+        if (currentFriendPhoto) avatarContainer.innerHTML = `<img src="${currentFriendPhoto}" style="width:100%; height:100%; object-fit:cover;">`;
+        else avatarContainer.innerHTML = currentFriendName.substring(0,1).toUpperCase();
+        
+        document.getElementById('fp-name').textContent = currentFriendName;
+        friendProfileModal.style.display = 'flex';
+    });
+
+    document.getElementById('close-friend-profile-btn').addEventListener('click', () => friendProfileModal.style.display = 'none');
+    
+    // NEW: Block User Logic
+    document.getElementById('btn-block-friend').addEventListener('click', async () => {
+        if (!currentFriendRoomId || !currentFriendId) return;
+        
+        if (!confirm(`Are you sure you want to block ${currentFriendName}? You will not be able to message them anymore.`)) return;
+
+        // Save to local memory so we don't match randomly later
+        if (!myBlockedIds.includes(currentFriendId)) {
+            myBlockedIds.push(currentFriendId);
+            localStorage.setItem('blockedIds', JSON.stringify(myBlockedIds));
+        }
+
+        // Update database to sever connection
+        await updateDoc(doc(db, "rooms", currentFriendRoomId), {
+            friendStatus: "blocked",
+            blockedBy: myUserId
+        });
+
+        // Close everything and go back to friends list
+        friendProfileModal.style.display = 'none';
+        backToFriendsBtn.click();
+    });
+
 
     // --- AUTHENTICATION ---
     onAuthStateChanged(auth, (user) => {
@@ -523,11 +594,14 @@
             let friendsData = [];
             let totalUnreadMessages = 0; 
             
-            // Clear out friends list each time we re-calculate
             myFriendIds = [];
 
             snapshot.forEach(docSnap => {
                 const data = docSnap.data(); 
+                
+                // NEW: IF BLOCKED, SKIP THIS ENTIRELY
+                if (data.friendStatus === 'blocked') return;
+
                 const strangerId = data.participants.find(id => id !== myUserId) || "Unknown";
                 const isRequestForMe = data.friendStatus === 'pending' && data.requester !== myUserId;
                 const isAcceptedFriend = data.friendStatus === 'accepted';
@@ -536,7 +610,6 @@
                     requestsData.push({ id: docSnap.id, data: data, strangerId: strangerId });
                 } 
                 else if (isAcceptedFriend) {
-                    // Populate our internal memory array to prevent random matchmaking!
                     if (strangerId !== "Unknown") myFriendIds.push(strangerId);
                     
                     let lastActivity = data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now();
@@ -597,7 +670,9 @@
 
                 const div = document.createElement('div'); div.className = 'friend-item';
                 div.innerHTML = `<div class="friend-avatar">${avatarHtml}</div><div class="friend-info"><div class="friend-name">${strangerName}</div><div class="friend-msg">${lastMsg}</div></div>${badgeHtml}`;
-                div.onclick = () => openFriendChatUI(friend.id, strangerName);
+                
+                // Pass photo and ID as well to load into profile view!
+                div.onclick = () => openFriendChatUI(friend.id, strangerName, friend.strangerId, strangerPhoto);
                 friendsContainer.appendChild(div);
             });
 
@@ -617,23 +692,33 @@
 
     window.respondRequest = async (roomId, response) => {
         if (response === 'accepted') await updateDoc(doc(db, "rooms", roomId), { friendStatus: "accepted" });
-        else await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" });
+        else await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" }); // Reject
     };
 
-    function openFriendChatUI(roomId, friendName) {
+    function openFriendChatUI(roomId, friendName, strangerId, strangerPhoto) {
         friendsListView.style.display = 'none'; friendChatView.style.display = 'flex';
         friendChatHeader.textContent = friendName; currentFriendRoomId = roomId; 
         
+        // Update State for Modal
+        currentFriendId = strangerId;
+        currentFriendName = friendName;
+        currentFriendPhoto = strangerPhoto;
+
         friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Start a new conversation.</div>';
-        
         markRoomAsRead(roomId);
         
         if (unsubscribeFriendChat) unsubscribeFriendChat();
-        
         let localFriendMsgCount = 0;
         unsubscribeFriendChat = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
             const data = snapshot.data();
             
+            // Safety check: if we are looking at this chat and they blocked us, kick us out
+            if (data.friendStatus === 'blocked') {
+                alert("This user is no longer available.");
+                backToFriendsBtn.click();
+                return;
+            }
+
             if (data && data.friendMessages && data.friendMessages.length > localFriendMsgCount) {
                 const newMsgs = data.friendMessages.slice(localFriendMsgCount);
                 let requiresReadUpdate = false;
@@ -657,7 +742,9 @@
 
     backToFriendsBtn.addEventListener('click', () => {
         friendChatView.style.display = 'none'; friendsListView.style.display = 'flex';
-        if (unsubscribeFriendChat) unsubscribeFriendChat(); currentFriendRoomId = null;
+        if (unsubscribeFriendChat) unsubscribeFriendChat(); 
+        currentFriendRoomId = null;
+        currentFriendId = null;
     });
 
     friendSendBtn.addEventListener('click', sendFriendMessage);
@@ -695,7 +782,6 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // Handle the Add Friend button status safely
             const strangerId = data.participants.find(id => id !== myUserId);
             const isAlreadyFriend = strangerId && myFriendIds.includes(strangerId);
 
@@ -732,7 +818,6 @@
         if (!myUserId) return; 
         resetChat(); appendMessage("Looking for a stranger...", "system-msg");
         
-        // Fetch up to 10 waiting rooms to check against our friends list
         const q = query(collection(db, "rooms"), where("status", "==", "waiting"), limit(10)); 
         const querySnapshot = await getDocs(q);
 
@@ -743,8 +828,8 @@
                 const roomData = docSnap.data();
                 const roomCreatorId = roomData.creatorId || roomData.participants[0];
                 
-                // NEW: Ensure we DO NOT match with anyone who is already on our friends list!
-                if (roomCreatorId !== myUserId && !myFriendIds.includes(roomCreatorId)) {
+                // NEW: Ensure we DO NOT match with friends OR blocked users!
+                if (roomCreatorId !== myUserId && !myFriendIds.includes(roomCreatorId) && !myBlockedIds.includes(roomCreatorId)) {
                     matchedRoomId = docSnap.id;
                     break;
                 }
