@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Chat - 3 Pane Layout</title>
+    <title>Random Chat - Premium Edition</title>
     <style>
         /* Base Theme */
         body { 
@@ -69,7 +69,7 @@
         .google-btn { background: white; color: #333; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(255,255,255,0.2); transition: all 0.2s; }
         .google-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,255,255,0.3); }
 
-        /* Generic Chat Box Styles (Used for both Random and Friend chats) */
+        /* Generic Chat Box Styles */
         .chat-box-style { flex-grow: 1; border-radius: 12px; padding: 12px; overflow-y: auto; margin-bottom: 10px; background: #111111; display: flex; flex-direction: column; gap: 10px; }
         .chat-box-style::-webkit-scrollbar { width: 6px; }
         .chat-box-style::-webkit-scrollbar-track { background: transparent; }
@@ -114,14 +114,25 @@
         .friend-info { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
         .friend-name { font-weight: bold; color: #eee; font-size: 1em; margin-bottom: 3px; }
         .friend-msg { color: #888; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-        
-        .request-actions { display: flex; gap: 8px; margin-left: 10px; }
-        .req-btn { width: 35px; height: 35px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: transform 0.2s;}
+        .empty-friends { text-align: center; color: #555; margin-top: 30px; font-style: italic; font-size: 0.9em;}
+
+        /* --- NEW: COMPACT HORIZONTAL REQUESTS --- */
+        #requests-container { 
+            display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px; margin-bottom: 5px;
+            scrollbar-width: none; /* Firefox */
+        }
+        #requests-container::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
+        .req-compact { 
+            display: flex; flex-direction: column; align-items: center; background: #111; 
+            padding: 10px; border-radius: 12px; min-width: 80px; max-width: 90px; border: 1px solid #222; flex-shrink: 0; 
+        }
+        .req-compact .friend-avatar { margin-right: 0; margin-bottom: 8px; width: 45px; height: 45px; }
+        .req-compact .friend-name { font-size: 0.8em; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; color: #eee;}
+        .req-actions-compact { display: flex; gap: 8px; justify-content: center; width: 100%; }
+        .req-btn { width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: transform 0.2s;}
         .req-btn:hover { transform: scale(1.1); }
         .req-accept { background: #28a745; color: white; }
         .req-reject { background: #dc3545; color: white; }
-
-        .empty-friends { text-align: center; color: #555; margin-top: 30px; font-style: italic; font-size: 0.9em;}
 
         /* Modals */
         .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); border-radius: 20px; display: none; justify-content: center; align-items: center; z-index: 100; animation: fadeIn 0.2s ease forwards; }
@@ -167,8 +178,8 @@
             </div>
             
             <div id="requests-section" style="display: none;">
-                <div class="section-title">Friend Requests</div>
-                <div id="requests-container" style="margin-bottom: 15px;"></div>
+                <div class="section-title">Requests</div>
+                <div id="requests-container"></div>
             </div>
 
             <div class="section-title">My Friends</div>
@@ -446,7 +457,7 @@
     document.getElementById('btn-logout').addEventListener('click', () => { settingsModal.style.display = 'none'; signOut(auth); });
 
     // ==========================================
-    // --- FEATURE 1: FRIENDS SYSTEM ---
+    // --- FEATURE 1: FRIENDS SYSTEM (WITH SMART SORTING & COMPACT REQUESTS) ---
     // ==========================================
     
     function startFriendsListener() {
@@ -455,54 +466,86 @@
         
         unsubscribeFriendsList = onSnapshot(q, (snapshot) => {
             requestsContainer.innerHTML = ''; friendsContainer.innerHTML = '';
-            let requestCount = 0; let friendCount = 0;
+            
+            let requestsData = [];
+            let friendsData = [];
 
+            // 1. Categorize all rooms
             snapshot.forEach(docSnap => {
-                const data = docSnap.data(); const roomId = docSnap.id;
-                const strangerId = data.participants.find(id => id !== myUserId) || "Unknown";
+                const data = docSnap.data(); 
                 const isRequestForMe = data.friendStatus === 'pending' && data.requester !== myUserId;
                 const isAcceptedFriend = data.friendStatus === 'accepted';
-                
-                const strangerName = (data.names && data.names[strangerId]) ? data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
-                const strangerPhoto = (data.photos && data.photos[strangerId]) ? data.photos[strangerId] : null;
-                
-                let avatarHtml = '';
-                if (strangerPhoto) avatarHtml = `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-                else avatarHtml = strangerName.substring(0,1).toUpperCase();
-
-                // Look for the last message in the FRIEND chat, not the random chat
-                let lastMsg = "Say hi to your new friend!";
-                if (data.friendMessages && data.friendMessages.length > 0) {
-                    lastMsg = data.friendMessages[data.friendMessages.length - 1].text;
-                }
 
                 if (isRequestForMe) {
-                    requestCount++;
-                    const div = document.createElement('div'); div.className = 'friend-item';
-                    div.innerHTML = `
-                        <div class="friend-avatar" style="border-color: #ffc107;">${avatarHtml}</div>
-                        <div class="friend-info"><div class="friend-name">${strangerName}</div><div class="friend-msg">Wants to be friends</div></div>
-                        <div class="request-actions">
-                            <button class="req-btn req-accept" onclick="respondRequest('${roomId}', 'accepted')"><svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></button>
-                            <button class="req-btn req-reject" onclick="respondRequest('${roomId}', 'rejected')"><svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg></button>
-                        </div>
-                    `;
-                    requestsContainer.appendChild(div);
+                    requestsData.push({ id: docSnap.id, data: data });
                 } 
                 else if (isAcceptedFriend) {
-                    friendCount++;
-                    const div = document.createElement('div'); div.className = 'friend-item';
-                    div.innerHTML = `
-                        <div class="friend-avatar">${avatarHtml}</div>
-                        <div class="friend-info"><div class="friend-name">${strangerName}</div><div class="friend-msg">${lastMsg}</div></div>
-                    `;
-                    div.onclick = () => openFriendChatUI(roomId, strangerName);
-                    friendsContainer.appendChild(div);
+                    // Find the timestamp of the last message to use for sorting
+                    let lastActivity = 0;
+                    if (data.friendMessages && data.friendMessages.length > 0) {
+                        lastActivity = data.friendMessages[data.friendMessages.length - 1].timestamp;
+                    } else if (data.createdAt) {
+                        // Fallback to when the room was created if no messages yet
+                        lastActivity = data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now();
+                    }
+                    friendsData.push({ id: docSnap.id, data: data, lastActivity: lastActivity });
                 }
             });
 
-            requestsSection.style.display = requestCount > 0 ? 'block' : 'none';
-            if (friendCount === 0) friendsContainer.innerHTML = '<div class="empty-friends">No friends yet. Send requests in chat!</div>';
+            // 2. SORT friends list so most recent message is at the top
+            friendsData.sort((a, b) => b.lastActivity - a.lastActivity);
+
+            // 3. Render Compact Horizontal Requests
+            requestsData.forEach(req => {
+                const strangerId = req.data.participants.find(id => id !== myUserId) || "Unknown";
+                const strangerName = (req.data.names && req.data.names[strangerId]) ? req.data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
+                const strangerPhoto = (req.data.photos && req.data.photos[strangerId]) ? req.data.photos[strangerId] : null;
+                
+                let avatarHtml = strangerPhoto 
+                    ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
+                    : strangerName.substring(0,1).toUpperCase();
+
+                const div = document.createElement('div'); 
+                div.className = 'req-compact';
+                div.innerHTML = `
+                    <div class="friend-avatar" style="border-color: #ffc107;">${avatarHtml}</div>
+                    <div class="friend-name">${strangerName}</div>
+                    <div class="req-actions-compact">
+                        <button class="req-btn req-accept" onclick="respondRequest('${req.id}', 'accepted')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></button>
+                        <button class="req-btn req-reject" onclick="respondRequest('${req.id}', 'rejected')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg></button>
+                    </div>
+                `;
+                requestsContainer.appendChild(div);
+            });
+
+            // 4. Render Sorted Friends List
+            friendsData.forEach(friend => {
+                const strangerId = friend.data.participants.find(id => id !== myUserId) || "Unknown";
+                const strangerName = (friend.data.names && friend.data.names[strangerId]) ? friend.data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
+                const strangerPhoto = (friend.data.photos && friend.data.photos[strangerId]) ? friend.data.photos[strangerId] : null;
+                
+                let avatarHtml = strangerPhoto 
+                    ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
+                    : strangerName.substring(0,1).toUpperCase();
+
+                let lastMsg = "New conversation";
+                if (friend.data.friendMessages && friend.data.friendMessages.length > 0) {
+                    lastMsg = friend.data.friendMessages[friend.data.friendMessages.length - 1].text;
+                }
+
+                const div = document.createElement('div'); 
+                div.className = 'friend-item';
+                div.innerHTML = `
+                    <div class="friend-avatar">${avatarHtml}</div>
+                    <div class="friend-info"><div class="friend-name">${strangerName}</div><div class="friend-msg">${lastMsg}</div></div>
+                `;
+                div.onclick = () => openFriendChatUI(friend.id, strangerName);
+                friendsContainer.appendChild(div);
+            });
+
+            // Update UI visibility based on data
+            requestsSection.style.display = requestsData.length > 0 ? 'block' : 'none';
+            if (friendsData.length === 0) friendsContainer.innerHTML = '<div class="empty-friends">No friends yet. Send requests in chat!</div>';
         });
     }
 
@@ -526,7 +569,6 @@
         friendsListView.style.display = 'none'; friendChatView.style.display = 'flex';
         friendChatHeader.textContent = friendName; currentFriendRoomId = roomId; 
         
-        // Start fresh UI
         friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Start a new conversation.</div>';
         
         if (unsubscribeFriendChat) unsubscribeFriendChat();
@@ -534,8 +576,6 @@
         let localFriendMsgCount = 0;
         unsubscribeFriendChat = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
             const data = snapshot.data();
-            
-            // ONLY read from the new friendMessages array! 
             if (data && data.friendMessages && data.friendMessages.length > localFriendMsgCount) {
                 const newMsgs = data.friendMessages.slice(localFriendMsgCount);
                 newMsgs.forEach(msg => {
@@ -562,7 +602,6 @@
         if (!text || !currentFriendRoomId) return;
         friendMsgInput.value = '';
         
-        // ONLY write to the new friendMessages array!
         await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
             friendMessages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) 
         });
@@ -633,7 +672,7 @@
                 photos: { [myUserId]: myUserPhoto },
                 createdAt: serverTimestamp(), 
                 messages: [],
-                friendMessages: [] // Initialize empty friend chat!
+                friendMessages: []
             });
             currentRoomId = newRoom.id; setupRoomListener(currentRoomId);
         }
