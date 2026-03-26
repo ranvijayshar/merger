@@ -179,10 +179,11 @@
             overflow: hidden; font-size: 3em; font-weight: bold; background: #222; color: #fff;
         }
 
-        /* --- NEW: FLOATING LIKE SYSTEM --- */
+        /* --- FLOATING LIKE SYSTEM (UPDATED TO MIDDLE-RIGHT) --- */
         #like-stream-container {
             position: absolute;
-            bottom: 80px; 
+            top: 50%; /* Moves to the vertical middle */
+            transform: translateY(-50%); /* Centers perfectly */
             right: 15px;
             z-index: 100;
             display: flex;
@@ -209,7 +210,7 @@
 
         .floating-heart {
             position: absolute;
-            bottom: 45px;
+            top: 0; /* Starts directly on top of the button */
             font-size: 24px;
             animation: flyUp 2s ease-out forwards;
             pointer-events: none;
@@ -218,7 +219,7 @@
 
         @keyframes flyUp {
             0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-250px) scale(1.5) translateX(10px); opacity: 0; }
+            100% { transform: translateY(-150px) scale(1.5) translateX(-10px); opacity: 0; }
         }
     </style>
 </head>
@@ -455,7 +456,7 @@
     const likeStreamContainer = document.getElementById('like-stream-container');
     const pageProfileLikes = document.getElementById('page-profile-likes');
     let hasLikedThisPersonInThisSession = false;
-    let roomLikeGiven = false; // THE NEW LOCK
+    let roomLikeGiven = false; 
     let currentStrangerId = null;
 
     // State Variables
@@ -484,7 +485,7 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
-    // --- NEW: LIKE PULSE LOGIC WITH LOCK ---
+    // --- LIKE PULSE LOGIC WITH AUTO-HIDE ---
     function createFloatingHeart() {
         const heart = document.createElement('div');
         heart.textContent = '❤️';
@@ -495,18 +496,15 @@
     }
 
     pulseLikeBtn.addEventListener('click', async () => {
-        createFloatingHeart(); // Show local animation for vibes
-
-        // Check if no one has locked this room yet
         if (!hasLikedThisPersonInThisSession && currentStrangerId && !roomLikeGiven) {
+            createFloatingHeart(); 
             hasLikedThisPersonInThisSession = true;
-            roomLikeGiven = true; // Lock locally immediately to prevent double clicks
+            roomLikeGiven = true; 
+            
+            likeStreamContainer.style.display = 'none';
 
             try {
-                // 1. Update the room to tell the other person they missed out
                 await updateDoc(doc(db, "rooms", currentRoomId), { likeGiven: true });
-
-                // 2. Actually add the permanent Like to the winner's profile
                 const strangerRef = doc(db, "users", currentStrangerId);
                 await setDoc(strangerRef, { totalLikes: increment(1) }, { merge: true });
             } catch (e) { console.error("Error sending like:", e); }
@@ -882,9 +880,10 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // NEW: Check if anyone has locked the room yet
+            // If someone liked, lock it and HIDE the button for everyone
             if (data.likeGiven) {
                 roomLikeGiven = true;
+                likeStreamContainer.style.display = 'none';
             }
 
             const strangerId = data.participants.find(id => id !== myUserId);
@@ -906,7 +905,12 @@
                 msgInput.disabled = false; sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
                 
                 currentStrangerId = strangerId;
-                if(currentStrangerId) likeStreamContainer.style.display = 'flex';
+                // Only show the button if no one has locked the room yet
+                if(currentStrangerId && !data.likeGiven) {
+                    likeStreamContainer.style.display = 'flex';
+                } else {
+                    likeStreamContainer.style.display = 'none';
+                }
             }
             if (data.status === "closed" && isChatting) {
                 appendMessage("Stranger disconnected.", "system-msg");
@@ -952,7 +956,6 @@
             });
             setupRoomListener(currentRoomId);
         } else {
-            // NEW: Initialize the room with the likeGiven: false lock
             const newRoom = await addDoc(collection(db, "rooms"), { 
                 status: "waiting", creatorId: myUserId, participants: [myUserId], 
                 names: { [myUserId]: myUserName }, photos: { [myUserId]: myUserPhoto },
