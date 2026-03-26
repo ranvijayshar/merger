@@ -121,7 +121,8 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
-    import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    // Notice we added arrayUnion here!
+    import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDsFseykAMdcZhtW3fpg0nQiMd6datK55E",
@@ -137,7 +138,7 @@
     const analytics = getAnalytics(app);
     const db = getFirestore(app);
 
-    const container = document.getElementById('main-container'); // Grab the whole box for animation
+    const container = document.getElementById('main-container'); 
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
@@ -146,10 +147,10 @@
 
     let currentRoomId = null;
     let unsubscribeRoom = null;
-    let unsubscribeMessages = null;
     let hasStarted = false;
     let isSkipping = false; 
     let isChatting = false; 
+    let displayedMessageCount = 0; // Tracks how many messages are currently on screen
     const myUserId = "user_" + Math.random().toString(36).substr(2, 9);
 
     function appendMessage(text, type) {
@@ -165,11 +166,12 @@
         msgInput.disabled = true;
         sendBtn.disabled = true;
         isChatting = false;
+        displayedMessageCount = 0;
         if (unsubscribeRoom) unsubscribeRoom();
-        if (unsubscribeMessages) unsubscribeMessages();
         currentRoomId = null;
     }
 
+    // WE COMBINED THE LISTENERS INTO ONE
     function setupRoomListener(roomId) {
         if (unsubscribeRoom) unsubscribeRoom();
         
@@ -177,8 +179,13 @@
             const data = snapshot.data();
             if (!data) return;
 
+            // 1. Check for Room Status Changes
             if (data.status === "chatting" && !isChatting) {
-                startChat(roomId);
+                isChatting = true;
+                appendMessage("You are now chatting! Say hi 👋", "system-msg");
+                msgInput.disabled = false;
+                sendBtn.disabled = false;
+                msgInput.focus();
             }
             
             if (data.status === "closed" && isChatting) {
@@ -186,8 +193,20 @@
                 isChatting = false;
                 msgInput.disabled = true;
                 sendBtn.disabled = true;
-                if (unsubscribeMessages) unsubscribeMessages(); 
                 appendMessage("⏬ Swipe or press ↓ to find someone new ⏬", "system-msg");
+            }
+
+            // 2. Check for New Messages in the Array
+            if (isChatting && data.messages && data.messages.length > displayedMessageCount) {
+                // Slice out only the new messages we haven't rendered yet
+                const newMessages = data.messages.slice(displayedMessageCount);
+                newMessages.forEach(msg => {
+                    if (msg.senderId !== myUserId) {
+                        appendMessage(msg.text, "stranger-msg");
+                    }
+                });
+                // Update our tracker
+                displayedMessageCount = data.messages.length;
             }
         });
     }
@@ -210,40 +229,17 @@
             });
             
             setupRoomListener(currentRoomId);
-            startChat(currentRoomId);
         } else {
             const newRoom = await addDoc(roomsRef, {
                 status: "waiting",
                 creatorId: myUserId,
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                messages: [] // INITIALIZE THE EMPTY ARRAY HERE
             });
             currentRoomId = newRoom.id;
             
             setupRoomListener(currentRoomId);
         }
-    }
-
-    function startChat(roomId) {
-        isChatting = true;
-        appendMessage("You are now chatting! Say hi 👋", "system-msg");
-        msgInput.disabled = false;
-        sendBtn.disabled = false;
-        msgInput.focus();
-
-        const messagesRef = collection(db, "rooms", roomId, "messages");
-        const messagesQuery = query(messagesRef, orderBy("timestamp", "asc"));
-
-        if (unsubscribeMessages) unsubscribeMessages();
-        unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
-            snapshot.docChanges().forEach((change) => {
-                if (change.type === "added") {
-                    const msgData = change.doc.data();
-                    if (msgData.senderId !== myUserId) {
-                        appendMessage(msgData.text, "stranger-msg");
-                    }
-                }
-            });
-        });
     }
 
     async function sendMessage() {
@@ -252,50 +248,49 @@
 
         msgInput.value = '';
         appendMessage(text, "my-msg"); 
+        
+        // Increment our local counter so we don't print our own message twice
+        displayedMessageCount++; 
 
-        await addDoc(collection(db, "rooms", currentRoomId, "messages"), {
-            text: text,
-            senderId: myUserId,
-            timestamp: serverTimestamp()
+        // PUSH MESSAGE INTO THE SINGLE DOCUMENT ARRAY
+        await updateDoc(doc(db, "rooms", currentRoomId), {
+            messages: arrayUnion({
+                text: text,
+                senderId: myUserId,
+                timestamp: Date.now()
+            })
         });
     }
 
-    // --- REELS SWIPE ANIMATION LOGIC ---
     async function skipToNext() {
         if (!hasStarted || isSkipping) return;
         isSkipping = true;
 
-        // 1. Tell Firebase we are leaving
         if (currentRoomId) {
             const roomToClose = currentRoomId; 
             updateDoc(doc(db, "rooms", roomToClose), { status: "closed" }).catch(e => console.error(e));
         }
 
-        // 2. Animate the current box UP and fading out
         container.style.transform = 'translateY(-100vh) scale(0.9)';
         container.style.opacity = '0';
 
-        // Wait 300ms for it to slide off screen
         setTimeout(() => {
-            // 3. While invisible, teleport it to the bottom and reset the chat
-            container.style.transition = 'none'; // Turn off animation temporarily
-            container.style.transform = 'translateY(100vh) scale(0.9)'; // Move to bottom
+            container.style.transition = 'none'; 
+            container.style.transform = 'translateY(100vh) scale(0.9)'; 
             
-            findStranger(); // Clear chat, say "Looking for stranger..."
+            findStranger(); 
 
-            // 4. Force the browser to register the teleport, then slide it back up
-            void container.offsetWidth; // This is a magic trick to force CSS to update instantly
+            void container.offsetWidth; 
 
             container.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease-in-out';
-            container.style.transform = 'translateY(0) scale(1)'; // Move to center
+            container.style.transform = 'translateY(0) scale(1)'; 
             container.style.opacity = '1';
 
-            // 5. Unlock the skip button after it finishes arriving
             setTimeout(() => {
                 isSkipping = false;
             }, 500); 
 
-        }, 300); // 300ms matches the CSS transition out time
+        }, 300); 
     }
 
     startBtn.addEventListener('click', () => {
@@ -305,7 +300,6 @@
         findStranger();
     });
 
-    // Scroll Triggers
     window.addEventListener('wheel', (e) => {
         if (e.target.closest('#chat-box')) return; 
         if (e.deltaY > 20) skipToNext();
