@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Chat - Reels Mode</title>
+    <title>Random Chat - Premium Edition</title>
     <style>
         /* Base Theme with Animated Gradient */
         body { 
@@ -42,44 +42,63 @@
             border: 1px solid #2a2a2a;
             transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease-in-out;
             will-change: transform, opacity;
-            position: relative; /* Needed for the modal overlay */
+            position: relative; 
         }
 
-        h2 { text-align: center; margin-top: 0; font-weight: 600; letter-spacing: 1px; color: #eee; }
+        /* --- NEW: TOP NAV BAR --- */
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+        .top-nav h2 { margin: 0; font-weight: 600; letter-spacing: 1px; color: #eee; font-size: 1.4em; }
+        .profile-pic-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #007bff;
+            transition: transform 0.2s;
+        }
+        .profile-pic-btn:hover { transform: scale(1.1); }
 
-        #chat-box { 
-            flex-grow: 1; 
-            border-radius: 12px; 
-            padding: 15px; 
-            overflow-y: auto; 
-            margin-bottom: 15px; 
-            background: #111111; 
+        /* --- LOGIN SCREEN --- */
+        #login-screen {
             display: flex;
             flex-direction: column;
-            gap: 12px; 
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+        }
+        #login-screen h1 { font-size: 2em; margin-bottom: 10px; background: -webkit-linear-gradient(#007bff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        #login-screen p { color: #888; margin-bottom: 30px; }
+        
+        .google-btn {
+            background: white; color: #333; border: none; padding: 12px 24px; border-radius: 25px;
+            font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 4px 15px rgba(255,255,255,0.2); transition: all 0.2s;
+        }
+        .google-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,255,255,0.3); }
+        .google-btn img { width: 20px; }
+
+        /* Chat Interface (Hidden until logged in) */
+        #chat-interface {
+            display: none; /* Controlled by JS */
+            flex-direction: column;
+            flex-grow: 1;
         }
 
+        #chat-box { flex-grow: 1; border-radius: 12px; padding: 15px; overflow-y: auto; margin-bottom: 15px; background: #111111; display: flex; flex-direction: column; gap: 12px; }
         #chat-box::-webkit-scrollbar { width: 6px; }
         #chat-box::-webkit-scrollbar-track { background: transparent; }
         #chat-box::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-        #chat-box::-webkit-scrollbar-thumb:hover { background: #555; }
 
-        .message { 
-            padding: 12px 18px; 
-            border-radius: 20px; 
-            max-width: 75%; 
-            word-wrap: break-word;
-            line-height: 1.4;
-            font-size: 0.95em;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
-            opacity: 0; 
-            transform-origin: bottom;
-        }
-
-        @keyframes popIn {
-            0% { opacity: 0; transform: translateY(20px) scale(0.9); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
+        .message { padding: 12px 18px; border-radius: 20px; max-width: 75%; word-wrap: break-word; line-height: 1.4; font-size: 0.95em; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform-origin: bottom; }
+        @keyframes popIn { 0% { opacity: 0; transform: translateY(20px) scale(0.9); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
 
         .my-msg { background: linear-gradient(135deg, #0062cc, #007bff); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2); }
         .stranger-msg { background: #2d2d2d; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
@@ -87,53 +106,36 @@
 
         .controls { display: flex; gap: 10px; }
         input[type="text"] { flex-grow: 1; padding: 14px 20px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 1em; transition: all 0.3s ease; }
-        input[type="text"]:focus { border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,0.2); }
+        input[type="text"]:focus { border-color: #007bff; }
         input[type="text"]:disabled { background: #1a1a1a; cursor: not-allowed; }
 
-        button { padding: 0 20px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.9em; }
-        button:hover:not(:disabled) { background: #0056b3; transform: translateY(-2px); }
-        button:active:not(:disabled) { transform: translateY(0); }
-        button:disabled { background: #333; color: #666; cursor: not-allowed; }
+        button.action-btn { padding: 0 20px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-transform: uppercase; font-size: 0.9em; }
+        button.action-btn:hover:not(:disabled) { background: #0056b3; transform: translateY(-2px); }
+        button.action-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
 
-        #start-btn { background: linear-gradient(135deg, #ff416c, #ff4b2b); margin-top: 15px; width: 100%; font-size: 1.1em; padding: 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3); }
-        #start-btn:hover { background: linear-gradient(135deg, #ff4b2b, #ff416c); box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5); }
+        #start-btn { background: linear-gradient(135deg, #ff416c, #ff4b2b); margin-top: 15px; width: 100%; font-size: 1.1em; padding: 16px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3); transition: all 0.2s; }
+        #start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5); }
 
         #skip-hint { display: none; text-align: center; color: #777; font-size: 0.85em; margin-top: 15px; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
-        /* --- NEW MODAL STYLES --- */
-        .modal-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(5px);
-            border-radius: 20px;
-            display: none; /* Hidden by default */
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            animation: fadeIn 0.2s ease forwards;
-        }
-
-        .modal-content {
-            background: #222;
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            width: 80%;
-            border: 1px solid #444;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
+        /* Modals */
+        .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); border-radius: 20px; display: none; justify-content: center; align-items: center; z-index: 100; animation: fadeIn 0.2s ease forwards; }
+        .modal-content { background: #222; padding: 30px; border-radius: 15px; text-align: center; width: 80%; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
+        
         .modal-content h3 { margin-top: 0; color: #fff; margin-bottom: 10px; }
         .modal-content p { color: #ccc; font-size: 0.9em; margin-bottom: 25px; line-height: 1.4; }
         
+        /* Profile Modal Specifics */
+        .profile-img-large { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid #007bff; }
+        .close-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #888; font-size: 1.5em; cursor: pointer; }
+        .close-btn:hover { color: white; }
+
         .modal-buttons { display: flex; gap: 15px; justify-content: center; }
-        .modal-buttons button { padding: 12px 20px; border-radius: 8px; flex: 1; font-size: 1em; }
+        .modal-buttons button { padding: 12px 20px; border-radius: 8px; flex: 1; font-size: 1em; border: none; cursor: pointer; font-weight: bold; }
         #btn-stay { background: #444; color: white; }
-        #btn-stay:hover { background: #555; }
         #btn-leave { background: #dc3545; color: white; }
-        #btn-leave:hover { background: #c82333; }
+        #btn-logout { background: #dc3545; color: white; width: 100%; margin-top: 15px; }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
@@ -141,16 +143,44 @@
 <body>
 
 <div class="chat-container" id="main-container">
-    <h2>Random Chat</h2>
-    <div id="chat-box">
-        <div class="message system-msg">Click below to start your first chat!</div>
+    
+    <div id="login-screen">
+        <h1>Random Chat</h1>
+        <p>Connect with strangers instantly.</p>
+        <button id="login-btn" class="google-btn">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google">
+            Sign in with Google
+        </button>
     </div>
-    <div class="controls">
-        <input type="text" id="msg-input" placeholder="Type a message..." disabled autocomplete="off">
-        <button id="send-btn" disabled>Send</button>
+
+    <div id="chat-interface">
+        <div class="top-nav">
+            <h2>Random Chat</h2>
+            <img id="nav-profile-pic" class="profile-pic-btn" src="" alt="Profile" title="Open Profile">
+        </div>
+
+        <div id="chat-box">
+            <div class="message system-msg">Click below to start your first chat!</div>
+        </div>
+        
+        <div class="controls">
+            <input type="text" id="msg-input" placeholder="Type a message..." disabled autocomplete="off">
+            <button id="send-btn" class="action-btn" disabled>Send</button>
+        </div>
+        
+        <button id="start-btn">Start Chatting</button>
+        <div id="skip-hint">⏬ Swipe up, scroll, or press ↓ to skip ⏬</div>
     </div>
-    <button id="start-btn">Start Chatting</button>
-    <div id="skip-hint">⏬ Swipe up, scroll, or press ↓ to skip ⏬</div>
+
+    <div id="profile-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="close-profile-btn" class="close-btn">&times;</button>
+            <img id="modal-profile-pic" class="profile-img-large" src="" alt="Profile">
+            <h3 id="modal-profile-name">User Name</h3>
+            <p id="modal-profile-email">user@email.com</p>
+            <button id="btn-logout">Sign Out</button>
+        </div>
+    </div>
 
     <div id="confirm-modal" class="modal-overlay">
         <div class="modal-content">
@@ -162,12 +192,14 @@
             </div>
         </div>
     </div>
+
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
     import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    // --- NEW AUTHENTICATION IMPORTS ---
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDsFseykAMdcZhtW3fpg0nQiMd6datK55E",
@@ -175,34 +207,113 @@
         projectId: "projectsocial-6db6d",
         storageBucket: "projectsocial-6db6d.firebasestorage.app",
         messagingSenderId: "336903363566",
-        appId: "1:336903363566:web:bfb18dfcb471bcf4484cff",
-        measurementId: "G-81LG54HW26"
+        appId: "1:336903363566:web:bfb18dfcb471bcf4484cff"
     };
 
     const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
     const db = getFirestore(app);
+    // --- INITIALIZE AUTH ---
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
+    // DOM Elements
     const container = document.getElementById('main-container'); 
+    const loginScreen = document.getElementById('login-screen');
+    const chatInterface = document.getElementById('chat-interface');
+    
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
     const startBtn = document.getElementById('start-btn');
     const skipHint = document.getElementById('skip-hint');
     
-    // Modal Elements
+    // Auth & Profile Elements
+    const loginBtn = document.getElementById('login-btn');
+    const navProfilePic = document.getElementById('nav-profile-pic');
+    const profileModal = document.getElementById('profile-modal');
+    const closeProfileBtn = document.getElementById('close-profile-btn');
+    const modalProfilePic = document.getElementById('modal-profile-pic');
+    const modalProfileName = document.getElementById('modal-profile-name');
+    const modalProfileEmail = document.getElementById('modal-profile-email');
+    const btnLogout = document.getElementById('btn-logout');
+
+    // Skip Modal Elements
     const confirmModal = document.getElementById('confirm-modal');
     const btnStay = document.getElementById('btn-stay');
     const btnLeave = document.getElementById('btn-leave');
 
+    // State
     let currentRoomId = null;
     let unsubscribeRoom = null;
     let hasStarted = false;
     let isSkipping = false; 
     let isChatting = false; 
-    let isConfirming = false; // Tracks if the popup is currently open
+    let isConfirming = false; 
     let displayedMessageCount = 0; 
-    const myUserId = "user_" + Math.random().toString(36).substr(2, 9);
+    
+    // IMPORTANT: This is now driven by actual Google Auth, not Math.random!
+    let myUserId = null; 
+
+    // --- AUTHENTICATION LOGIC ---
+
+    // Listen for login/logout changes
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // User is signed in
+            myUserId = user.uid;
+            
+            // Populate Profile Info
+            navProfilePic.src = user.photoURL;
+            modalProfilePic.src = user.photoURL;
+            modalProfileName.textContent = user.displayName;
+            modalProfileEmail.textContent = user.email;
+
+            // Switch UI
+            loginScreen.style.display = 'none';
+            chatInterface.style.display = 'flex';
+        } else {
+            // User is signed out
+            myUserId = null;
+            
+            // If they were chatting, clean up the database before kicking them to login screen
+            if (currentRoomId) {
+                updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e => console.error(e));
+            }
+            resetChat();
+            
+            // Switch UI
+            loginScreen.style.display = 'flex';
+            chatInterface.style.display = 'none';
+            profileModal.style.display = 'none';
+            hasStarted = false;
+            startBtn.style.display = 'block';
+            skipHint.style.display = 'none';
+        }
+    });
+
+    // Login Click
+    loginBtn.addEventListener('click', () => {
+        signInWithPopup(auth, provider).catch((error) => {
+            console.error("Error signing in:", error);
+            alert("Failed to sign in. Did you enable Google Auth in the Firebase Console?");
+        });
+    });
+
+    // Logout Click
+    btnLogout.addEventListener('click', () => {
+        signOut(auth);
+    });
+
+    // Profile Modal Toggles
+    navProfilePic.addEventListener('click', () => {
+        profileModal.style.display = 'flex';
+    });
+    closeProfileBtn.addEventListener('click', () => {
+        profileModal.style.display = 'none';
+    });
+
+
+    // --- CORE CHAT LOGIC (Unchanged, just uses the new myUserId) ---
 
     function appendMessage(text, type) {
         const div = document.createElement('div');
@@ -243,8 +354,6 @@
                 msgInput.disabled = true;
                 sendBtn.disabled = true;
                 appendMessage("⏬ Swipe or press ↓ to find someone new ⏬", "system-msg");
-                
-                // If they got disconnected while the modal was open, close it
                 if (isConfirming) hideConfirmModal();
             }
 
@@ -261,11 +370,13 @@
     }
 
     async function findStranger() {
+        if (!myUserId) return; // Failsafe
+        
         resetChat();
         appendMessage("Looking for a stranger...", "system-msg");
 
         const roomsRef = collection(db, "rooms");
-        const q = query(roomsRef, where("status", "==", "waiting"), limit(1)); // Speed upgrade applied!
+        const q = query(roomsRef, where("status", "==", "waiting"), limit(1)); 
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
@@ -308,48 +419,28 @@
         });
     }
 
-    // --- MODAL LOGIC ---
-    function showConfirmModal() {
-        isConfirming = true;
-        confirmModal.style.display = 'flex';
-    }
-
-    function hideConfirmModal() {
-        isConfirming = false;
-        confirmModal.style.display = 'none';
-    }
-
+    // --- SKIP / MODAL LOGIC ---
+    function showConfirmModal() { isConfirming = true; confirmModal.style.display = 'flex'; }
+    function hideConfirmModal() { isConfirming = false; confirmModal.style.display = 'none'; }
     btnStay.addEventListener('click', hideConfirmModal);
-    
-    btnLeave.addEventListener('click', () => {
-        hideConfirmModal();
-        executeSkipAnimation();
-    });
+    btnLeave.addEventListener('click', () => { hideConfirmModal(); executeSkipAnimation(); });
 
-    // --- SMART SCROLL INTENT LOGIC ---
     function handleSkipIntent(e, isScrollEvent) {
-        if (!hasStarted || isSkipping || isConfirming) return;
+        if (!hasStarted || isSkipping || isConfirming || !myUserId) return;
 
-        // The Smart Scroll fix:
         if (isScrollEvent && e.target.closest('#chat-box')) {
             const box = chatBox;
-            // Check if user is scrolled to the absolute bottom (allowing 2px for browser rendering math)
             const isAtBottom = Math.abs((box.scrollHeight - box.scrollTop) - box.clientHeight) < 2;
-            
-            // If they are NOT at the bottom, they are just reading old messages. Let them scroll.
             if (!isAtBottom) return; 
         }
 
-        // Only show popup if they are actively talking to someone
         if (isChatting && currentRoomId) {
             showConfirmModal();
         } else {
-            // If they are just waiting or the stranger disconnected, let them skip instantly without asking
             executeSkipAnimation();
         }
     }
 
-    // --- ACTUAL SKIP ANIMATION ---
     async function executeSkipAnimation() {
         isSkipping = true;
 
@@ -373,14 +464,10 @@
             container.style.transform = 'translateY(0) scale(1)'; 
             container.style.opacity = '1';
 
-            setTimeout(() => {
-                isSkipping = false;
-            }, 500); 
-
+            setTimeout(() => { isSkipping = false; }, 500); 
         }, 300); 
     }
 
-    // --- EVENT LISTENERS ---
     startBtn.addEventListener('click', () => {
         startBtn.style.display = 'none'; 
         skipHint.style.display = 'block'; 
@@ -388,20 +475,13 @@
         findStranger();
     });
 
-    window.addEventListener('wheel', (e) => {
-        if (e.deltaY > 20) handleSkipIntent(e, true);
-    });
+    window.addEventListener('wheel', (e) => { if (e.deltaY > 20) handleSkipIntent(e, true); });
 
     let touchStartY = 0;
-    window.addEventListener('touchstart', (e) => {
-        touchStartY = e.changedTouches[0].screenY;
-    });
-    
+    window.addEventListener('touchstart', (e) => { touchStartY = e.changedTouches[0].screenY; });
     window.addEventListener('touchend', (e) => {
         let touchEndY = e.changedTouches[0].screenY;
-        if (touchStartY - touchEndY > 50) {
-            handleSkipIntent(e, true);
-        }
+        if (touchStartY - touchEndY > 50) handleSkipIntent(e, true);
     });
 
     window.addEventListener('keydown', (e) => {
@@ -410,14 +490,10 @@
     });
 
     sendBtn.addEventListener('click', sendMessage);
-    msgInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
-    });
+    msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
     window.addEventListener('beforeunload', () => {
-        if (currentRoomId) {
-            updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" });
-        }
+        if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" });
     });
 </script>
 </body>
