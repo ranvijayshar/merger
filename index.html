@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Random Chat - Premium Edition</title>
+    
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+
     <style>
         /* Base Theme */
         body { 
@@ -39,13 +42,19 @@
         }
         .nav-tab {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #666; cursor: pointer; transition: all 0.2s; width: 33%; font-size: 0.75em; font-weight: 600; gap: 4px;
+            color: #666; cursor: pointer; transition: all 0.2s; width: 33%; font-size: 0.75em; font-weight: 600; gap: 4px; position: relative;
         }
         .nav-tab:hover { color: #aaa; }
         .nav-tab.active { color: #007bff; }
         .nav-tab.active svg { transform: scale(1.15); }
         .tab-profile-pic { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: all 0.2s; }
         .nav-tab.active .tab-profile-pic { border-color: #007bff; transform: scale(1.1); }
+
+        /* Global Unread Badge for the Bottom Tab */
+        #global-unread-badge {
+            position: absolute; top: -5px; right: 25px; background: #25D366; color: white;
+            font-size: 0.7em; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none;
+        }
 
         /* --- SCREENS --- */
         #login-screen, #chat-interface, #profile-screen, #friends-screen {
@@ -80,11 +89,19 @@
         .stranger-msg { background: #2d2d2d; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
         .system-msg { text-align: center; color: #888; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 20px; }
         
-        .controls { display: flex; gap: 8px; flex-shrink: 0;}
+        /* --- NEW: EMOJI AND CONTROLS --- */
+        .controls { display: flex; gap: 8px; flex-shrink: 0; align-items: center; position: relative;}
+        .emoji-toggle-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; color: #aaa; transition: transform 0.2s; padding: 0 5px; }
+        .emoji-toggle-btn:hover { transform: scale(1.1); color: white; }
+        
+        .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 20px rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; }
+        /* Style the web component to fit our dark theme */
+        emoji-picker { --background: #222; --border-color: #333; --input-border-color: #444; --button-hover-background: #333; height: 350px;}
+
         input[type="text"] { flex-grow: 1; padding: 12px 16px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; }
         input[type="text"]:focus { border-color: #007bff; }
         input[type="text"]:disabled { background: #1a1a1a; cursor: not-allowed; }
-        button.action-btn { padding: 0 16px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-transform: uppercase; font-size: 0.85em; display: flex; align-items: center; justify-content: center; }
+        button.action-btn { padding: 0 16px; height: 42px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
         button.action-btn:hover:not(:disabled) { background: #0056b3; transform: translateY(-2px); }
         button.action-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
         
@@ -114,18 +131,14 @@
         .friend-info { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
         .friend-name { font-weight: bold; color: #eee; font-size: 1em; margin-bottom: 3px; }
         .friend-msg { color: #888; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-        .empty-friends { text-align: center; color: #555; margin-top: 30px; font-style: italic; font-size: 0.9em;}
+        
+        /* --- NEW: UNREAD BADGES --- */
+        .unread-badge { background: #25D366; color: white; border-radius: 50%; padding: 2px 8px; font-size: 0.8em; font-weight: bold; margin-left: auto; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(37, 211, 102, 0.4);}
 
-        /* --- NEW: COMPACT HORIZONTAL REQUESTS --- */
-        #requests-container { 
-            display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px; margin-bottom: 5px;
-            scrollbar-width: none; /* Firefox */
-        }
-        #requests-container::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
-        .req-compact { 
-            display: flex; flex-direction: column; align-items: center; background: #111; 
-            padding: 10px; border-radius: 12px; min-width: 80px; max-width: 90px; border: 1px solid #222; flex-shrink: 0; 
-        }
+        /* Compact Requests */
+        #requests-container { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px; margin-bottom: 5px; scrollbar-width: none; }
+        #requests-container::-webkit-scrollbar { display: none; }
+        .req-compact { display: flex; flex-direction: column; align-items: center; background: #111; padding: 10px; border-radius: 12px; min-width: 80px; max-width: 90px; border: 1px solid #222; flex-shrink: 0; }
         .req-compact .friend-avatar { margin-right: 0; margin-bottom: 8px; width: 45px; height: 45px; }
         .req-compact .friend-name { font-size: 0.8em; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; color: #eee;}
         .req-actions-compact { display: flex; gap: 8px; justify-content: center; width: 100%; }
@@ -133,6 +146,7 @@
         .req-btn:hover { transform: scale(1.1); }
         .req-accept { background: #28a745; color: white; }
         .req-reject { background: #dc3545; color: white; }
+        .empty-friends { text-align: center; color: #555; margin-top: 30px; font-style: italic; font-size: 0.9em;}
 
         /* Modals */
         .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); border-radius: 20px; display: none; justify-content: center; align-items: center; z-index: 100; animation: fadeIn 0.2s ease forwards; }
@@ -145,8 +159,6 @@
         .modal-buttons button { padding: 10px 15px; border-radius: 8px; flex: 1; font-size: 0.95em; border: none; cursor: pointer; font-weight: bold; }
         #btn-stay { background: #444; color: white; }
         #btn-leave { background: #dc3545; color: white; }
-
-        /* Settings Modal */
         .settings-content { text-align: left; }
         .settings-content h3 { text-align: center; border-bottom: 1px solid #444; padding-bottom: 12px; margin-bottom: 15px; }
         .settings-item { background: #333; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; text-align: left; font-size: 0.95em; cursor: pointer; margin-bottom: 10px; transition: background 0.2s; font-weight: bold; display: flex; align-items: center; gap: 10px;}
@@ -197,7 +209,12 @@
                 <div class="nav-spacer"></div>
             </div>
             <div id="friend-chat-box" class="chat-box-style"></div>
+            
             <div class="controls">
+                <button class="emoji-toggle-btn" id="friend-emoji-btn">😀</button>
+                <div class="emoji-picker-container" id="friend-emoji-picker">
+                    <emoji-picker></emoji-picker>
+                </div>
                 <input type="text" id="friend-msg-input" placeholder="Message friend..." autocomplete="off">
                 <button id="friend-send-btn" class="action-btn">
                     <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -217,7 +234,12 @@
         <div id="chat-box" class="chat-box-style">
             <div class="message system-msg">Click below to start your first chat!</div>
         </div>
+        
         <div class="controls">
+            <button class="emoji-toggle-btn" id="random-emoji-btn">😀</button>
+            <div class="emoji-picker-container" id="random-emoji-picker">
+                <emoji-picker></emoji-picker>
+            </div>
             <input type="text" id="msg-input" placeholder="Type a message..." disabled autocomplete="off">
             <button id="send-btn" class="action-btn" disabled>
                 <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -246,6 +268,7 @@
         <div class="nav-tab" id="tab-friends">
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
             <span class="nav-label">Friends</span>
+            <div id="global-unread-badge">0</div>
         </div>
         <div class="nav-tab active" id="tab-chat">
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
@@ -307,11 +330,12 @@
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
     
-    // Bottom Nav
+    // Bottom Nav Elements
     const bottomNav = document.getElementById('bottom-nav');
     const tabFriends = document.getElementById('tab-friends');
     const tabChat = document.getElementById('tab-chat');
     const tabProfile = document.getElementById('tab-profile');
+    const globalUnreadBadge = document.getElementById('global-unread-badge');
     
     // Random Chat Elements
     const chatBox = document.getElementById('chat-box');
@@ -320,6 +344,12 @@
     const startBtn = document.getElementById('start-btn');
     const skipHint = document.getElementById('skip-hint');
     const addFriendBtn = document.getElementById('add-friend-btn');
+    
+    // Emoji Elements
+    const randomEmojiBtn = document.getElementById('random-emoji-btn');
+    const randomEmojiPicker = document.getElementById('random-emoji-picker');
+    const friendEmojiBtn = document.getElementById('friend-emoji-btn');
+    const friendEmojiPicker = document.getElementById('friend-emoji-picker');
     
     // Friends Pane Elements
     const friendsListView = document.getElementById('friends-list-view');
@@ -333,11 +363,8 @@
     const friendSendBtn = document.getElementById('friend-send-btn');
     const backToFriendsBtn = document.getElementById('back-to-friends-btn');
     
-    // Modals
     const settingsModal = document.getElementById('settings-modal');
     const confirmModal = document.getElementById('confirm-modal');
-    const btnStay = document.getElementById('btn-stay');
-    const btnLeave = document.getElementById('btn-leave');
 
     // State Variables
     let currentRoomId = null; 
@@ -356,6 +383,36 @@
     let myUserId = null; 
     let myUserName = "Unknown User";
     let myUserPhoto = "";
+
+    // --- NEW: EMOJI PICKER LOGIC ---
+    // Toggle Visibility
+    randomEmojiBtn.addEventListener('click', () => {
+        randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block';
+    });
+    friendEmojiBtn.addEventListener('click', () => {
+        friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block';
+    });
+    
+    // Close pickers if clicked outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#random-emoji-btn') && !e.target.closest('#random-emoji-picker')) {
+            randomEmojiPicker.style.display = 'none';
+        }
+        if (!e.target.closest('#friend-emoji-btn') && !e.target.closest('#friend-emoji-picker')) {
+            friendEmojiPicker.style.display = 'none';
+        }
+    });
+
+    // Listen for Emoji Clicks from the Web Components
+    document.querySelector('#random-emoji-picker emoji-picker').addEventListener('emoji-click', event => {
+        msgInput.value += event.detail.unicode;
+        msgInput.focus();
+    });
+    document.querySelector('#friend-emoji-picker emoji-picker').addEventListener('emoji-click', event => {
+        friendMsgInput.value += event.detail.unicode;
+        friendMsgInput.focus();
+    });
+
 
     // --- NAVIGATION LOGIC ---
     function showScreen(screenElement, animationClass) {
@@ -386,47 +443,6 @@
     });
     tabProfile.addEventListener('click', () => { if(profileScreen.style.display !== 'flex') openProfile(); });
 
-    // --- UNIFIED SWIPE LOGIC ---
-    let startX = 0, startY = 0, isDragging = false;
-    function handleInputStart(x, y) { startX = x; startY = y; isDragging = true; }
-    function handleInputEnd(e, currentScreen, isTouch) {
-        if (!isDragging) return;
-        isDragging = false;
-        let clientX = isTouch ? e.changedTouches[0].clientX : e.clientX;
-        let clientY = isTouch ? e.changedTouches[0].clientY : e.clientY;
-        let diffX = startX - clientX; let diffY = startY - clientY; 
-        let absX = Math.abs(diffX); let absY = Math.abs(diffY);
-
-        if (absX > 50 && absX > absY) {
-            if (diffX > 0) { // Swiped Left
-                if (currentScreen === 'friends') openChatFromFriends();
-                else if (currentScreen === 'chat') openProfile();
-            } else if (diffX < 0) { // Swiped Right
-                if (currentScreen === 'profile') openChatFromProfile();
-                else if (currentScreen === 'chat') openFriends();
-            }
-        } else if (absY > 50 && absY > absX && currentScreen === 'chat') {
-            handleSkipIntent(e, true);
-        }
-    }
-
-    ['touchstart', 'mousedown'].forEach(evt => {
-        friendsScreen.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
-        chatInterface.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
-        profileScreen.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
-    });
-    ['touchend', 'mouseup'].forEach(evt => {
-        friendsScreen.addEventListener(evt, e => handleInputEnd(e, 'friends', !!e.changedTouches));
-        chatInterface.addEventListener(evt, e => handleInputEnd(e, 'chat', !!e.changedTouches));
-        profileScreen.addEventListener(evt, e => handleInputEnd(e, 'profile', !!e.changedTouches));
-    });
-    [friendsScreen, chatInterface, profileScreen].forEach(el => el.addEventListener('mouseleave', () => isDragging = false));
-
-    // --- MODALS ---
-    document.getElementById('open-settings-btn').addEventListener('click', () => settingsModal.style.display = 'flex');
-    document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
-    settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
-
     // --- AUTHENTICATION ---
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -454,12 +470,24 @@
     });
 
     document.getElementById('login-btn').addEventListener('click', () => signInWithPopup(auth, provider));
-    document.getElementById('btn-logout').addEventListener('click', () => { settingsModal.style.display = 'none'; signOut(auth); });
+    document.getElementById('btn-logout').addEventListener('click', () => { document.getElementById('settings-modal').style.display = 'none'; signOut(auth); });
+    document.getElementById('open-settings-btn').addEventListener('click', () => settingsModal.style.display = 'flex');
+    document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
 
     // ==========================================
-    // --- FEATURE 1: FRIENDS SYSTEM (WITH SMART SORTING & COMPACT REQUESTS) ---
+    // --- FEATURE 1: FRIENDS SYSTEM (WITH BADGES) ---
     // ==========================================
     
+    // Helper: Mark a room as "read" by me right now
+    async function markRoomAsRead(roomId) {
+        if (!myUserId || !roomId) return;
+        try {
+            await updateDoc(doc(db, "rooms", roomId), {
+                [`lastRead.${myUserId}`]: Date.now()
+            });
+        } catch(e) {} // Ignore if document doesn't exist yet
+    }
+
     function startFriendsListener() {
         if (unsubscribeFriendsList) unsubscribeFriendsList();
         const q = query(collection(db, "rooms"), where("participants", "array-contains", myUserId));
@@ -469,8 +497,9 @@
             
             let requestsData = [];
             let friendsData = [];
+            let totalUnreadMessages = 0; // For the bottom tab badge
 
-            // 1. Categorize all rooms
+            // 1. Process Data
             snapshot.forEach(docSnap => {
                 const data = docSnap.data(); 
                 const isRequestForMe = data.friendStatus === 'pending' && data.requester !== myUserId;
@@ -480,33 +509,49 @@
                     requestsData.push({ id: docSnap.id, data: data });
                 } 
                 else if (isAcceptedFriend) {
-                    // Find the timestamp of the last message to use for sorting
-                    let lastActivity = 0;
+                    let lastActivity = data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now();
                     if (data.friendMessages && data.friendMessages.length > 0) {
                         lastActivity = data.friendMessages[data.friendMessages.length - 1].timestamp;
-                    } else if (data.createdAt) {
-                        // Fallback to when the room was created if no messages yet
-                        lastActivity = data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now();
                     }
-                    friendsData.push({ id: docSnap.id, data: data, lastActivity: lastActivity });
+                    
+                    // --- NEW: CALCULATE UNREAD BADGES ---
+                    let unreadCount = 0;
+                    const myLastReadTime = (data.lastRead && data.lastRead[myUserId]) ? data.lastRead[myUserId] : 0;
+                    
+                    if (data.friendMessages) {
+                        // Count messages sent AFTER I last read the chat, that were NOT sent by me
+                        unreadCount = data.friendMessages.filter(m => m.timestamp > myLastReadTime && m.senderId !== myUserId).length;
+                    }
+                    
+                    // If the user is CURRENTLY looking at this specific chat, clear the badge instantly
+                    if (friendChatView.style.display === 'flex' && currentFriendRoomId === docSnap.id) {
+                        unreadCount = 0; 
+                        markRoomAsRead(docSnap.id); // Tell DB we read it
+                    }
+
+                    totalUnreadMessages += unreadCount;
+
+                    friendsData.push({ id: docSnap.id, data: data, lastActivity: lastActivity, unreadCount: unreadCount });
                 }
             });
 
-            // 2. SORT friends list so most recent message is at the top
-            friendsData.sort((a, b) => b.lastActivity - a.lastActivity);
+            // Update Global Bottom Tab Badge
+            if (totalUnreadMessages > 0) {
+                globalUnreadBadge.textContent = totalUnreadMessages;
+                globalUnreadBadge.style.display = 'block';
+            } else {
+                globalUnreadBadge.style.display = 'none';
+            }
 
-            // 3. Render Compact Horizontal Requests
+            // 2. Render Compact Requests
             requestsData.forEach(req => {
                 const strangerId = req.data.participants.find(id => id !== myUserId) || "Unknown";
                 const strangerName = (req.data.names && req.data.names[strangerId]) ? req.data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
                 const strangerPhoto = (req.data.photos && req.data.photos[strangerId]) ? req.data.photos[strangerId] : null;
                 
-                let avatarHtml = strangerPhoto 
-                    ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
-                    : strangerName.substring(0,1).toUpperCase();
+                let avatarHtml = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
 
-                const div = document.createElement('div'); 
-                div.className = 'req-compact';
+                const div = document.createElement('div'); div.className = 'req-compact';
                 div.innerHTML = `
                     <div class="friend-avatar" style="border-color: #ffc107;">${avatarHtml}</div>
                     <div class="friend-name">${strangerName}</div>
@@ -518,32 +563,30 @@
                 requestsContainer.appendChild(div);
             });
 
-            // 4. Render Sorted Friends List
+            // 3. Render Sorted Friends List (Most recent message at top)
+            friendsData.sort((a, b) => b.lastActivity - a.lastActivity);
             friendsData.forEach(friend => {
                 const strangerId = friend.data.participants.find(id => id !== myUserId) || "Unknown";
                 const strangerName = (friend.data.names && friend.data.names[strangerId]) ? friend.data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
                 const strangerPhoto = (friend.data.photos && friend.data.photos[strangerId]) ? friend.data.photos[strangerId] : null;
                 
-                let avatarHtml = strangerPhoto 
-                    ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
-                    : strangerName.substring(0,1).toUpperCase();
-
+                let avatarHtml = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
                 let lastMsg = "New conversation";
-                if (friend.data.friendMessages && friend.data.friendMessages.length > 0) {
-                    lastMsg = friend.data.friendMessages[friend.data.friendMessages.length - 1].text;
-                }
+                if (friend.data.friendMessages && friend.data.friendMessages.length > 0) lastMsg = friend.data.friendMessages[friend.data.friendMessages.length - 1].text;
 
-                const div = document.createElement('div'); 
-                div.className = 'friend-item';
+                // Create the badge HTML if unread > 0
+                let badgeHtml = friend.unreadCount > 0 ? `<div class="unread-badge">${friend.unreadCount}</div>` : '';
+
+                const div = document.createElement('div'); div.className = 'friend-item';
                 div.innerHTML = `
                     <div class="friend-avatar">${avatarHtml}</div>
                     <div class="friend-info"><div class="friend-name">${strangerName}</div><div class="friend-msg">${lastMsg}</div></div>
+                    ${badgeHtml}
                 `;
                 div.onclick = () => openFriendChatUI(friend.id, strangerName);
                 friendsContainer.appendChild(div);
             });
 
-            // Update UI visibility based on data
             requestsSection.style.display = requestsData.length > 0 ? 'block' : 'none';
             if (friendsData.length === 0) friendsContainer.innerHTML = '<div class="empty-friends">No friends yet. Send requests in chat!</div>';
         });
@@ -558,11 +601,8 @@
     });
 
     window.respondRequest = async (roomId, response) => {
-        if (response === 'accepted') {
-            await updateDoc(doc(db, "rooms", roomId), { friendStatus: "accepted" });
-        } else {
-            await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" });
-        }
+        if (response === 'accepted') await updateDoc(doc(db, "rooms", roomId), { friendStatus: "accepted" });
+        else await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" });
     };
 
     function openFriendChatUI(roomId, friendName) {
@@ -571,11 +611,20 @@
         
         friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Start a new conversation.</div>';
         
+        // Immediately mark this chat as read when opening it!
+        markRoomAsRead(roomId);
+        
         if (unsubscribeFriendChat) unsubscribeFriendChat();
         
         let localFriendMsgCount = 0;
         unsubscribeFriendChat = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
             const data = snapshot.data();
+            
+            // If new messages come in WHILE we are looking at the chat, keep marking them as read
+            if (friendChatView.style.display === 'flex' && currentFriendRoomId === roomId) {
+                markRoomAsRead(roomId);
+            }
+
             if (data && data.friendMessages && data.friendMessages.length > localFriendMsgCount) {
                 const newMsgs = data.friendMessages.slice(localFriendMsgCount);
                 newMsgs.forEach(msg => {
@@ -601,9 +650,12 @@
         const text = friendMsgInput.value.trim();
         if (!text || !currentFriendRoomId) return;
         friendMsgInput.value = '';
+        friendEmojiPicker.style.display = 'none'; // Close emoji picker on send
         
+        // Push message AND update lastRead for myself so I don't get unread badges for my own messages!
         await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
-            friendMessages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) 
+            friendMessages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }),
+            [`lastRead.${myUserId}`]: Date.now() 
         });
     }
 
@@ -658,21 +710,15 @@
         if (!querySnapshot.empty) {
             currentRoomId = querySnapshot.docs[0].id;
             await updateDoc(doc(db, "rooms", currentRoomId), { 
-                status: "chatting", 
-                participants: arrayUnion(myUserId),
-                [`names.${myUserId}`]: myUserName,
-                [`photos.${myUserId}`]: myUserPhoto
+                status: "chatting", participants: arrayUnion(myUserId),
+                [`names.${myUserId}`]: myUserName, [`photos.${myUserId}`]: myUserPhoto
             });
             setupRoomListener(currentRoomId);
         } else {
             const newRoom = await addDoc(collection(db, "rooms"), { 
-                status: "waiting", 
-                participants: [myUserId], 
-                names: { [myUserId]: myUserName },
-                photos: { [myUserId]: myUserPhoto },
-                createdAt: serverTimestamp(), 
-                messages: [],
-                friendMessages: []
+                status: "waiting", participants: [myUserId], 
+                names: { [myUserId]: myUserName }, photos: { [myUserId]: myUserPhoto },
+                createdAt: serverTimestamp(), messages: [], friendMessages: [], lastRead: { [myUserId]: Date.now() }
             });
             currentRoomId = newRoom.id; setupRoomListener(currentRoomId);
         }
@@ -682,6 +728,7 @@
         const text = msgInput.value.trim();
         if (!text || !currentRoomId) return;
         msgInput.value = ''; appendMessage(text, "my-msg"); displayedMessageCount++; 
+        randomEmojiPicker.style.display = 'none'; // Close emoji picker on send
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
     sendBtn.addEventListener('click', sendMessage);
@@ -705,7 +752,7 @@
 
     function executeSkipAnimation() {
         isSkipping = true;
-        if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e=>console.error(e));
+        if (currentRoomId) updateDoc(doc(db, "rooms", currentRoomId), { status: "closed" }).catch(e=>e);
 
         container.style.transform = 'translateY(-100vh) scale(0.9)'; container.style.opacity = '0';
         setTimeout(() => {
