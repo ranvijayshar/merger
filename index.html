@@ -9,6 +9,7 @@
 
     <style>
         /* Base Theme */
+        * { box-sizing: border-box; }
         body { 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             background: linear-gradient(-45deg, #0a0a0a, #1a1a2e, #16213e, #0f0c29);
@@ -30,8 +31,8 @@
         }
 
         /* --- VECTOR ICONS --- */
-        svg { fill: currentColor; width: 24px; height: 24px; transition: transform 0.2s; }
-        .icon-btn { background: none; border: none; color: #aaa; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s;}
+        svg { fill: currentColor; width: 24px; height: 24px; transition: transform 0.2s ease; }
+        .icon-btn { background: none; border: none; color: #aaa; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: color 0.2s ease, transform 0.2s ease;}
         .icon-btn:hover { color: white; transform: scale(1.1); }
         .active-friend-icon { color: #00ff88 !important; }
 
@@ -42,24 +43,24 @@
         }
         .nav-tab {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #666; cursor: pointer; transition: all 0.2s; width: 33%; font-size: 0.75em; font-weight: 600; gap: 4px; position: relative;
+            color: #666; cursor: pointer; transition: color 0.2s ease; width: 33%; font-size: 0.75em; font-weight: 600; gap: 4px; position: relative;
         }
         .nav-tab:hover { color: #aaa; }
         .nav-tab.active { color: #007bff; }
         .nav-tab.active svg { transform: scale(1.15); }
-        .tab-profile-pic { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: all 0.2s; }
+        .tab-profile-pic { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s ease, transform 0.2s ease; }
         .nav-tab.active .tab-profile-pic { border-color: #007bff; transform: scale(1.1); }
 
         /* Global Unread Badge for the Bottom Tab */
         #global-unread-badge {
             position: absolute; top: -5px; right: 25px; background: #25D366; color: white;
-            font-size: 0.7em; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none;
+            font-size: 0.7em; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none; pointer-events: none;
         }
 
         /* --- SCREENS --- */
         #login-screen, #chat-interface, #profile-screen, #friends-screen {
             display: none; flex-direction: column; flex-grow: 1; 
-            width: 100%; box-sizing: border-box; padding: 15px 20px; overflow: hidden; 
+            width: 100%; padding: 15px 20px; overflow: hidden; 
         }
 
         @keyframes slideInFromRight { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -75,7 +76,7 @@
         #login-screen { justify-content: center; align-items: center; text-align: center; padding-bottom: 40px;}
         #login-screen h1 { font-size: 2.2em; margin-bottom: 10px; background: -webkit-linear-gradient(#007bff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         #login-screen p { color: #888; margin-bottom: 30px; }
-        .google-btn { background: white; color: #333; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(255,255,255,0.2); transition: all 0.2s; }
+        .google-btn { background: white; color: #333; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(255,255,255,0.2); transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .google-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,255,255,0.3); }
 
         /* Generic Chat Box Styles */
@@ -89,23 +90,22 @@
         .stranger-msg { background: #2d2d2d; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
         .system-msg { text-align: center; color: #888; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 20px; }
         
-        /* --- NEW: EMOJI AND CONTROLS --- */
+        /* Controls & Emoji */
         .controls { display: flex; gap: 8px; flex-shrink: 0; align-items: center; position: relative;}
-        .emoji-toggle-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; color: #aaa; transition: transform 0.2s; padding: 0 5px; }
-        .emoji-toggle-btn:hover { transform: scale(1.1); color: white; }
+        .emoji-toggle-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; color: #aaa; transition: transform 0.2s ease; padding: 0 5px; outline: none; }
+        .emoji-toggle-btn:hover { transform: scale(1.1); }
         
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 20px rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; }
-        /* Style the web component to fit our dark theme */
-        emoji-picker { --background: #222; --border-color: #333; --input-border-color: #444; --button-hover-background: #333; height: 350px;}
+        emoji-picker { --background: #222; --border-color: #333; --input-border-color: #444; --button-hover-background: #333; height: 350px; width: 100%;}
 
-        input[type="text"] { flex-grow: 1; padding: 12px 16px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; }
+        input[type="text"] { flex-grow: 1; padding: 12px 16px; background: #222; border: 1px solid #333; color: white; border-radius: 25px; outline: none; font-size: 0.95em; transition: border-color 0.3s ease; }
         input[type="text"]:focus { border-color: #007bff; }
         input[type="text"]:disabled { background: #1a1a1a; cursor: not-allowed; }
-        button.action-btn { padding: 0 16px; height: 42px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+        button.action-btn { padding: 0 16px; height: 42px; border: none; background: #007bff; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; }
         button.action-btn:hover:not(:disabled) { background: #0056b3; transform: translateY(-2px); }
-        button.action-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+        button.action-btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
         
-        #start-btn { background: linear-gradient(135deg, #ff416c, #ff4b2b); margin-top: 10px; width: 100%; font-size: 1.05em; padding: 12px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3); transition: all 0.2s; flex-shrink: 0;}
+        #start-btn { background: linear-gradient(135deg, #ff416c, #ff4b2b); margin-top: 10px; width: 100%; font-size: 1.05em; padding: 12px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3); transition: transform 0.2s ease, box-shadow 0.2s ease; flex-shrink: 0;}
         #start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5); }
         #skip-hint { display: none; text-align: center; color: #777; font-size: 0.8em; margin-top: 10px; animation: pulse 2s infinite; flex-shrink: 0;}
 
@@ -125,14 +125,14 @@
         .friends-list::-webkit-scrollbar { width: 4px; }
         .friends-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         
-        .friend-item { display: flex; align-items: center; padding: 12px; background: #111; border-radius: 12px; cursor: pointer; transition: background 0.2s; border: 1px solid #222;}
-        .friend-item:hover { background: #222; }
+        /* Fixed Flicker Issue on Hover */
+        .friend-item { display: flex; align-items: center; padding: 12px; background-color: #111; border-radius: 12px; cursor: pointer; transition: background-color 0.2s ease; border: 1px solid #222; user-select: none;}
+        .friend-item:hover { background-color: #222; }
         .friend-avatar { width: 40px; height: 40px; border-radius: 50%; background: #222; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; border: 2px solid #007bff; flex-shrink: 0; overflow: hidden;}
-        .friend-info { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .friend-info { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; pointer-events: none; }
         .friend-name { font-weight: bold; color: #eee; font-size: 1em; margin-bottom: 3px; }
         .friend-msg { color: #888; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
         
-        /* --- NEW: UNREAD BADGES --- */
         .unread-badge { background: #25D366; color: white; border-radius: 50%; padding: 2px 8px; font-size: 0.8em; font-weight: bold; margin-left: auto; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(37, 211, 102, 0.4);}
 
         /* Compact Requests */
@@ -142,7 +142,7 @@
         .req-compact .friend-avatar { margin-right: 0; margin-bottom: 8px; width: 45px; height: 45px; }
         .req-compact .friend-name { font-size: 0.8em; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; color: #eee;}
         .req-actions-compact { display: flex; gap: 8px; justify-content: center; width: 100%; }
-        .req-btn { width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: transform 0.2s;}
+        .req-btn { width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: transform 0.2s ease;}
         .req-btn:hover { transform: scale(1.1); }
         .req-accept { background: #28a745; color: white; }
         .req-reject { background: #dc3545; color: white; }
@@ -161,10 +161,10 @@
         #btn-leave { background: #dc3545; color: white; }
         .settings-content { text-align: left; }
         .settings-content h3 { text-align: center; border-bottom: 1px solid #444; padding-bottom: 12px; margin-bottom: 15px; }
-        .settings-item { background: #333; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; text-align: left; font-size: 0.95em; cursor: pointer; margin-bottom: 10px; transition: background 0.2s; font-weight: bold; display: flex; align-items: center; gap: 10px;}
-        .settings-item:hover { background: #444; }
-        .danger-btn { background: #dc3545; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.95em; cursor: pointer; width: 100%; transition: all 0.2s; margin-top: 10px; }
-        .danger-btn:hover { background: #c82333; }
+        .settings-item { background: #333; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; text-align: left; font-size: 0.95em; cursor: pointer; margin-bottom: 10px; transition: background-color 0.2s ease; font-weight: bold; display: flex; align-items: center; gap: 10px;}
+        .settings-item:hover { background-color: #444; }
+        .danger-btn { background: #dc3545; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.95em; cursor: pointer; width: 100%; transition: background-color 0.2s ease; margin-top: 10px; }
+        .danger-btn:hover { background-color: #c82333; }
     </style>
 </head>
 <body>
@@ -181,19 +181,16 @@
     </div>
 
     <div id="friends-screen">
-        
         <div id="friends-list-view">
             <div class="top-nav">
                 <div class="nav-spacer"></div>
                 <h2>Friends</h2>
                 <div class="nav-spacer"></div>
             </div>
-            
             <div id="requests-section" style="display: none;">
                 <div class="section-title">Requests</div>
                 <div id="requests-container"></div>
             </div>
-
             <div class="section-title">My Friends</div>
             <div class="friends-list" id="friends-container">
                 <div class="empty-friends">No friends yet.</div>
@@ -209,7 +206,6 @@
                 <div class="nav-spacer"></div>
             </div>
             <div id="friend-chat-box" class="chat-box-style"></div>
-            
             <div class="controls">
                 <button class="emoji-toggle-btn" id="friend-emoji-btn">😀</button>
                 <div class="emoji-picker-container" id="friend-emoji-picker">
@@ -234,7 +230,6 @@
         <div id="chat-box" class="chat-box-style">
             <div class="message system-msg">Click below to start your first chat!</div>
         </div>
-        
         <div class="controls">
             <button class="emoji-toggle-btn" id="random-emoji-btn">😀</button>
             <div class="emoji-picker-container" id="random-emoji-picker">
@@ -330,7 +325,7 @@
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
     
-    // Bottom Nav Elements
+    // Bottom Nav
     const bottomNav = document.getElementById('bottom-nav');
     const tabFriends = document.getElementById('tab-friends');
     const tabChat = document.getElementById('tab-chat');
@@ -384,34 +379,20 @@
     let myUserName = "Unknown User";
     let myUserPhoto = "";
 
-    // --- NEW: EMOJI PICKER LOGIC ---
-    // Toggle Visibility
-    randomEmojiBtn.addEventListener('click', () => {
-        randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block';
-    });
-    friendEmojiBtn.addEventListener('click', () => {
-        friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block';
-    });
+    // --- EMOJI PICKER LOGIC (FIXED) ---
+    // Toggle visibility
+    randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
+    friendEmojiBtn.addEventListener('click', () => { friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
     
     // Close pickers if clicked outside
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('#random-emoji-btn') && !e.target.closest('#random-emoji-picker')) {
-            randomEmojiPicker.style.display = 'none';
-        }
-        if (!e.target.closest('#friend-emoji-btn') && !e.target.closest('#friend-emoji-picker')) {
-            friendEmojiPicker.style.display = 'none';
-        }
+        if (!e.target.closest('#random-emoji-btn') && !e.target.closest('#random-emoji-picker')) { randomEmojiPicker.style.display = 'none'; }
+        if (!e.target.closest('#friend-emoji-btn') && !e.target.closest('#friend-emoji-picker')) { friendEmojiPicker.style.display = 'none'; }
     });
 
-    // Listen for Emoji Clicks from the Web Components
-    document.querySelector('#random-emoji-picker emoji-picker').addEventListener('emoji-click', event => {
-        msgInput.value += event.detail.unicode;
-        msgInput.focus();
-    });
-    document.querySelector('#friend-emoji-picker emoji-picker').addEventListener('emoji-click', event => {
-        friendMsgInput.value += event.detail.unicode;
-        friendMsgInput.focus();
-    });
+    // We add the event listener to the container DIV, so it doesn't crash if the web component is slow to load!
+    randomEmojiPicker.addEventListener('emoji-click', event => { msgInput.value += event.detail.unicode; msgInput.focus(); });
+    friendEmojiPicker.addEventListener('emoji-click', event => { friendMsgInput.value += event.detail.unicode; friendMsgInput.focus(); });
 
 
     // --- NAVIGATION LOGIC ---
@@ -443,6 +424,47 @@
     });
     tabProfile.addEventListener('click', () => { if(profileScreen.style.display !== 'flex') openProfile(); });
 
+    // --- UNIFIED SWIPE LOGIC ---
+    let startX = 0, startY = 0, isDragging = false;
+    function handleInputStart(x, y) { startX = x; startY = y; isDragging = true; }
+    function handleInputEnd(e, currentScreen, isTouch) {
+        if (!isDragging) return;
+        isDragging = false;
+        let clientX = isTouch ? e.changedTouches[0].clientX : e.clientX;
+        let clientY = isTouch ? e.changedTouches[0].clientY : e.clientY;
+        let diffX = startX - clientX; let diffY = startY - clientY; 
+        let absX = Math.abs(diffX); let absY = Math.abs(diffY);
+
+        if (absX > 50 && absX > absY) {
+            if (diffX > 0) { // Swiped Left
+                if (currentScreen === 'friends') openChatFromFriends();
+                else if (currentScreen === 'chat') openProfile();
+            } else if (diffX < 0) { // Swiped Right
+                if (currentScreen === 'profile') openChatFromProfile();
+                else if (currentScreen === 'chat') openFriends();
+            }
+        } else if (absY > 50 && absY > absX && currentScreen === 'chat') {
+            handleSkipIntent(e, true);
+        }
+    }
+
+    ['touchstart', 'mousedown'].forEach(evt => {
+        friendsScreen.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
+        chatInterface.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
+        profileScreen.addEventListener(evt, e => handleInputStart(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY));
+    });
+    ['touchend', 'mouseup'].forEach(evt => {
+        friendsScreen.addEventListener(evt, e => handleInputEnd(e, 'friends', !!e.changedTouches));
+        chatInterface.addEventListener(evt, e => handleInputEnd(e, 'chat', !!e.changedTouches));
+        profileScreen.addEventListener(evt, e => handleInputEnd(e, 'profile', !!e.changedTouches));
+    });
+    [friendsScreen, chatInterface, profileScreen].forEach(el => el.addEventListener('mouseleave', () => isDragging = false));
+
+    // --- MODALS ---
+    document.getElementById('open-settings-btn').addEventListener('click', () => settingsModal.style.display = 'flex');
+    document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
+    settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
+
     // --- AUTHENTICATION ---
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -470,22 +492,15 @@
     });
 
     document.getElementById('login-btn').addEventListener('click', () => signInWithPopup(auth, provider));
-    document.getElementById('btn-logout').addEventListener('click', () => { document.getElementById('settings-modal').style.display = 'none'; signOut(auth); });
-    document.getElementById('open-settings-btn').addEventListener('click', () => settingsModal.style.display = 'flex');
-    document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
+    document.getElementById('btn-logout').addEventListener('click', () => { settingsModal.style.display = 'none'; signOut(auth); });
 
     // ==========================================
-    // --- FEATURE 1: FRIENDS SYSTEM (WITH BADGES) ---
+    // --- FEATURE 1: FRIENDS SYSTEM ---
     // ==========================================
     
-    // Helper: Mark a room as "read" by me right now
     async function markRoomAsRead(roomId) {
         if (!myUserId || !roomId) return;
-        try {
-            await updateDoc(doc(db, "rooms", roomId), {
-                [`lastRead.${myUserId}`]: Date.now()
-            });
-        } catch(e) {} // Ignore if document doesn't exist yet
+        try { await updateDoc(doc(db, "rooms", roomId), { [`lastRead.${myUserId}`]: Date.now() }); } catch(e) {}
     }
 
     function startFriendsListener() {
@@ -494,12 +509,8 @@
         
         unsubscribeFriendsList = onSnapshot(q, (snapshot) => {
             requestsContainer.innerHTML = ''; friendsContainer.innerHTML = '';
-            
-            let requestsData = [];
-            let friendsData = [];
-            let totalUnreadMessages = 0; // For the bottom tab badge
+            let requestsData = []; let friendsData = []; let totalUnreadMessages = 0; 
 
-            // 1. Process Data
             snapshot.forEach(docSnap => {
                 const data = docSnap.data(); 
                 const isRequestForMe = data.friendStatus === 'pending' && data.requester !== myUserId;
@@ -510,45 +521,25 @@
                 } 
                 else if (isAcceptedFriend) {
                     let lastActivity = data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now();
-                    if (data.friendMessages && data.friendMessages.length > 0) {
-                        lastActivity = data.friendMessages[data.friendMessages.length - 1].timestamp;
-                    }
+                    if (data.friendMessages && data.friendMessages.length > 0) lastActivity = data.friendMessages[data.friendMessages.length - 1].timestamp;
                     
-                    // --- NEW: CALCULATE UNREAD BADGES ---
                     let unreadCount = 0;
                     const myLastReadTime = (data.lastRead && data.lastRead[myUserId]) ? data.lastRead[myUserId] : 0;
-                    
-                    if (data.friendMessages) {
-                        // Count messages sent AFTER I last read the chat, that were NOT sent by me
-                        unreadCount = data.friendMessages.filter(m => m.timestamp > myLastReadTime && m.senderId !== myUserId).length;
-                    }
-                    
-                    // If the user is CURRENTLY looking at this specific chat, clear the badge instantly
-                    if (friendChatView.style.display === 'flex' && currentFriendRoomId === docSnap.id) {
-                        unreadCount = 0; 
-                        markRoomAsRead(docSnap.id); // Tell DB we read it
-                    }
+                    if (data.friendMessages) unreadCount = data.friendMessages.filter(m => m.timestamp > myLastReadTime && m.senderId !== myUserId).length;
+                    if (friendChatView.style.display === 'flex' && currentFriendRoomId === docSnap.id) { unreadCount = 0; markRoomAsRead(docSnap.id); }
 
                     totalUnreadMessages += unreadCount;
-
                     friendsData.push({ id: docSnap.id, data: data, lastActivity: lastActivity, unreadCount: unreadCount });
                 }
             });
 
-            // Update Global Bottom Tab Badge
-            if (totalUnreadMessages > 0) {
-                globalUnreadBadge.textContent = totalUnreadMessages;
-                globalUnreadBadge.style.display = 'block';
-            } else {
-                globalUnreadBadge.style.display = 'none';
-            }
+            if (totalUnreadMessages > 0) { globalUnreadBadge.textContent = totalUnreadMessages; globalUnreadBadge.style.display = 'block'; } 
+            else { globalUnreadBadge.style.display = 'none'; }
 
-            // 2. Render Compact Requests
             requestsData.forEach(req => {
                 const strangerId = req.data.participants.find(id => id !== myUserId) || "Unknown";
                 const strangerName = (req.data.names && req.data.names[strangerId]) ? req.data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
                 const strangerPhoto = (req.data.photos && req.data.photos[strangerId]) ? req.data.photos[strangerId] : null;
-                
                 let avatarHtml = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
 
                 const div = document.createElement('div'); div.className = 'req-compact';
@@ -563,26 +554,18 @@
                 requestsContainer.appendChild(div);
             });
 
-            // 3. Render Sorted Friends List (Most recent message at top)
             friendsData.sort((a, b) => b.lastActivity - a.lastActivity);
             friendsData.forEach(friend => {
                 const strangerId = friend.data.participants.find(id => id !== myUserId) || "Unknown";
                 const strangerName = (friend.data.names && friend.data.names[strangerId]) ? friend.data.names[strangerId] : `User ${strangerId.substring(0,4)}`;
                 const strangerPhoto = (friend.data.photos && friend.data.photos[strangerId]) ? friend.data.photos[strangerId] : null;
-                
                 let avatarHtml = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
                 let lastMsg = "New conversation";
                 if (friend.data.friendMessages && friend.data.friendMessages.length > 0) lastMsg = friend.data.friendMessages[friend.data.friendMessages.length - 1].text;
-
-                // Create the badge HTML if unread > 0
                 let badgeHtml = friend.unreadCount > 0 ? `<div class="unread-badge">${friend.unreadCount}</div>` : '';
 
                 const div = document.createElement('div'); div.className = 'friend-item';
-                div.innerHTML = `
-                    <div class="friend-avatar">${avatarHtml}</div>
-                    <div class="friend-info"><div class="friend-name">${strangerName}</div><div class="friend-msg">${lastMsg}</div></div>
-                    ${badgeHtml}
-                `;
+                div.innerHTML = `<div class="friend-avatar">${avatarHtml}</div><div class="friend-info"><div class="friend-name">${strangerName}</div><div class="friend-msg">${lastMsg}</div></div>${badgeHtml}`;
                 div.onclick = () => openFriendChatUI(friend.id, strangerName);
                 friendsContainer.appendChild(div);
             });
@@ -595,9 +578,7 @@
     addFriendBtn.addEventListener('click', async () => {
         if (!currentRoomId) return;
         await updateDoc(doc(db, "rooms", currentRoomId), { friendStatus: "pending", requester: myUserId });
-        addFriendBtn.classList.add('active-friend-icon');
-        appendMessage("Friend request sent!", "system-msg");
-        addFriendBtn.disabled = true;
+        addFriendBtn.classList.add('active-friend-icon'); appendMessage("Friend request sent!", "system-msg"); addFriendBtn.disabled = true;
     });
 
     window.respondRequest = async (roomId, response) => {
@@ -608,29 +589,20 @@
     function openFriendChatUI(roomId, friendName) {
         friendsListView.style.display = 'none'; friendChatView.style.display = 'flex';
         friendChatHeader.textContent = friendName; currentFriendRoomId = roomId; 
-        
         friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Start a new conversation.</div>';
         
-        // Immediately mark this chat as read when opening it!
         markRoomAsRead(roomId);
-        
         if (unsubscribeFriendChat) unsubscribeFriendChat();
         
         let localFriendMsgCount = 0;
         unsubscribeFriendChat = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
             const data = snapshot.data();
-            
-            // If new messages come in WHILE we are looking at the chat, keep marking them as read
-            if (friendChatView.style.display === 'flex' && currentFriendRoomId === roomId) {
-                markRoomAsRead(roomId);
-            }
+            if (friendChatView.style.display === 'flex' && currentFriendRoomId === roomId) markRoomAsRead(roomId);
 
             if (data && data.friendMessages && data.friendMessages.length > localFriendMsgCount) {
                 const newMsgs = data.friendMessages.slice(localFriendMsgCount);
                 newMsgs.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.className = `message ${msg.senderId === myUserId ? 'my-msg' : 'stranger-msg'}`;
-                    div.textContent = msg.text; friendChatBox.appendChild(div);
+                    const div = document.createElement('div'); div.className = `message ${msg.senderId === myUserId ? 'my-msg' : 'stranger-msg'}`; div.textContent = msg.text; friendChatBox.appendChild(div);
                 });
                 localFriendMsgCount = data.friendMessages.length;
                 friendChatBox.scrollTo({ top: friendChatBox.scrollHeight, behavior: 'smooth' });
@@ -649,10 +621,8 @@
     async function sendFriendMessage() {
         const text = friendMsgInput.value.trim();
         if (!text || !currentFriendRoomId) return;
-        friendMsgInput.value = '';
-        friendEmojiPicker.style.display = 'none'; // Close emoji picker on send
+        friendMsgInput.value = ''; friendEmojiPicker.style.display = 'none'; 
         
-        // Push message AND update lastRead for myself so I don't get unread badges for my own messages!
         await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
             friendMessages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }),
             [`lastRead.${myUserId}`]: Date.now() 
@@ -727,8 +697,7 @@
     async function sendMessage() {
         const text = msgInput.value.trim();
         if (!text || !currentRoomId) return;
-        msgInput.value = ''; appendMessage(text, "my-msg"); displayedMessageCount++; 
-        randomEmojiPicker.style.display = 'none'; // Close emoji picker on send
+        msgInput.value = ''; appendMessage(text, "my-msg"); displayedMessageCount++; randomEmojiPicker.style.display = 'none'; 
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
     sendBtn.addEventListener('click', sendMessage);
