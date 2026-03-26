@@ -22,24 +22,24 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* Main App Container - MADE TALLER */
+        /* Main App Container - TALLER LAYOUT */
         .chat-container { 
             width: 100%; max-width: 450px; 
             background: #1a1a1a; border-radius: 20px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px rgba(0, 123, 255, 0.1); 
             display: flex; flex-direction: column; 
-            height: 96vh; /* Increased from 85vh to cover more top/bottom */
-            max-height: 900px; /* Increased from 750px */
+            height: 96vh; /* Maximized height */
+            max-height: 900px; 
             z-index: 10; border: 1px solid #2a2a2a;
             position: relative; overflow: hidden; 
             padding: 0; 
         }
 
-        /* --- BOTTOM NAVIGATION BAR - THINNER --- */
+        /* --- BOTTOM NAVIGATION BAR --- */
         #bottom-nav {
             display: none; 
             justify-content: space-around; align-items: center;
-            padding: 8px 0; /* Reduced padding */
+            padding: 8px 0; 
             background: #0f0f0f;
             border-top: 1px solid #2a2a2a; z-index: 20;
         }
@@ -59,11 +59,11 @@
         }
         .nav-tab.active .tab-profile-pic { border-color: #007bff; transform: scale(1.1); }
 
-        /* --- SCREENS - REDUCED PADDING --- */
+        /* --- SCREENS --- */
         #login-screen, #chat-interface, #profile-screen {
             display: none; flex-direction: column; flex-grow: 1; 
             width: 100%; box-sizing: border-box; 
-            padding: 15px 20px; /* Reduced from 20px 25px */
+            padding: 15px 20px; 
             overflow: hidden; 
         }
 
@@ -71,13 +71,12 @@
         @keyframes slideInFromLeft { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Top Navs - THINNER */
+        /* Top Navs */
         .top-nav {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 10px; /* Reduced */
-            padding-bottom: 10px; border-bottom: 1px solid #333;
+            margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #333;
         }
-        .top-nav h2 { margin: 0; font-weight: 600; letter-spacing: 1px; color: #eee; font-size: 1.25em; } /* Slightly smaller text */
+        .top-nav h2 { margin: 0; font-weight: 600; letter-spacing: 1px; color: #eee; font-size: 1.25em; } 
         .nav-item { width: 40px; } 
         .settings-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; padding: 0; text-align: right; transition: transform 0.3s ease; width: 100%; color: #aaa; }
         .settings-btn:hover { transform: rotate(90deg); color: white; }
@@ -90,7 +89,7 @@
         .google-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,255,255,0.3); }
         .google-btn img { width: 20px; }
 
-        /* 2. Chat Interface - MAXIMIZED SPACE */
+        /* 2. Chat Interface */
         #chat-box { flex-grow: 1; border-radius: 12px; padding: 12px; overflow-y: auto; margin-bottom: 10px; background: #111111; display: flex; flex-direction: column; gap: 10px; }
         #chat-box::-webkit-scrollbar { width: 6px; }
         #chat-box::-webkit-scrollbar-track { background: transparent; }
@@ -111,7 +110,6 @@
         button.action-btn:hover:not(:disabled) { background: #0056b3; transform: translateY(-2px); }
         button.action-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
 
-        /* Start Button - THINNER */
         #start-btn { background: linear-gradient(135deg, #ff416c, #ff4b2b); margin-top: 10px; width: 100%; font-size: 1.05em; padding: 12px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3); transition: all 0.2s; }
         #start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 65, 108, 0.5); }
         #skip-hint { display: none; text-align: center; color: #777; font-size: 0.8em; margin-top: 10px; animation: pulse 2s infinite; }
@@ -174,7 +172,7 @@
         </div>
         
         <button id="start-btn">Start Chatting</button>
-        <div id="skip-hint">⏬ Swipe/Arrow Keys to navigate ⏬</div>
+        <div id="skip-hint">⏬ Swipe/Drag up to skip ⏬</div>
     </div>
 
     <div id="profile-screen">
@@ -247,13 +245,12 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    // DOM Elements - Screens
+    // DOM Elements
     const container = document.getElementById('main-container'); 
     const loginScreen = document.getElementById('login-screen');
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
     
-    // Bottom Nav Elements
     const bottomNav = document.getElementById('bottom-nav');
     const tabChat = document.getElementById('tab-chat');
     const tabProfile = document.getElementById('tab-profile');
@@ -320,31 +317,57 @@
     tabChat.addEventListener('click', () => { if(chatInterface.style.display !== 'flex') closeProfileToChat(); });
     tabProfile.addEventListener('click', () => { if(profileScreen.style.display !== 'flex') openProfile(); });
 
-    // --- MOUSE / TOUCH HORIZONTAL SWIPE LOGIC ---
-    let touchStartX = 0;
-    let touchStartY_H = 0; 
-    let isDragging = false; 
+    // --- UNIFIED MOUSE & TOUCH SWIPE LOGIC ---
+    let startX = 0;
+    let startY = 0;
+    let isDragging = false;
 
-    profileScreen.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY_H = e.changedTouches[0].screenY;
-    });
-    profileScreen.addEventListener('touchend', (e) => {
-        let touchEndX = e.changedTouches[0].screenX;
-        let diffX = touchEndX - touchStartX;
-        let diffY = Math.abs(e.changedTouches[0].screenY - touchStartY_H);
-        if (diffX > 50 && diffX > diffY) closeProfileToChat(); 
-    });
-    chatInterface.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY_H = e.changedTouches[0].screenY;
-    });
-    chatInterface.addEventListener('touchend', (e) => {
-        let touchEndX = e.changedTouches[0].screenX;
-        let diffX = touchStartX - touchEndX; 
-        let diffY = Math.abs(e.changedTouches[0].screenY - touchStartY_H);
-        if (diffX > 50 && diffX > diffY) openProfile(); 
-    });
+    function handleInputStart(x, y) {
+        startX = x;
+        startY = y;
+        isDragging = true;
+    }
+
+    function handleInputEnd(e, currentScreen, isTouch) {
+        if (!isDragging) return;
+        isDragging = false;
+
+        let clientX = isTouch ? e.changedTouches[0].clientX : e.clientX;
+        let clientY = isTouch ? e.changedTouches[0].clientY : e.clientY;
+
+        let diffX = startX - clientX; // positive = swipe left, negative = swipe right
+        let diffY = startY - clientY; // positive = swipe up, negative = swipe down
+
+        let absX = Math.abs(diffX);
+        let absY = Math.abs(diffY);
+
+        // Horizontal Swipes (Switch Screens)
+        if (absX > 50 && absX > absY) {
+            if (currentScreen === 'chat' && diffX > 0) openProfile();
+            else if (currentScreen === 'profile' && diffX < 0) closeProfileToChat();
+        }
+        // Vertical Swipes (Skip Stranger)
+        else if (absY > 50 && absY > absX) {
+            if (currentScreen === 'chat') handleSkipIntent(e, true);
+        }
+    }
+
+    // Touch Bindings
+    chatInterface.addEventListener('touchstart', (e) => handleInputStart(e.touches[0].clientX, e.touches[0].clientY));
+    chatInterface.addEventListener('touchend', (e) => handleInputEnd(e, 'chat', true));
+    
+    profileScreen.addEventListener('touchstart', (e) => handleInputStart(e.touches[0].clientX, e.touches[0].clientY));
+    profileScreen.addEventListener('touchend', (e) => handleInputEnd(e, 'profile', true));
+
+    // Mouse Bindings (for Laptops)
+    chatInterface.addEventListener('mousedown', (e) => handleInputStart(e.clientX, e.clientY));
+    chatInterface.addEventListener('mouseup', (e) => handleInputEnd(e, 'chat', false));
+    chatInterface.addEventListener('mouseleave', () => isDragging = false);
+
+    profileScreen.addEventListener('mousedown', (e) => handleInputStart(e.clientX, e.clientY));
+    profileScreen.addEventListener('mouseup', (e) => handleInputEnd(e, 'profile', false));
+    profileScreen.addEventListener('mouseleave', () => isDragging = false);
+
 
     // --- SETTINGS MODAL LOGIC ---
     openSettingsBtn.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
@@ -358,7 +381,6 @@
     onAuthStateChanged(auth, (user) => {
         if (user) {
             myUserId = user.uid;
-            
             tabProfilePic.src = user.photoURL; 
             pageProfilePic.src = user.photoURL; 
             pageProfileName.textContent = user.displayName;
@@ -488,17 +510,15 @@
     function handleSkipIntent(e, isScrollEvent) {
         if (!hasStarted || isSkipping || isConfirming || !myUserId || profileScreen.style.display === 'flex') return;
 
+        // Prevent skip if scrolling inside the chat box to read old messages
         if (isScrollEvent && e && e.target && e.target.closest('#chat-box')) {
             const box = chatBox;
             const isAtBottom = Math.abs((box.scrollHeight - box.scrollTop) - box.clientHeight) < 2;
             if (!isAtBottom) return; 
         }
 
-        if (isChatting && currentRoomId) {
-            showConfirmModal();
-        } else {
-            executeSkipAnimation();
-        }
+        if (isChatting && currentRoomId) showConfirmModal();
+        else executeSkipAnimation();
     }
 
     async function executeSkipAnimation() {
@@ -525,20 +545,10 @@
         startBtn.style.display = 'none'; skipHint.style.display = 'block'; hasStarted = true; findStranger();
     });
 
+    // Mouse Wheel
     window.addEventListener('wheel', (e) => { if (e.deltaY > 20) handleSkipIntent(e, true); });
 
-    let verticalTouchStartY = 0;
-    let verticalTouchStartX = 0;
-    window.addEventListener('touchstart', (e) => { 
-        verticalTouchStartY = e.changedTouches[0].screenY; 
-        verticalTouchStartX = e.changedTouches[0].screenX;
-    });
-    window.addEventListener('touchend', (e) => {
-        let diffY = verticalTouchStartY - e.changedTouches[0].screenY;
-        let diffX = Math.abs(verticalTouchStartX - e.changedTouches[0].screenX);
-        if (diffY > 50 && diffY > diffX) handleSkipIntent(e, true);
-    });
-
+    // Keyboards
     window.addEventListener('keydown', (e) => {
         if (document.activeElement === msgInput || isConfirming || settingsModal.style.display === 'flex') return;
 
