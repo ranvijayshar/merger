@@ -216,7 +216,7 @@
             overflow: hidden; font-size: 3em; font-weight: bold; background: #222; color: #fff;
         }
 
-        /* --- FLOATING LIKE SYSTEM --- */
+        /* --- FLOATING LIKE SYSTEM (GREEN) --- */
         #like-stream-container {
             position: absolute;
             top: 50%;
@@ -241,7 +241,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #ff4d4d;
+            color: #25D366; /* Green */
         }
         #pulse-like-btn:active { transform: scale(0.85); }
 
@@ -339,10 +339,12 @@
                 <div id="fps-avatar-container" class="fp-avatar-container"></div>
                 <h3 id="fps-name">Friend Name</h3>
                 <p style="color:#25D366; font-size:0.9em; font-weight:bold; margin-bottom: 10px;">Connected ✅</p>
-                <div style="background: rgba(255, 77, 77, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(255, 77, 77, 0.3); display: flex; align-items: center; gap: 8px; margin-bottom: 30px;">
-                    <span style="font-size: 1.2em;">❤️</span>
-                    <span id="fps-likes" style="font-weight: bold; font-size: 1.1em; color: #ff4d4d;">0 Likes</span>
+                
+                <div style="background: rgba(37, 211, 102, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(37, 211, 102, 0.3); display: flex; align-items: center; gap: 8px; margin-bottom: 30px;">
+                    <span style="font-size: 1.2em;">💚</span>
+                    <span id="fps-likes" style="font-weight: bold; font-size: 1.1em; color: #25D366;">Admired by - 0</span>
                 </div>
+
                 <button id="btn-block-friend" class="danger-btn" style="max-width: 200px;">Block User</button>
             </div>
         </div>
@@ -371,7 +373,7 @@
         </div>
 
         <div id="like-stream-container" style="display: none;">
-            <button id="pulse-like-btn" title="Send a Like">❤️</button>
+            <button id="pulse-like-btn" title="Send a Like">💚</button>
         </div>
         
         <div class="controls">
@@ -401,9 +403,9 @@
             <h3 id="page-profile-name">User Name</h3>
             <p id="page-profile-email">user@email.com</p>
             
-            <div style="background: rgba(255, 77, 77, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(255, 77, 77, 0.3); display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
-                <span style="font-size: 1.2em;">❤️</span>
-                <span id="page-profile-likes" style="font-weight: bold; font-size: 1.1em; color: #ff4d4d;">0 Likes</span>
+            <div style="background: rgba(37, 211, 102, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(37, 211, 102, 0.3); display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+                <span style="font-size: 1.2em;">💚</span>
+                <span id="page-profile-likes" style="font-weight: bold; font-size: 1.1em; color: #25D366;">Admired by - 0</span>
             </div>
         </div>
     </div>
@@ -453,7 +455,6 @@
 </div>
 
 <script type="module">
-    // Added 'getDoc' to pull real-time like counts for friends
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit, increment, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -505,7 +506,7 @@
     // Friends Pane Elements
     const friendsListView = document.getElementById('friends-list-view');
     const friendChatView = document.getElementById('friend-chat-view');
-    const friendProfileView = document.getElementById('friend-profile-view'); // NEW
+    const friendProfileView = document.getElementById('friend-profile-view');
     const requestsSection = document.getElementById('requests-section');
     const requestsContainer = document.getElementById('requests-container');
     const friendsContainer = document.getElementById('friends-container');
@@ -515,7 +516,7 @@
     const friendSendBtn = document.getElementById('friend-send-btn');
     const backToFriendsBtn = document.getElementById('back-to-friends-btn');
     const viewFriendProfileBtn = document.getElementById('view-friend-profile-btn');
-    const backFromFriendProfileBtn = document.getElementById('back-from-friend-profile-btn'); // NEW
+    const backFromFriendProfileBtn = document.getElementById('back-from-friend-profile-btn'); 
     
     // Modals & Banners
     const settingsModal = document.getElementById('settings-modal');
@@ -591,7 +592,7 @@
     // --- LIKE PULSE LOGIC WITH AUTO-HIDE ---
     function createFloatingHeart() {
         const heart = document.createElement('div');
-        heart.textContent = '❤️';
+        heart.textContent = '💚'; // Green Heart
         heart.className = 'floating-heart';
         heart.style.left = (Math.random() * 20 - 10) + 'px';
         likeStreamContainer.appendChild(heart);
@@ -728,7 +729,6 @@
     document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
     settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
 
-    // NEW: Open Friend Profile as a full screen
     function openFriendProfile() {
         friendChatView.style.display = 'none';
         friendProfileView.style.display = 'flex';
@@ -739,18 +739,17 @@
         else avatarContainer.innerHTML = currentFriendName.substring(0,1).toUpperCase();
         
         document.getElementById('fps-name').textContent = currentFriendName;
-        document.getElementById('fps-likes').textContent = "... Likes"; 
+        document.getElementById('fps-likes').textContent = "Admired by - ..."; 
         
-        // Fetch Real-time Likes from Database
         if (currentFriendId) {
             getDoc(doc(db, "users", currentFriendId)).then(docSnap => {
                 if(docSnap.exists()){
-                    document.getElementById('fps-likes').textContent = (docSnap.data().totalLikes || 0) + " Likes";
+                    document.getElementById('fps-likes').textContent = "Admired by - " + (docSnap.data().totalLikes || 0);
                 } else {
-                    document.getElementById('fps-likes').textContent = "0 Likes";
+                    document.getElementById('fps-likes').textContent = "Admired by - 0";
                 }
             }).catch(e => {
-                document.getElementById('fps-likes').textContent = "? Likes";
+                document.getElementById('fps-likes').textContent = "Admired by - ?";
             });
         }
     }
@@ -764,7 +763,6 @@
         friendChatView.style.animation = 'slideInFromLeft 0.3s ease forwards';
     });
     
-    // UPDATED: Block user and return to Friends List
     document.getElementById('btn-block-friend').addEventListener('click', async () => {
         if (!currentFriendRoomId || !currentFriendId) return;
         
@@ -809,7 +807,8 @@
             unsubscribeMyUser = onSnapshot(userRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    pageProfileLikes.textContent = (data.totalLikes || 0) + " Likes";
+                    // Update main profile text format
+                    pageProfileLikes.textContent = "Admired by - " + (data.totalLikes || 0);
                 }
             });
             
