@@ -161,7 +161,7 @@
     <div id="chat-interface">
         <div class="top-nav">
             <h2>Random Chat</h2>
-            <img id="nav-profile-pic" class="profile-pic-btn" src="" alt="Profile" title="Swipe Left for Profile">
+            <img id="nav-profile-pic" class="profile-pic-btn" src="" alt="Profile" title="Swipe Left or Press ➔">
         </div>
 
         <div id="chat-box">
@@ -174,13 +174,13 @@
         </div>
         
         <button id="start-btn">Start Chatting</button>
-        <div id="skip-hint">⏬ Swipe up, scroll, or press ↓ to skip ⏬</div>
+        <div id="skip-hint">⏬ Swipe/Arrow Keys to navigate ⏬</div>
     </div>
 
     <div id="profile-screen">
         <div class="top-nav">
             <div class="nav-item">
-                <span id="back-hint" class="swipe-back-hint">← Swipe</span>
+                <span id="back-hint" class="swipe-back-hint">← Back</span>
             </div>
             <h2>My Profile</h2>
             <div class="nav-item">
@@ -252,7 +252,7 @@
     
     const loginBtn = document.getElementById('login-btn');
     const navProfilePic = document.getElementById('nav-profile-pic');
-    const backHint = document.getElementById('back-hint'); // Fallback click
+    const backHint = document.getElementById('back-hint'); 
     const pageProfilePic = document.getElementById('page-profile-pic');
     const pageProfileName = document.getElementById('page-profile-name');
     const pageProfileEmail = document.getElementById('page-profile-email');
@@ -298,18 +298,14 @@
         chatBox.scrollTo({ top: chatBox.scrollHeight });
     }
 
-    // Clicking the profile pic opens profile
     navProfilePic.addEventListener('click', openProfile);
-    
-    // Clicking the subtle hint goes back (Fallback for desktop without touch)
     backHint.addEventListener('click', closeProfileToChat);
 
-    // --- NEW: HORIZONTAL SWIPE LOGIC ---
+    // --- MOUSE / TOUCH HORIZONTAL SWIPE LOGIC ---
     let touchStartX = 0;
-    let touchStartY_H = 0; // Needed to prevent accidental vertical triggering
-    let isDragging = false; // For mouse swiping
+    let touchStartY_H = 0; 
+    let isDragging = false; 
 
-    // 1. Touch Events (Phones)
     profileScreen.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
         touchStartY_H = e.changedTouches[0].screenY;
@@ -322,13 +318,9 @@
         let diffX = touchEndX - touchStartX;
         let diffY = Math.abs(touchEndY - touchStartY_H);
 
-        // If swiped right by more than 50px, AND they dragged more horizontally than vertically
-        if (diffX > 50 && diffX > diffY) {
-            closeProfileToChat();
-        }
+        if (diffX > 50 && diffX > diffY) closeProfileToChat();
     });
 
-    // 2. Mouse Events (PC fallback so you can click-and-drag to swipe)
     profileScreen.addEventListener('mousedown', (e) => {
         isDragging = true;
         touchStartX = e.clientX;
@@ -472,7 +464,8 @@
         });
     }
 
-    // --- REELS (VERTICAL) SKIP LOGIC ---
+
+    // --- KEYBOARD CONTROLS & SKIP LOGIC ---
     function showConfirmModal() { isConfirming = true; confirmModal.style.display = 'flex'; }
     function hideConfirmModal() { isConfirming = false; confirmModal.style.display = 'none'; }
     btnStay.addEventListener('click', hideConfirmModal);
@@ -481,7 +474,7 @@
     function handleSkipIntent(e, isScrollEvent) {
         if (!hasStarted || isSkipping || isConfirming || !myUserId || profileScreen.style.display === 'flex') return;
 
-        if (isScrollEvent && e.target.closest('#chat-box')) {
+        if (isScrollEvent && e && e.target && e.target.closest('#chat-box')) {
             const box = chatBox;
             const isAtBottom = Math.abs((box.scrollHeight - box.scrollTop) - box.clientHeight) < 2;
             if (!isAtBottom) return; 
@@ -518,8 +511,10 @@
         startBtn.style.display = 'none'; skipHint.style.display = 'block'; hasStarted = true; findStranger();
     });
 
+    // 1. Mouse Wheel (Vertical Skip)
     window.addEventListener('wheel', (e) => { if (e.deltaY > 20) handleSkipIntent(e, true); });
 
+    // 2. Touch Swipes (Vertical Skip)
     let verticalTouchStartY = 0;
     let verticalTouchStartX = 0;
     
@@ -535,13 +530,27 @@
         let diffY = verticalTouchStartY - touchEndY;
         let diffX = Math.abs(verticalTouchStartX - touchEndX);
         
-        // Prevent vertical swipe if they are clearly swiping horizontally
         if (diffY > 50 && diffY > diffX) handleSkipIntent(e, true);
     });
 
+    // 3. KEYBOARD SHORTCUTS
     window.addEventListener('keydown', (e) => {
-        if (document.activeElement === msgInput) return;
-        if (e.key === 'ArrowDown') handleSkipIntent(e, false);
+        // Ignore key presses if typing, or if a modal popup is open
+        if (document.activeElement === msgInput || isConfirming || settingsModal.style.display === 'flex') return;
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            handleSkipIntent(e, false);
+        } else if (e.key === 'ArrowRight') {
+            // Open profile if on chat screen
+            if (chatInterface.style.display === 'flex' || chatInterface.style.display === '') {
+                openProfile();
+            }
+        } else if (e.key === 'ArrowLeft') {
+            // Go back to chat if on profile screen
+            if (profileScreen.style.display === 'flex') {
+                closeProfileToChat();
+            }
+        }
     });
 
     sendBtn.addEventListener('click', sendMessage);
