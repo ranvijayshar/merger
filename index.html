@@ -80,7 +80,7 @@
         .top-nav h2 { margin: 0; font-weight: 600; letter-spacing: 1px; color: #eee; font-size: 1.25em; } 
         .nav-spacer { width: 24px; } 
 
-        /* NEW: Friend Chat Header clickable area */
+        /* Friend Chat Header clickable area */
         .friend-chat-info { display: flex; align-items: center; gap: 10px; cursor: pointer; transition: transform 0.2s ease; user-select: none; }
         .friend-chat-info:hover { transform: scale(1.05); }
         .fc-avatar { width: 32px; height: 32px; border-radius: 50%; background: #222; border: 2px solid #007bff; display: flex; justify-content: center; align-items: center; font-weight: bold; overflow: hidden; font-size: 0.9em; flex-shrink: 0;}
@@ -326,6 +326,26 @@
                 </button>
             </div>
         </div>
+
+        <div id="friend-profile-view" style="display: none; flex-direction: column; height: 100%;">
+            <div class="top-nav">
+                <button id="back-from-friend-profile-btn" class="icon-btn" title="Back">
+                    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                </button>
+                <h2>Profile</h2>
+                <div class="nav-spacer"></div>
+            </div>
+            <div class="profile-content">
+                <div id="fps-avatar-container" class="fp-avatar-container"></div>
+                <h3 id="fps-name">Friend Name</h3>
+                <p style="color:#25D366; font-size:0.9em; font-weight:bold; margin-bottom: 10px;">Connected ✅</p>
+                <div style="background: rgba(255, 77, 77, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(255, 77, 77, 0.3); display: flex; align-items: center; gap: 8px; margin-bottom: 30px;">
+                    <span style="font-size: 1.2em;">❤️</span>
+                    <span id="fps-likes" style="font-weight: bold; font-size: 1.1em; color: #ff4d4d;">0 Likes</span>
+                </div>
+                <button id="btn-block-friend" class="danger-btn" style="max-width: 200px;">Block User</button>
+            </div>
+        </div>
     </div>
 
     <div id="home-screen">
@@ -419,18 +439,6 @@
         </div>
     </div>
 
-    <div id="friend-profile-modal" class="modal-overlay">
-        <div class="modal-content">
-            <button id="close-friend-profile-btn" class="close-modal-btn">&times;</button>
-            <div class="profile-content" style="margin-top: 20px;">
-                <div id="fp-avatar-container" class="fp-avatar-container"></div>
-                <h3 id="fp-name">Friend Name</h3>
-                <p style="color:#25D366; font-size:0.9em; font-weight:bold;">Connected ✅</p>
-                <button id="btn-block-friend" class="danger-btn" style="margin-top:20px;">Block User</button>
-            </div>
-        </div>
-    </div>
-
     <div id="confirm-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Skip Stranger?</h3>
@@ -445,8 +453,9 @@
 </div>
 
 <script type="module">
+    // Added 'getDoc' to pull real-time like counts for friends
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit, increment, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit, increment, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -496,6 +505,7 @@
     // Friends Pane Elements
     const friendsListView = document.getElementById('friends-list-view');
     const friendChatView = document.getElementById('friend-chat-view');
+    const friendProfileView = document.getElementById('friend-profile-view'); // NEW
     const requestsSection = document.getElementById('requests-section');
     const requestsContainer = document.getElementById('requests-container');
     const friendsContainer = document.getElementById('friends-container');
@@ -505,11 +515,11 @@
     const friendSendBtn = document.getElementById('friend-send-btn');
     const backToFriendsBtn = document.getElementById('back-to-friends-btn');
     const viewFriendProfileBtn = document.getElementById('view-friend-profile-btn');
+    const backFromFriendProfileBtn = document.getElementById('back-from-friend-profile-btn'); // NEW
     
     // Modals & Banners
     const settingsModal = document.getElementById('settings-modal');
     const confirmModal = document.getElementById('confirm-modal');
-    const friendProfileModal = document.getElementById('friend-profile-modal');
     const btnStay = document.getElementById('btn-stay');
     const btnLeave = document.getElementById('btn-leave');
     
@@ -713,26 +723,48 @@
     });
     screens.forEach(s => s.element.addEventListener('mouseleave', () => isDragging = false));
 
-    // --- MODALS (Settings & Friend Profile) ---
+    // --- MODALS & FRIEND PROFILE SCREEN LOGIC ---
     document.getElementById('open-settings-btn').addEventListener('click', () => settingsModal.style.display = 'flex');
     document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
     settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
 
-    // NEW: Open Friend Profile when clicking the Header Group or the right icon
-    function openFriendModal() {
-        const avatarContainer = document.getElementById('fp-avatar-container');
+    // NEW: Open Friend Profile as a full screen
+    function openFriendProfile() {
+        friendChatView.style.display = 'none';
+        friendProfileView.style.display = 'flex';
+        friendProfileView.style.animation = 'slideInFromRight 0.3s ease forwards';
+        
+        const avatarContainer = document.getElementById('fps-avatar-container');
         if (currentFriendPhoto) avatarContainer.innerHTML = `<img src="${currentFriendPhoto}" style="width:100%; height:100%; object-fit:cover;">`;
         else avatarContainer.innerHTML = currentFriendName.substring(0,1).toUpperCase();
         
-        document.getElementById('fp-name').textContent = currentFriendName;
-        friendProfileModal.style.display = 'flex';
+        document.getElementById('fps-name').textContent = currentFriendName;
+        document.getElementById('fps-likes').textContent = "... Likes"; 
+        
+        // Fetch Real-time Likes from Database
+        if (currentFriendId) {
+            getDoc(doc(db, "users", currentFriendId)).then(docSnap => {
+                if(docSnap.exists()){
+                    document.getElementById('fps-likes').textContent = (docSnap.data().totalLikes || 0) + " Likes";
+                } else {
+                    document.getElementById('fps-likes').textContent = "0 Likes";
+                }
+            }).catch(e => {
+                document.getElementById('fps-likes').textContent = "? Likes";
+            });
+        }
     }
     
-    viewFriendProfileBtn.addEventListener('click', openFriendModal);
-    document.getElementById('friend-chat-info').addEventListener('click', openFriendModal); // The new header click area
+    viewFriendProfileBtn.addEventListener('click', openFriendProfile);
+    document.getElementById('friend-chat-info').addEventListener('click', openFriendProfile);
 
-    document.getElementById('close-friend-profile-btn').addEventListener('click', () => friendProfileModal.style.display = 'none');
+    backFromFriendProfileBtn.addEventListener('click', () => {
+        friendProfileView.style.display = 'none';
+        friendChatView.style.display = 'flex';
+        friendChatView.style.animation = 'slideInFromLeft 0.3s ease forwards';
+    });
     
+    // UPDATED: Block user and return to Friends List
     document.getElementById('btn-block-friend').addEventListener('click', async () => {
         if (!currentFriendRoomId || !currentFriendId) return;
         
@@ -748,8 +780,13 @@
             blockedBy: myUserId
         });
 
-        friendProfileModal.style.display = 'none';
-        backToFriendsBtn.click();
+        friendProfileView.style.display = 'none';
+        friendsListView.style.display = 'flex';
+        friendsListView.style.animation = 'slideInFromLeft 0.3s ease forwards';
+        
+        if (unsubscribeFriendChat) unsubscribeFriendChat(); 
+        currentFriendRoomId = null;
+        currentFriendId = null;
     });
 
 
@@ -932,7 +969,6 @@
     function openFriendChatUI(roomId, friendName, strangerId, strangerPhoto) {
         friendsListView.style.display = 'none'; friendChatView.style.display = 'flex';
         
-        // NEW: Dynamically update the clickable header area
         friendChatHeader.textContent = friendName; 
         const fcAvatar = document.getElementById('fc-avatar');
         fcAvatar.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; object-fit:cover;">` : friendName.substring(0,1).toUpperCase();
@@ -1160,7 +1196,9 @@
             if (currentIdx < 3) screens[currentIdx + 1].tab.click();
         } else if (e.key === 'ArrowLeft') {
             if (currentIdx > 0) {
-                if (currentIdx === 0 && friendChatView.style.display === 'flex') {
+                if (currentIdx === 0 && friendProfileView.style.display === 'flex') {
+                    backFromFriendProfileBtn.click();
+                } else if (currentIdx === 0 && friendChatView.style.display === 'flex') {
                     backToFriendsBtn.click();
                 } else {
                     screens[currentIdx - 1].tab.click();
