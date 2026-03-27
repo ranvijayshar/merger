@@ -101,9 +101,8 @@
         .my-msg { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.2); }
         .stranger-msg { background: #ffffff; color: #334e68; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
         .system-msg { text-align: center; color: #64748b; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: #e2e8f0; padding: 6px 12px; border-radius: 20px; font-weight: 600;}
-        .diag-msg { text-align: center; color: #b45309; font-size: 0.75em; align-self: center; background: #fef3c7; padding: 6px 12px; border-radius: 8px; font-weight: 500; border: 1px dashed #f59e0b; width: 90%; }
         
-        /* Controls & Emoji Pickers */
+        /* Controls & Emoji/GIF Pickers */
         .controls { display: flex; gap: 8px; flex-shrink: 0; align-items: flex-end; position: relative; background: #ffffff; padding: 5px 0;}
         
         /* Beautiful Icon Buttons */
@@ -113,28 +112,21 @@
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;}
         emoji-picker { --background: #ffffff; --border-color: #e2e8f0; --input-border-color: #cbd5e1; --button-hover-background: #f1f5f9; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
 
-        /* ContentEditable Chat Input (Stranger Chat) */
+        .gif-picker-container { position: absolute; bottom: 60px; left: 0; display: none; flex-direction: column; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: #ffffff; width: 100%; max-width: 350px; }
+        .gif-picker-container input { width: 100%; padding: 15px; border: none; border-bottom: 1px solid #e2e8f0; outline: none; font-size: 0.95em; background: #f8fafc; color: #1e293b; font-weight: 600; border-radius: 0;}
+        .gif-picker-container input:focus { background: #ffffff; box-shadow: none; border-color: #e2e8f0;}
+        .gif-results { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; overflow-y: auto; height: 250px; background: #ffffff; align-content: flex-start;}
+        .gif-results img { width: calc(33.33% - 3px); height: 85px; object-fit: cover; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; background: #f1f5f9;}
+        .gif-results img:hover { transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 2;}
+
+        /* ContentEditable Chat Input (Single Bar Style) */
         .chat-input {
             flex-grow: 1; padding: 12px 18px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 22px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
-            max-height: 100px; min-height: 44px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.4;
+            max-height: 100px; min-height: 44px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.4; display: flex; align-items: center;
         }
         .chat-input:empty:before { content: attr(data-placeholder); color: #94a3b8; pointer-events: none; display: block; }
         .chat-input:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
         .disabled-input { background: #f1f5f9 !important; cursor: not-allowed !important; border-color: #e2e8f0 !important; color: #94a3b8 !important; opacity: 0.8; }
-        
-        /* Rich Canvas Input (Friend Chat) */
-        #friend-msg-input {
-            max-height: 150px; 
-            min-height: 44px;
-        }
-        #friend-msg-input img {
-            max-height: 80px;
-            border-radius: 8px;
-            vertical-align: middle;
-            margin: 2px 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            cursor: default;
-        }
         
         button.action-btn { padding: 0 16px; height: 44px; border: none; background: #2563eb; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(37,99,235,0.2); flex-shrink: 0;}
         button.action-btn:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
@@ -259,9 +251,6 @@
 </head>
 <body>
 
-<!-- Hidden File Upload Input for native device bypassing -->
-<input type="file" id="native-media-upload" accept="image/*,image/gif" style="display: none;">
-
 <div class="chat-container" id="main-container">
 
     <div id="notification-banner" class="notification-banner">
@@ -319,12 +308,16 @@
                 <button class="media-btn" id="friend-emoji-btn" title="Emojis">
                     <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
                 </button>
-                <button class="media-btn trigger-upload-btn" title="Upload Image/GIF">
-                    <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                <button class="media-btn" id="friend-gif-btn" title="GIFs">
+                    <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M11.5 9H13v6h-1.5zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1z"/></svg>
                 </button>
                 
                 <div class="emoji-picker-container" id="friend-emoji-picker">
                     <emoji-picker></emoji-picker>
+                </div>
+                <div class="gif-picker-container" id="friend-gif-picker">
+                    <input type="text" id="friend-gif-search" placeholder="Search Tenor GIFs..." autocomplete="off">
+                    <div class="gif-results" id="friend-gif-results"></div>
                 </div>
 
                 <div id="friend-msg-input" class="chat-input disabled-input" contenteditable="false" data-placeholder="Message connection..."></div>
@@ -387,12 +380,16 @@
             <button class="media-btn" id="random-emoji-btn" title="Emojis">
                 <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
             </button>
-            <button class="media-btn trigger-upload-btn" title="Upload Image/GIF">
-                <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            <button class="media-btn" id="random-gif-btn" title="GIFs">
+                <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M11.5 9H13v6h-1.5zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1z"/></svg>
             </button>
             
             <div class="emoji-picker-container" id="random-emoji-picker">
                 <emoji-picker></emoji-picker>
+            </div>
+            <div class="gif-picker-container" id="random-gif-picker">
+                <input type="text" id="random-gif-search" placeholder="Search Tenor GIFs..." autocomplete="off">
+                <div class="gif-results" id="random-gif-results"></div>
             </div>
 
             <div id="msg-input" class="chat-input disabled-input" contenteditable="false" data-placeholder="Type a message..."></div>
@@ -473,7 +470,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit, increment, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDsFseykAMdcZhtW3fpg0nQiMd6datK55E",
@@ -488,7 +484,6 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
-    const storage = getStorage(app);
 
     // DOM Elements
     const container = document.getElementById('main-container'); 
@@ -514,9 +509,17 @@
     
     const randomEmojiBtn = document.getElementById('random-emoji-btn');
     const randomEmojiPicker = document.getElementById('random-emoji-picker');
+    const randomGifBtn = document.getElementById('random-gif-btn');
+    const randomGifPicker = document.getElementById('random-gif-picker');
+    const randomGifSearch = document.getElementById('random-gif-search');
+    const randomGifResults = document.getElementById('random-gif-results');
 
     const friendEmojiBtn = document.getElementById('friend-emoji-btn');
     const friendEmojiPicker = document.getElementById('friend-emoji-picker');
+    const friendGifBtn = document.getElementById('friend-gif-btn');
+    const friendGifPicker = document.getElementById('friend-gif-picker');
+    const friendGifSearch = document.getElementById('friend-gif-search');
+    const friendGifResults = document.getElementById('friend-gif-results');
     
     const friendsListView = document.getElementById('friends-list-view');
     const friendChatView = document.getElementById('friend-chat-view');
@@ -542,9 +545,6 @@
     const notifMsg = document.getElementById('notif-msg');
     const notifViewBtn = document.getElementById('notif-view-btn');
     const notifCloseBtn = document.getElementById('notif-close-btn');
-
-    const nativeMediaUpload = document.getElementById('native-media-upload');
-    const triggerUploadBtns = document.querySelectorAll('.trigger-upload-btn');
 
     let notifiedRequestIds = new Set();
     let initialFriendsLoad = true;
@@ -583,321 +583,16 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
-    // --- NATIVE FILE UPLOAD LOGIC (THE ULTIMATE BYPASS) ---
-    triggerUploadBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            nativeMediaUpload.click(); // Opens native phone file picker
-        });
-    });
-
-    nativeMediaUpload.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        if (file.size > 10000000) { alert("This image is too large (Max 10MB)."); return; }
-
-        // Determine which chat is active to provide loading feedback
-        let activeInput, activeChatType;
-        if (chatInterface.style.display === 'flex' && isChatting) {
-            activeInput = msgInput;
-            activeChatType = 'stranger';
-        } else if (friendChatView.style.display === 'flex') {
-            activeInput = friendMsgInput;
-            activeChatType = 'friend';
-        } else {
-            return;
-        }
-
-        const originalContent = activeInput.innerHTML;
-        activeInput.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size: 0.9em;">Uploading Native File...</span>';
-        activeInput.setAttribute('contenteditable', 'false');
-
-        try {
-            const fileName = `chat_media/${Date.now()}_${file.name}`;
-            const storageRef = ref(storage, fileName);
-            await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(storageRef);
-
-            activeInput.innerHTML = '';
-            activeInput.setAttribute('contenteditable', 'true');
-
-            if (activeChatType === 'stranger' && currentRoomId) {
-                appendMessage(downloadURL, "my-msg"); displayedMessageCount++; 
-                await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: downloadURL, senderId: myUserId, timestamp: Date.now() }) });
-            } else if (activeChatType === 'friend') {
-                // For friends, we stage it on the canvas
-                const imgHtml = `<img src="${downloadURL}" alt="Uploaded Image">&nbsp;`;
-                activeInput.innerHTML = originalContent + imgHtml;
-            }
-
-        } catch (error) {
-            console.error("Upload failed:", error);
-            alert("Failed to upload native file.");
-            activeInput.innerHTML = originalContent;
-            activeInput.setAttribute('contenteditable', 'true');
-        }
-        
-        // Reset input so you can upload the same file again if needed
-        nativeMediaUpload.value = "";
-    });
-
-    // --- DIAGNOSTIC APPENDER ---
-    function appendDiagnostic(message, chatType) {
-        const div = document.createElement('div'); 
-        div.className = `message diag-msg`; 
-        div.innerHTML = `🛠️ <b>System Debug:</b><br>${message}`;
-        
-        if (chatType === 'stranger') {
-            chatBox.appendChild(div);
-            chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
-        } else {
-            friendChatBox.appendChild(div);
-            friendChatBox.scrollTo({ top: friendChatBox.scrollHeight, behavior: 'smooth' });
-        }
+    // --- PASTE HANDLER (TEXT ONLY) ---
+    function handlePaste(e) {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, text);
     }
+    msgInput.addEventListener('paste', handlePaste);
+    friendMsgInput.addEventListener('paste', handlePaste);
 
-    // --- STRANGER CHAT QUICK-PASTE (AUTO SENDS) ---
-msgInput.addEventListener('paste', async (e) => {
-    const clipboardData = e.clipboardData || window.clipboardData;
-    if (!clipboardData) {
-        appendDiagnostic("Keyboard blocked clipboard access.", 'stranger');
-        return;
-    }
-
-    const items = clipboardData.items;
-    let hasImageBlob = false;
-
-    // 1. Check for direct image files (image/*)
-    for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf("image") !== -1) {
-            e.preventDefault();
-            hasImageBlob = true;
-            const blob = items[i].getAsFile();
-            if (blob && blob.size <= 10000000) {
-                // Show loading indicator
-                const originalContent = msgInput.innerHTML;
-                msgInput.innerHTML = '<span style="color:#94a3b8; font-style:italic;">Uploading Image...</span>';
-                msgInput.setAttribute('contenteditable', 'false');
-
-                try {
-                    const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
-                    const storageRef = ref(storage, fileName);
-                    await uploadBytes(storageRef, blob);
-                    const downloadURL = await getDownloadURL(storageRef);
-
-                    msgInput.innerHTML = '';
-                    msgInput.setAttribute('contenteditable', 'true');
-                    // Send as a separate message
-                    if (currentRoomId) {
-                        appendMessage(downloadURL, "my-msg");
-                        displayedMessageCount++;
-                        await updateDoc(doc(db, "rooms", currentRoomId), {
-                            messages: arrayUnion({ text: downloadURL, senderId: myUserId, timestamp: Date.now() })
-                        });
-                    }
-                } catch (err) {
-                    console.error("Upload failed:", err);
-                    alert("Failed to upload image.");
-                    msgInput.innerHTML = originalContent;
-                    msgInput.setAttribute('contenteditable', 'true');
-                }
-            } else {
-                alert("Image too large (max 10MB).");
-            }
-            return; // Handled, exit
-        }
-    }
-
-    // 2. If no image blob, check for text/html (keyboard GIFs often arrive as HTML)
-    if (!hasImageBlob) {
-        const html = clipboardData.getData('text/html');
-        if (html) {
-            e.preventDefault();
-            // Parse the HTML
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const images = Array.from(doc.querySelectorAll('img'));
-
-            // If there are images, upload them and send each as a message
-            if (images.length > 0) {
-                // Show a temporary indicator
-                msgInput.innerHTML = '<span style="color:#94a3b8; font-style:italic;">Uploading GIFs...</span>';
-                msgInput.setAttribute('contenteditable', 'false');
-
-                for (const img of images) {
-                    const src = img.getAttribute('src');
-                    if (src && src.startsWith('data:')) {
-                        // Convert data URL to blob
-                        const blob = await (await fetch(src)).blob();
-                        if (blob.size <= 10000000) {
-                            const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
-                            const storageRef = ref(storage, fileName);
-                            await uploadBytes(storageRef, blob);
-                            const downloadURL = await getDownloadURL(storageRef);
-                            // Send as a separate message
-                            if (currentRoomId) {
-                                appendMessage(downloadURL, "my-msg");
-                                displayedMessageCount++;
-                                await updateDoc(doc(db, "rooms", currentRoomId), {
-                                    messages: arrayUnion({ text: downloadURL, senderId: myUserId, timestamp: Date.now() })
-                                });
-                            }
-                        } else {
-                            alert("GIF too large (max 10MB).");
-                        }
-                    }
-                }
-
-                // After all images are processed, clear the indicator
-                msgInput.innerHTML = '';
-                msgInput.setAttribute('contenteditable', 'true');
-                return;
-            }
-        }
-
-        // 3. Fallback: plain text only (including emoji)
-        const plainText = clipboardData.getData('text/plain');
-        if (plainText !== undefined) {
-            e.preventDefault();
-            document.execCommand('insertText', false, plainText);
-        } else {
-            // Unsupported format – show diagnostic
-            const types = Array.from(items).map(i => i.type);
-            if (types.length > 0) {
-                appendDiagnostic(`Keyboard attempted to paste unsupported formats: <b>${types.join(', ')}</b>. Use the 📷 button.`, 'stranger');
-                e.preventDefault();
-            }
-        }
-    }
-});
-    // --- FRIEND CHAT RICH CANVAS PASTE (STAGES IN THE BOX BEFORE SENDING) ---
-friendMsgInput.addEventListener('paste', async (e) => {
-    const clipboardData = e.clipboardData || window.clipboardData;
-    if (!clipboardData) {
-        appendDiagnostic("Keyboard blocked clipboard access.", 'friend');
-        return;
-    }
-
-    const items = clipboardData.items;
-    let hasImageBlob = false;
-
-    // 1. Check for direct image files (image/*)
-    for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf("image") !== -1) {
-            e.preventDefault();
-            hasImageBlob = true;
-            const blob = items[i].getAsFile();
-            if (blob && blob.size <= 10000000) {
-                // Insert a placeholder
-                const placeholderId = "upload_" + Date.now() + "_" + Math.random();
-                const placeholderHtml = `<span id="${placeholderId}" class="uploading-placeholder" style="color:#94a3b8; font-style:italic;">Uploading...</span>`;
-                document.execCommand("insertHTML", false, placeholderHtml);
-
-                try {
-                    const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
-                    const storageRef = ref(storage, fileName);
-                    await uploadBytes(storageRef, blob);
-                    const downloadURL = await getDownloadURL(storageRef);
-
-                    const imgHtml = `<img src="${downloadURL}" style="max-height:80px; border-radius:8px;">&nbsp;`;
-                    const placeholderEl = document.getElementById(placeholderId);
-                    if (placeholderEl) {
-                        placeholderEl.outerHTML = imgHtml;
-                    } else {
-                        document.execCommand("insertHTML", false, imgHtml);
-                    }
-                } catch (err) {
-                    console.error("Upload failed:", err);
-                    const placeholderEl = document.getElementById(placeholderId);
-                    if (placeholderEl) placeholderEl.remove();
-                    alert("Failed to upload image.");
-                }
-            } else {
-                alert("Image too large (max 10MB).");
-            }
-            return;
-        }
-    }
-
-    // 2. If no image blob, check for text/html (keyboard GIFs often arrive as HTML)
-    if (!hasImageBlob) {
-        const html = clipboardData.getData('text/html');
-        if (html) {
-            e.preventDefault();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const images = Array.from(doc.querySelectorAll('img'));
-
-            if (images.length > 0) {
-                // Insert placeholders for each image and upload them
-                const placeholders = [];
-                for (let i = 0; i < images.length; i++) {
-                    const img = images[i];
-                    const src = img.getAttribute('src');
-                    if (src && src.startsWith('data:')) {
-                        const placeholderId = "upload_" + Date.now() + "_" + i + "_" + Math.random();
-                        const placeholderHtml = `<span id="${placeholderId}" class="uploading-placeholder" style="color:#94a3b8; font-style:italic;">Uploading GIF...</span>`;
-                        document.execCommand("insertHTML", false, placeholderHtml);
-                        placeholders.push({ id: placeholderId, src });
-                    } else if (src) {
-                        // If it's a remote URL, just insert it directly (be careful with XSS)
-                        document.execCommand("insertHTML", false, `<img src="${src}" style="max-height:80px; border-radius:8px;">`);
-                    }
-                }
-
-                // Upload each data URL in sequence
-                for (const ph of placeholders) {
-                    try {
-                        const blob = await (await fetch(ph.src)).blob();
-                        if (blob.size <= 10000000) {
-                            const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
-                            const storageRef = ref(storage, fileName);
-                            await uploadBytes(storageRef, blob);
-                            const downloadURL = await getDownloadURL(storageRef);
-
-                            const imgHtml = `<img src="${downloadURL}" style="max-height:80px; border-radius:8px;">&nbsp;`;
-                            const placeholderEl = document.getElementById(ph.id);
-                            if (placeholderEl) {
-                                placeholderEl.outerHTML = imgHtml;
-                            }
-                        } else {
-                            alert("GIF too large (max 10MB).");
-                            const placeholderEl = document.getElementById(ph.id);
-                            if (placeholderEl) placeholderEl.remove();
-                        }
-                    } catch (err) {
-                        console.error("Upload failed:", err);
-                        const placeholderEl = document.getElementById(ph.id);
-                        if (placeholderEl) placeholderEl.remove();
-                        alert("Failed to upload GIF.");
-                    }
-                }
-                return;
-            } else {
-                // No images in HTML – insert as plain text
-                const plainText = doc.body.innerText;
-                if (plainText) {
-                    document.execCommand('insertText', false, plainText);
-                }
-                return;
-            }
-        }
-
-        // 3. Fallback: plain text only (including emoji)
-        const plainText = clipboardData.getData('text/plain');
-        if (plainText !== undefined) {
-            e.preventDefault();
-            document.execCommand('insertText', false, plainText);
-        } else {
-            const types = Array.from(items).map(i => i.type);
-            if (types.length > 0) {
-                appendDiagnostic(`Keyboard attempted to paste unsupported formats: <b>${types.join(', ')}</b>. Use the 📷 button.`, 'friend');
-                e.preventDefault();
-            }
-        }
-    }
-});
-    // --- MESSAGE RENDERER LOGIC (Emojis & Images) ---
+    // --- MESSAGE RENDERER LOGIC (Emojis & GIFs) ---
     function isEmojiOnly(str) {
         try {
             const string = str.trim();
@@ -913,7 +608,7 @@ friendMsgInput.addEventListener('paste', async (e) => {
         const div = document.createElement('div');
         div.className = `message ${isMe ? 'my-msg' : 'stranger-msg'}`;
         
-        const isGifOrImage = text.match(/^https?:\/\/.*\.(gif|png|jpe?g|webp)(?:\?.*)?$/i) || text.includes('firebasestorage.googleapis.com') || text.startsWith('data:image/');
+        const isGifOrImage = text.match(/^https?:\/\/.*\.(gif|png|jpe?g|webp)(?:\?.*)?$/i) || text.includes('media.tenor.com') || text.startsWith('data:image/');
 
         if (isGifOrImage) {
             div.innerHTML = `<img src="${text}" style="max-width: 220px; width: 100%; border-radius: 12px; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">`;
@@ -935,6 +630,90 @@ friendMsgInput.addEventListener('paste', async (e) => {
         }
         return div;
     }
+
+    // --- GIF API LOGIC (TENOR) ---
+    async function loadGIFs(query, container, sendCallback) {
+        const url = query 
+            ? `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=21`
+            : `https://g.tenor.com/v1/trending?key=LIVDSRZULELA&limit=21`;
+        
+        container.innerHTML = '<div style="padding:15px; color:#94a3b8; font-size:0.85em; text-align:center; width:100%; font-weight:600;">Loading GIFs...</div>';
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            container.innerHTML = '';
+            if (data.results.length === 0) {
+                container.innerHTML = '<div style="padding:15px; color:#94a3b8; font-size:0.85em; text-align:center; width:100%; font-weight:600;">No GIFs found.</div>';
+                return;
+            }
+            data.results.forEach(gif => {
+                const imgUrl = gif.media[0].tinygif.url; 
+                const img = document.createElement('img');
+                img.src = imgUrl;
+                img.onclick = () => sendCallback(imgUrl);
+                container.appendChild(img);
+            });
+        } catch(e) {
+            container.innerHTML = '<div style="padding:15px; color:#ef4444; font-size:0.85em; text-align:center; width:100%; font-weight:600;">Error loading GIFs.</div>';
+        }
+    }
+
+    randomGifBtn.addEventListener('click', () => {
+        randomEmojiPicker.style.display = 'none';
+        randomGifPicker.style.display = randomGifPicker.style.display === 'flex' ? 'none' : 'flex';
+        if(randomGifPicker.style.display === 'flex' && randomGifResults.innerHTML === '') {
+            loadGIFs('', randomGifResults, async (url) => { 
+                if (!currentRoomId) return;
+                msgInput.innerHTML = ''; randomGifPicker.style.display = 'none'; 
+                appendMessage(url, "my-msg"); displayedMessageCount++; 
+                await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }) });
+            });
+        }
+    });
+
+    let randomGifTimeout;
+    randomGifSearch.addEventListener('input', (e) => {
+        clearTimeout(randomGifTimeout);
+        randomGifTimeout = setTimeout(() => {
+            loadGIFs(e.target.value, randomGifResults, async (url) => { 
+                if (!currentRoomId) return;
+                msgInput.innerHTML = ''; randomGifPicker.style.display = 'none'; 
+                appendMessage(url, "my-msg"); displayedMessageCount++; 
+                await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }) });
+            });
+        }, 500);
+    });
+
+    friendGifBtn.addEventListener('click', () => {
+        friendEmojiPicker.style.display = 'none';
+        friendGifPicker.style.display = friendGifPicker.style.display === 'flex' ? 'none' : 'flex';
+        if(friendGifPicker.style.display === 'flex' && friendGifResults.innerHTML === '') {
+            loadGIFs('', friendGifResults, async (url) => { 
+                if (!currentFriendRoomId) return;
+                friendMsgInput.innerHTML = ''; friendGifPicker.style.display = 'none'; 
+                await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
+                    friendMessages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }),
+                    [`lastRead.${myUserId}`]: Date.now() 
+                });
+            });
+        }
+    });
+
+    let friendGifTimeout;
+    friendGifSearch.addEventListener('input', (e) => {
+        clearTimeout(friendGifTimeout);
+        friendGifTimeout = setTimeout(() => {
+            loadGIFs(e.target.value, friendGifResults, async (url) => { 
+                if (!currentFriendRoomId) return;
+                friendMsgInput.innerHTML = ''; friendGifPicker.style.display = 'none'; 
+                await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
+                    friendMessages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }),
+                    [`lastRead.${myUserId}`]: Date.now() 
+                });
+            });
+        }, 500);
+    });
+
 
     function showNotificationBanner(strangerName, strangerPhoto) {
         notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
@@ -993,12 +772,14 @@ friendMsgInput.addEventListener('paste', async (e) => {
         }
     });
 
-    randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
-    friendEmojiBtn.addEventListener('click', () => { friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
+    randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; randomGifPicker.style.display='none';});
+    friendEmojiBtn.addEventListener('click', () => { friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block'; friendGifPicker.style.display='none';});
     
     document.addEventListener('click', (e) => {
         if (!e.target.closest('#random-emoji-btn') && !e.target.closest('#random-emoji-picker')) randomEmojiPicker.style.display = 'none';
         if (!e.target.closest('#friend-emoji-btn') && !e.target.closest('#friend-emoji-picker')) friendEmojiPicker.style.display = 'none';
+        if (!e.target.closest('#random-gif-btn') && !e.target.closest('#random-gif-picker')) randomGifPicker.style.display = 'none';
+        if (!e.target.closest('#friend-gif-btn') && !e.target.closest('#friend-gif-picker')) friendGifPicker.style.display = 'none';
     });
 
     // Safely insert emojis without destroying existing image previews in the canvas
@@ -1115,7 +896,7 @@ friendMsgInput.addEventListener('paste', async (e) => {
         friendProfileView.style.animation = 'slideInFromRight 0.3s ease forwards';
         
         const avatarContainer = document.getElementById('fps-avatar-container');
-        if (currentFriendPhoto) avatarContainer.innerHTML = `<img src="${currentFriendPhoto}" style="width:100%; height:100%; object-fit:cover;">`;
+        if (currentFriendPhoto) avatarContainer.innerHTML = `<img src="${currentFriendPhoto}" stylewidth:100%; height:100%; object-fit:cover;">`;
         else avatarContainer.innerHTML = currentFriendName.substring(0,1).toUpperCase();
         
         document.getElementById('fps-name').textContent = currentFriendName;
@@ -1407,43 +1188,20 @@ friendMsgInput.addEventListener('paste', async (e) => {
         friendSendBtn.disabled = true;
     });
 
-    // --- FRIEND CHAT SEND (PARSES THE RICH CANVAS) ---
     async function sendFriendMessage() {
-        if (!currentFriendRoomId) return;
+        const textContent = friendMsgInput.innerText.trim();
+        
+        if (!textContent) return;
 
-        // Clone the input container to analyze its mixed content
-        const container = friendMsgInput.cloneNode(true);
-        const images = Array.from(container.querySelectorAll('img')).map(img => img.src);
-        
-        // Remove visuals from clone to extract only the text
-        container.querySelectorAll('img').forEach(img => img.remove());
-        container.querySelectorAll('.uploading-placeholder').forEach(el => el.remove());
-        
-        const textContent = container.innerText.trim();
-        
-        if (!textContent && images.length === 0) return;
-
-        // Instantly clear out the UI so it feels snappy
         friendMsgInput.innerHTML = ''; 
         friendEmojiPicker.style.display = 'none'; 
-        friendSendBtn.disabled = true; // Prevent double sending
+        friendGifPicker.style.display = 'none';
+        friendSendBtn.disabled = true; 
 
-        // 1. Send Text if any
-        if (textContent) {
-            await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
-                friendMessages: arrayUnion({ text: textContent, senderId: myUserId, timestamp: Date.now() }),
-                [`lastRead.${myUserId}`]: Date.now() 
-            });
-        }
-
-        // 2. Send Images sequentially
-        for (let imgUrl of images) {
-            await new Promise(resolve => setTimeout(resolve, 100)); // order preservation pause
-            await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
-                friendMessages: arrayUnion({ text: imgUrl, senderId: myUserId, timestamp: Date.now() }),
-                [`lastRead.${myUserId}`]: Date.now() 
-            });
-        }
+        await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
+            friendMessages: arrayUnion({ text: textContent, senderId: myUserId, timestamp: Date.now() }),
+            [`lastRead.${myUserId}`]: Date.now() 
+        });
         
         friendSendBtn.disabled = false;
         friendMsgInput.focus();
@@ -1635,7 +1393,7 @@ friendMsgInput.addEventListener('paste', async (e) => {
     async function sendMessage() {
         const text = msgInput.innerText.trim();
         if (!text || !currentRoomId) return;
-        msgInput.innerHTML = ''; randomEmojiPicker.style.display = 'none'; 
+        msgInput.innerHTML = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none';
         appendMessage(text, "my-msg"); displayedMessageCount++; 
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
