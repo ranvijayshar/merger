@@ -107,17 +107,16 @@
         .emoji-toggle-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; color: #94a3b8; transition: transform 0.2s ease; padding: 0 5px; outline: none; }
         .emoji-toggle-btn:hover { transform: scale(1.1); color: #64748b; }
         
-        /* NEW: GIF Picker styling */
-        .gif-toggle-btn { font-size: 0.85em; font-weight: 800; border-radius: 8px; padding: 6px 10px; background: #f1f5f9; color: #64748b; transition: all 0.2s ease; border: 1px solid transparent; }
+        .gif-toggle-btn { font-size: 0.85em; font-weight: 800; border-radius: 8px; padding: 6px 10px; background: #f1f5f9; color: #64748b; transition: all 0.2s ease; border: 1px solid transparent; cursor: pointer; outline: none;}
         .gif-toggle-btn:hover { background: #e2e8f0; color: #1e293b; border-color: #cbd5e1; }
 
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;}
         emoji-picker { --background: #ffffff; --border-color: #e2e8f0; --input-border-color: #cbd5e1; --button-hover-background: #f1f5f9; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
 
-        .gif-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: #ffffff; width: 100%; max-width: 350px; }
-        .gif-picker-container input { width: 100%; padding: 12px 15px; border: none; border-bottom: 1px solid #e2e8f0; outline: none; font-size: 0.9em; background: #f8fafc; color: #1e293b; font-weight: 600;}
-        .gif-picker-container input:focus { background: #ffffff; }
-        .gif-results { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; overflow-y: auto; height: 250px; background: #ffffff; }
+        .gif-picker-container { position: absolute; bottom: 60px; left: 0; display: none; flex-direction: column; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: #ffffff; width: 100%; max-width: 350px; }
+        .gif-picker-container input { width: 100%; padding: 12px 15px; border: none; border-bottom: 1px solid #e2e8f0; outline: none; font-size: 0.9em; background: #f8fafc; color: #1e293b; font-weight: 600; border-radius: 0;}
+        .gif-picker-container input:focus { background: #ffffff; box-shadow: none; border-color: #e2e8f0;}
+        .gif-results { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; overflow-y: auto; height: 250px; background: #ffffff; align-content: flex-start;}
         .gif-results img { width: calc(33.33% - 3px); height: 85px; object-fit: cover; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; background: #f1f5f9;}
         .gif-results img:hover { transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 2;}
 
@@ -228,7 +227,7 @@
             overflow: hidden; font-size: 3.5em; font-weight: 800; background: #eff6ff; color: #2563eb;
         }
 
-        /* --- UPDATED DYNAMIC LIKE BUTTON --- */
+        /* --- DYNAMIC LIKE BUTTON --- */
         #like-stream-container {
             position: absolute;
             top: 50%;
@@ -258,6 +257,7 @@
             overflow: hidden;
             gap: 6px; 
             padding: 0 10px;
+            white-space: nowrap;
         }
         #pulse-like-btn:active { transform: scale(0.85); box-shadow: 0 2px 6px rgba(0,0,0,0.05);}
         #pulse-like-btn:hover { border-color: #10B981; background: #ecfdf5; }
@@ -606,6 +606,7 @@
     let hasStarted = false;
     let isSkipping = false; 
     let isConfirming = false; 
+    let displayedMessageCount = 0; 
     
     let myUserId = null; 
     let myUserName = "Unknown User";
@@ -614,17 +615,19 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
-    // --- NEW: MESSAGE RENDERER LOGIC (Emojis & GIFs) ---
+    // --- MESSAGE RENDERER LOGIC (Emojis & GIFs) ---
     function isEmojiOnly(str) {
-        const string = str.trim();
-        if (string.length === 0) return false;
-        // Verify there are NO normal characters
-        const noEmojis = string.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '');
-        if (noEmojis.replace(/[\s\u200D\uFEFF]/g, '').length > 0) return false; 
-        
-        // Count string length roughly based on unicode points
-        const emojiCount = Array.from(string.replace(/[\s\u200D\uFEFF]/g, '')).length;
-        return emojiCount >= 1 && emojiCount <= 3;
+        try {
+            const string = str.trim();
+            if (string.length === 0) return false;
+            // Verify there are NO normal characters
+            const noEmojis = string.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '');
+            if (noEmojis.replace(/[\s\u200D\uFEFF]/g, '').length > 0) return false; 
+            
+            // Count string length roughly based on unicode points
+            const emojiCount = Array.from(string.replace(/[\s\u200D\uFEFF]/g, '')).length;
+            return emojiCount >= 1 && emojiCount <= 3;
+        } catch(e) { return false; }
     }
 
     function createMessageElement(text, isMe) {
@@ -647,13 +650,14 @@
             div.style.border = 'none';
             div.style.fontSize = '4em';
             div.style.lineHeight = '1.1';
+            div.style.textAlign = isMe ? 'right' : 'left';
         } else {
             div.textContent = text;
         }
         return div;
     }
 
-    // --- NEW: GIF API LOGIC (TENOR) ---
+    // --- GIF API LOGIC (TENOR) ---
     async function loadGIFs(query, container, sendCallback) {
         const url = query 
             ? `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=21`
@@ -712,12 +716,6 @@
         }, 500);
     });
 
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('#random-gif-btn') && !e.target.closest('#random-gif-picker')) randomGifPicker.style.display = 'none';
-        if (!e.target.closest('#friend-gif-btn') && !e.target.closest('#friend-gif-picker')) friendGifPicker.style.display = 'none';
-    });
-
-
     // --- PUSH NOTIFICATION LOGIC ---
     function showNotificationBanner(strangerName, strangerPhoto) {
         notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
@@ -756,7 +754,6 @@
                     newTotal = (docSnap.data().totalLikes || 0) + 1;
                 }
 
-                // SENDER SEES "LIKED!"
                 pulseLikeBtn.innerHTML = `<span>💚</span> <span style="font-size: 0.8em; font-weight: 800; color: #059669; margin-right: 8px;">Liked!</span>`;
                 pulseLikeBtn.classList.add('liked-state');
 
@@ -783,6 +780,8 @@
     document.addEventListener('click', (e) => {
         if (!e.target.closest('#random-emoji-btn') && !e.target.closest('#random-emoji-picker')) randomEmojiPicker.style.display = 'none';
         if (!e.target.closest('#friend-emoji-btn') && !e.target.closest('#friend-emoji-picker')) friendEmojiPicker.style.display = 'none';
+        if (!e.target.closest('#random-gif-btn') && !e.target.closest('#random-gif-picker')) randomGifPicker.style.display = 'none';
+        if (!e.target.closest('#friend-gif-btn') && !e.target.closest('#friend-gif-picker')) friendGifPicker.style.display = 'none';
     });
 
     randomEmojiPicker.addEventListener('emoji-click', event => { msgInput.value += event.detail.unicode; msgInput.focus(); });
@@ -944,11 +943,19 @@
         currentFriendId = null;
     });
 
+
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             myUserId = user.uid;
             myUserName = user.displayName || "Unknown User";
             myUserPhoto = user.photoURL || "";
+
+            // Cleanup ghost matchmaking rooms so you don't get stuck alone
+            try {
+                const deadRoomsQ = query(collection(db, "rooms"), where("creatorId", "==", myUserId), where("status", "==", "waiting"));
+                const deadSnap = await getDocs(deadRoomsQ);
+                deadSnap.forEach(d => updateDoc(doc(db, "rooms", d.id), {status: "closed"}));
+            } catch(e) { console.log(e); }
 
             document.getElementById('tab-profile-pic').src = myUserPhoto; 
             document.getElementById('page-profile-pic').src = myUserPhoto; 
@@ -1127,7 +1134,6 @@
         currentFriendName = friendName;
         currentFriendPhoto = strangerPhoto;
 
-        // Fetch existing messages logic
         let localFriendMsgCount = 0;
         friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Say hello.</div>';
         
@@ -1183,6 +1189,10 @@
         });
     }
 
+    // ==========================================
+    // --- FEATURE 2: RANDOM CHAT ---
+    // ==========================================
+    
     function appendMessage(text, type) {
         if (type === "system-msg") {
             const div = document.createElement('div'); 
@@ -1245,6 +1255,7 @@
                         if (trackEl) trackEl.classList.add('scrolled');
                     }, 300);
 
+                    // Clean up properly so it doesn't replay when swapping tabs
                     setTimeout(() => {
                         likeStreamContainer.classList.add('fade-out-up');
                         setTimeout(() => {
@@ -1257,9 +1268,11 @@
                 }
             }
 
+            // Sync initial lock state if joining late
             if (data.likeGiven) {
                 roomLikeGiven = true;
                 previousLikeGivenState = true;
+                likeStreamContainer.style.display = 'none';
             }
 
             const strangerId = data.participants.find(id => id !== myUserId);
@@ -1277,7 +1290,7 @@
 
             if (data.status === "chatting" && !isChatting) {
                 isChatting = true;
-                appendMessage("Connection established. Introduce yourself! 👋", "system-msg");
+                appendMessage("Connection established. Say hi! 👋", "system-msg");
                 msgInput.disabled = false; sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
                 
                 currentStrangerId = strangerId;
@@ -1296,7 +1309,10 @@
             }
             if (isChatting && data.messages && data.messages.length > displayedMessageCount) {
                 const newMessages = data.messages.slice(displayedMessageCount);
-                newMessages.forEach(msg => { if (msg.senderId !== myUserId) appendMessage(msg.text, "stranger-msg"); });
+                newMessages.forEach(msg => { 
+                    const isMe = msg.senderId === myUserId;
+                    appendMessage(msg.text, isMe ? "my-msg" : "stranger-msg"); 
+                });
                 displayedMessageCount = data.messages.length;
             }
         });
@@ -1304,9 +1320,10 @@
 
     async function findStranger() {
         if (!myUserId) return; 
-        resetChat(); appendMessage("Searching the network...", "system-msg");
+        resetChat(); appendMessage("Looking for a connection...", "system-msg");
         
-        const q = query(collection(db, "rooms"), where("status", "==", "waiting"), limit(10)); 
+        // Increased limit to 50 so matchmaking doesn't choke on old test rooms
+        const q = query(collection(db, "rooms"), where("status", "==", "waiting"), limit(50)); 
         const querySnapshot = await getDocs(q);
 
         let matchedRoomId = null;
@@ -1345,6 +1362,7 @@
         const text = msgInput.value.trim();
         if (!text || !currentRoomId) return;
         msgInput.value = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none'; 
+        // Note: appendMessage expects 'my-msg' inside the setupRoomListener loops, but here we can just pass "my-msg" directly
         appendMessage(text, "my-msg"); displayedMessageCount++; 
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
