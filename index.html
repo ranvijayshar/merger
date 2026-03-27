@@ -102,13 +102,24 @@
         .stranger-msg { background: #ffffff; color: #334e68; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
         .system-msg { text-align: center; color: #64748b; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: #e2e8f0; padding: 6px 12px; border-radius: 20px; font-weight: 600;}
         
-        /* Controls & Emoji */
+        /* Controls & Emoji/GIF Pickers */
         .controls { display: flex; gap: 8px; flex-shrink: 0; align-items: center; position: relative; background: #ffffff; padding: 5px 0;}
         .emoji-toggle-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; color: #94a3b8; transition: transform 0.2s ease; padding: 0 5px; outline: none; }
         .emoji-toggle-btn:hover { transform: scale(1.1); color: #64748b; }
         
+        /* NEW: GIF Picker styling */
+        .gif-toggle-btn { font-size: 0.85em; font-weight: 800; border-radius: 8px; padding: 6px 10px; background: #f1f5f9; color: #64748b; transition: all 0.2s ease; border: 1px solid transparent; }
+        .gif-toggle-btn:hover { background: #e2e8f0; color: #1e293b; border-color: #cbd5e1; }
+
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;}
         emoji-picker { --background: #ffffff; --border-color: #e2e8f0; --input-border-color: #cbd5e1; --button-hover-background: #f1f5f9; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
+
+        .gif-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: #ffffff; width: 100%; max-width: 350px; }
+        .gif-picker-container input { width: 100%; padding: 12px 15px; border: none; border-bottom: 1px solid #e2e8f0; outline: none; font-size: 0.9em; background: #f8fafc; color: #1e293b; font-weight: 600;}
+        .gif-picker-container input:focus { background: #ffffff; }
+        .gif-results { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; overflow-y: auto; height: 250px; background: #ffffff; }
+        .gif-results img { width: calc(33.33% - 3px); height: 85px; object-fit: cover; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; background: #f1f5f9;}
+        .gif-results img:hover { transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 2;}
 
         input[type="text"] { flex-grow: 1; padding: 12px 18px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
         input[type="text"]:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
@@ -228,17 +239,12 @@
             align-items: center;
         }
         
-        /* The container fading out after animation finishes */
-        .fade-out-up {
-            animation: fadeOutUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        @keyframes fadeOutUp {
-            to { opacity: 0; transform: translateY(-80px) scale(0.8); pointer-events: none; }
-        }
+        .fade-out-up { animation: fadeOutUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes fadeOutUp { to { opacity: 0; transform: translateY(-80px) scale(0.8); pointer-events: none; } }
 
         #pulse-like-btn {
             background: #ffffff;
-            border-radius: 24px; /* pill shape ready */
+            border-radius: 24px;
             width: 48px; height: 48px;
             border: 1px solid #e2e8f0;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
@@ -256,7 +262,6 @@
         #pulse-like-btn:active { transform: scale(0.85); box-shadow: 0 2px 6px rgba(0,0,0,0.05);}
         #pulse-like-btn:hover { border-color: #10B981; background: #ecfdf5; }
 
-        /* When clicked or received, button expands into a pill */
         #pulse-like-btn.liked-state {
             width: auto; 
             min-width: 95px;
@@ -267,7 +272,6 @@
             pointer-events: none; 
         }
 
-        /* Odometer specific to the button */
         .scroll-counter {
             display: inline-block;
             height: 1.2em; 
@@ -283,15 +287,8 @@
             transform: translateY(0);
             transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        .scroll-track.scrolled {
-            transform: translateY(-1.2em);
-        }
-        .scroll-track > span {
-            display: block;
-            height: 1.2em;
-            line-height: 1.2em;
-            text-align: center;
-        }
+        .scroll-track.scrolled { transform: translateY(-1.2em); }
+        .scroll-track > span { display: block; height: 1.2em; line-height: 1.2em; text-align: center; }
     </style>
 </head>
 <body>
@@ -350,10 +347,17 @@
             </div>
             <div id="friend-chat-box" class="chat-box-style"></div>
             <div class="controls">
-                <button class="emoji-toggle-btn" id="friend-emoji-btn">😀</button>
+                <button class="emoji-toggle-btn" id="friend-emoji-btn" title="Emojis">😀</button>
+                <button class="gif-toggle-btn" id="friend-gif-btn" title="GIFs">GIF</button>
+                
                 <div class="emoji-picker-container" id="friend-emoji-picker">
                     <emoji-picker></emoji-picker>
                 </div>
+                <div class="gif-picker-container" id="friend-gif-picker">
+                    <input type="text" id="friend-gif-search" placeholder="Search Tenor GIFs..." autocomplete="off">
+                    <div class="gif-results" id="friend-gif-results"></div>
+                </div>
+
                 <input type="text" id="friend-msg-input" placeholder="Message connection..." autocomplete="off">
                 <button id="friend-send-btn" class="action-btn">
                     <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -411,10 +415,17 @@
         </div>
 
         <div class="controls">
-            <button class="emoji-toggle-btn" id="random-emoji-btn">😀</button>
+            <button class="emoji-toggle-btn" id="random-emoji-btn" title="Emojis">😀</button>
+            <button class="gif-toggle-btn" id="random-gif-btn" title="GIFs">GIF</button>
+            
             <div class="emoji-picker-container" id="random-emoji-picker">
                 <emoji-picker></emoji-picker>
             </div>
+            <div class="gif-picker-container" id="random-gif-picker">
+                <input type="text" id="random-gif-search" placeholder="Search Tenor GIFs..." autocomplete="off">
+                <div class="gif-results" id="random-gif-results"></div>
+            </div>
+
             <input type="text" id="msg-input" placeholder="Type a message..." disabled autocomplete="off">
             <button id="send-btn" class="action-btn" disabled>
                 <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -507,7 +518,7 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    // DOM Elements - Screens
+    // DOM Elements
     const container = document.getElementById('main-container'); 
     const loginScreen = document.getElementById('login-screen');
     const homeScreen = document.getElementById('home-screen');
@@ -515,7 +526,6 @@
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
     
-    // Bottom Nav Elements
     const bottomNav = document.getElementById('bottom-nav');
     const tabFriends = document.getElementById('tab-friends');
     const tabHome = document.getElementById('tab-home');
@@ -523,7 +533,6 @@
     const tabProfile = document.getElementById('tab-profile');
     const globalUnreadBadge = document.getElementById('global-unread-badge');
     
-    // Random Chat Elements
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
@@ -531,13 +540,20 @@
     const skipHint = document.getElementById('skip-hint');
     const addFriendBtn = document.getElementById('add-friend-btn');
     
-    // Emoji Elements
     const randomEmojiBtn = document.getElementById('random-emoji-btn');
     const randomEmojiPicker = document.getElementById('random-emoji-picker');
+    const randomGifBtn = document.getElementById('random-gif-btn');
+    const randomGifPicker = document.getElementById('random-gif-picker');
+    const randomGifSearch = document.getElementById('random-gif-search');
+    const randomGifResults = document.getElementById('random-gif-results');
+
     const friendEmojiBtn = document.getElementById('friend-emoji-btn');
     const friendEmojiPicker = document.getElementById('friend-emoji-picker');
+    const friendGifBtn = document.getElementById('friend-gif-btn');
+    const friendGifPicker = document.getElementById('friend-gif-picker');
+    const friendGifSearch = document.getElementById('friend-gif-search');
+    const friendGifResults = document.getElementById('friend-gif-results');
     
-    // Friends Pane Elements
     const friendsListView = document.getElementById('friends-list-view');
     const friendChatView = document.getElementById('friend-chat-view');
     const friendProfileView = document.getElementById('friend-profile-view');
@@ -552,7 +568,6 @@
     const viewFriendProfileBtn = document.getElementById('view-friend-profile-btn');
     const backFromFriendProfileBtn = document.getElementById('back-from-friend-profile-btn'); 
     
-    // Modals & Banners
     const settingsModal = document.getElementById('settings-modal');
     const confirmModal = document.getElementById('confirm-modal');
     const btnStay = document.getElementById('btn-stay');
@@ -567,7 +582,6 @@
     let initialFriendsLoad = true;
     let notifTimeout;
 
-    // Like System Elements & State
     const pulseLikeBtn = document.getElementById('pulse-like-btn');
     const likeStreamContainer = document.getElementById('like-stream-container');
     const pageProfileLikes = document.getElementById('page-profile-likes');
@@ -576,7 +590,6 @@
     let previousLikeGivenState = false; 
     let currentStrangerId = null;
 
-    // State Variables
     let currentRoomId = null; 
     let unsubscribeRoom = null;
     let isChatting = false; 
@@ -593,7 +606,6 @@
     let hasStarted = false;
     let isSkipping = false; 
     let isConfirming = false; 
-    let displayedMessageCount = 0; 
     
     let myUserId = null; 
     let myUserName = "Unknown User";
@@ -602,6 +614,111 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
+    // --- NEW: MESSAGE RENDERER LOGIC (Emojis & GIFs) ---
+    function isEmojiOnly(str) {
+        const string = str.trim();
+        if (string.length === 0) return false;
+        // Verify there are NO normal characters
+        const noEmojis = string.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '');
+        if (noEmojis.replace(/[\s\u200D\uFEFF]/g, '').length > 0) return false; 
+        
+        // Count string length roughly based on unicode points
+        const emojiCount = Array.from(string.replace(/[\s\u200D\uFEFF]/g, '')).length;
+        return emojiCount >= 1 && emojiCount <= 3;
+    }
+
+    function createMessageElement(text, isMe) {
+        const div = document.createElement('div');
+        div.className = `message ${isMe ? 'my-msg' : 'stranger-msg'}`;
+        
+        const isGifOrImage = text.match(/^https?:\/\/.*\.(gif|png|jpe?g|webp)(?:\?.*)?$/i) || text.includes('media.tenor.com');
+
+        if (isGifOrImage) {
+            div.innerHTML = `<img src="${text}" style="max-width: 220px; width: 100%; border-radius: 12px; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">`;
+            div.style.background = 'transparent';
+            div.style.padding = '0';
+            div.style.boxShadow = 'none';
+            div.style.border = 'none';
+        } else if (isEmojiOnly(text)) {
+            div.textContent = text;
+            div.style.background = 'transparent';
+            div.style.padding = '0';
+            div.style.boxShadow = 'none';
+            div.style.border = 'none';
+            div.style.fontSize = '4em';
+            div.style.lineHeight = '1.1';
+        } else {
+            div.textContent = text;
+        }
+        return div;
+    }
+
+    // --- NEW: GIF API LOGIC (TENOR) ---
+    async function loadGIFs(query, container, sendCallback) {
+        const url = query 
+            ? `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=21`
+            : `https://g.tenor.com/v1/trending?key=LIVDSRZULELA&limit=21`;
+        
+        container.innerHTML = '<div style="padding:15px; color:#94a3b8; font-size:0.85em; text-align:center; width:100%; font-weight:600;">Loading GIFs...</div>';
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            container.innerHTML = '';
+            if (data.results.length === 0) {
+                container.innerHTML = '<div style="padding:15px; color:#94a3b8; font-size:0.85em; text-align:center; width:100%; font-weight:600;">No GIFs found.</div>';
+                return;
+            }
+            data.results.forEach(gif => {
+                const imgUrl = gif.media[0].tinygif.url; 
+                const img = document.createElement('img');
+                img.src = imgUrl;
+                img.onclick = () => sendCallback(imgUrl);
+                container.appendChild(img);
+            });
+        } catch(e) {
+            container.innerHTML = '<div style="padding:15px; color:#ef4444; font-size:0.85em; text-align:center; width:100%; font-weight:600;">Error loading GIFs.</div>';
+        }
+    }
+
+    randomGifBtn.addEventListener('click', () => {
+        randomEmojiPicker.style.display = 'none';
+        randomGifPicker.style.display = randomGifPicker.style.display === 'flex' ? 'none' : 'flex';
+        if(randomGifPicker.style.display === 'flex' && randomGifResults.innerHTML === '') {
+            loadGIFs('', randomGifResults, (url) => { msgInput.value = url; sendMessage(); randomGifPicker.style.display = 'none'; });
+        }
+    });
+
+    let randomGifTimeout;
+    randomGifSearch.addEventListener('input', (e) => {
+        clearTimeout(randomGifTimeout);
+        randomGifTimeout = setTimeout(() => {
+            loadGIFs(e.target.value, randomGifResults, (url) => { msgInput.value = url; sendMessage(); randomGifPicker.style.display = 'none'; });
+        }, 500);
+    });
+
+    friendGifBtn.addEventListener('click', () => {
+        friendEmojiPicker.style.display = 'none';
+        friendGifPicker.style.display = friendGifPicker.style.display === 'flex' ? 'none' : 'flex';
+        if(friendGifPicker.style.display === 'flex' && friendGifResults.innerHTML === '') {
+            loadGIFs('', friendGifResults, (url) => { friendMsgInput.value = url; sendFriendMessage(); friendGifPicker.style.display = 'none'; });
+        }
+    });
+
+    let friendGifTimeout;
+    friendGifSearch.addEventListener('input', (e) => {
+        clearTimeout(friendGifTimeout);
+        friendGifTimeout = setTimeout(() => {
+            loadGIFs(e.target.value, friendGifResults, (url) => { friendMsgInput.value = url; sendFriendMessage(); friendGifPicker.style.display = 'none'; });
+        }, 500);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#random-gif-btn') && !e.target.closest('#random-gif-picker')) randomGifPicker.style.display = 'none';
+        if (!e.target.closest('#friend-gif-btn') && !e.target.closest('#friend-gif-picker')) friendGifPicker.style.display = 'none';
+    });
+
+
+    // --- PUSH NOTIFICATION LOGIC ---
     function showNotificationBanner(strangerName, strangerPhoto) {
         notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
         notifMsg.textContent = `${strangerName} wants to connect!`;
@@ -623,7 +740,7 @@
         }, 5000);
     }
 
-    // --- SENDER CLICK LOGIC ---
+    // --- IN-BUTTON ODOMETER LOGIC ---
     pulseLikeBtn.addEventListener('click', async () => {
         if (!hasLikedThisPersonInThisSession && currentStrangerId && !roomLikeGiven) {
             
@@ -639,17 +756,16 @@
                     newTotal = (docSnap.data().totalLikes || 0) + 1;
                 }
 
-                // SENDER ONLY SEES "LIKED!"
+                // SENDER SEES "LIKED!"
                 pulseLikeBtn.innerHTML = `<span>💚</span> <span style="font-size: 0.8em; font-weight: 800; color: #059669; margin-right: 8px;">Liked!</span>`;
                 pulseLikeBtn.classList.add('liked-state');
 
-                // Cleanup and remove completely
                 setTimeout(() => {
                     likeStreamContainer.classList.add('fade-out-up');
                     setTimeout(() => {
                         likeStreamContainer.style.display = 'none';
                         likeStreamContainer.classList.remove('fade-out-up');
-                    }, 600); // Wait for CSS animation to finish
+                    }, 600); 
                 }, 1500);
 
                 await updateDoc(doc(db, "rooms", currentRoomId), { 
@@ -661,8 +777,8 @@
         }
     });
 
-    randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
-    friendEmojiBtn.addEventListener('click', () => { friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
+    randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; randomGifPicker.style.display='none';});
+    friendEmojiBtn.addEventListener('click', () => { friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block'; friendGifPicker.style.display='none';});
     
     document.addEventListener('click', (e) => {
         if (!e.target.closest('#random-emoji-btn') && !e.target.closest('#random-emoji-picker')) randomEmojiPicker.style.display = 'none';
@@ -827,7 +943,6 @@
         currentFriendRoomId = null;
         currentFriendId = null;
     });
-
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -1012,11 +1127,11 @@
         currentFriendName = friendName;
         currentFriendPhoto = strangerPhoto;
 
+        // Fetch existing messages logic
+        let localFriendMsgCount = 0;
         friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Say hello.</div>';
-        markRoomAsRead(roomId);
         
         if (unsubscribeFriendChat) unsubscribeFriendChat();
-        let localFriendMsgCount = 0;
         unsubscribeFriendChat = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
             const data = snapshot.data();
             
@@ -1031,10 +1146,10 @@
                 let requiresReadUpdate = false;
                 
                 newMsgs.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.className = `message ${msg.senderId === myUserId ? 'my-msg' : 'stranger-msg'}`;
-                    div.textContent = msg.text; friendChatBox.appendChild(div);
-                    if (msg.senderId !== myUserId) requiresReadUpdate = true;
+                    const isMe = msg.senderId === myUserId;
+                    const msgEl = createMessageElement(msg.text, isMe);
+                    friendChatBox.appendChild(msgEl);
+                    if (!isMe) requiresReadUpdate = true;
                 });
                 
                 localFriendMsgCount = data.friendMessages.length;
@@ -1060,7 +1175,7 @@
     async function sendFriendMessage() {
         const text = friendMsgInput.value.trim();
         if (!text || !currentFriendRoomId) return;
-        friendMsgInput.value = ''; friendEmojiPicker.style.display = 'none'; 
+        friendMsgInput.value = ''; friendEmojiPicker.style.display = 'none'; friendGifPicker.style.display = 'none'; 
         
         await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
             friendMessages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }),
@@ -1068,18 +1183,23 @@
         });
     }
 
-    // ==========================================
-    // --- FEATURE 2: RANDOM CHAT ---
-    // ==========================================
-    
     function appendMessage(text, type) {
-        const div = document.createElement('div'); div.className = `message ${type}`; div.textContent = text;
-        chatBox.appendChild(div); chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        if (type === "system-msg") {
+            const div = document.createElement('div'); 
+            div.className = `message ${type}`; 
+            div.textContent = text;
+            chatBox.appendChild(div); 
+        } else {
+            const isMe = type === 'my-msg';
+            const msgEl = createMessageElement(text, isMe);
+            chatBox.appendChild(msgEl);
+        }
+        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
     }
 
     function resetChat() {
         chatBox.innerHTML = ''; msgInput.disabled = true; sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
-        addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Friend Request";
+        addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Connect Request";
         
         hasLikedThisPersonInThisSession = false;
         roomLikeGiven = false; 
@@ -1100,7 +1220,7 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // --- RECEIVER SEES ODOMETER ---
+            // RECEIVER SEES ODOMETER
             if (data.likeGiven && !previousLikeGivenState) {
                 previousLikeGivenState = true;
                 roomLikeGiven = true;
@@ -1125,7 +1245,6 @@
                         if (trackEl) trackEl.classList.add('scrolled');
                     }, 300);
 
-                    // Clean up properly so it doesn't replay when swapping tabs
                     setTimeout(() => {
                         likeStreamContainer.classList.add('fade-out-up');
                         setTimeout(() => {
@@ -1225,7 +1344,8 @@
     async function sendMessage() {
         const text = msgInput.value.trim();
         if (!text || !currentRoomId) return;
-        msgInput.value = ''; appendMessage(text, "my-msg"); displayedMessageCount++; randomEmojiPicker.style.display = 'none'; 
+        msgInput.value = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none'; 
+        appendMessage(text, "my-msg"); displayedMessageCount++; 
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
     sendBtn.addEventListener('click', sendMessage);
