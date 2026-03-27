@@ -129,7 +129,9 @@
             content: attr(data-placeholder); color: #94a3b8; pointer-events: none; display: block;
         }
         .chat-input:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        .chat-input[contenteditable="false"] { background: #f1f5f9; cursor: not-allowed; border-color: #e2e8f0; color: #94a3b8; opacity: 0.8;}
+        
+        /* Class used when not in a chat */
+        .disabled-input { background: #f1f5f9 !important; cursor: not-allowed !important; border-color: #e2e8f0 !important; color: #94a3b8 !important; opacity: 0.8; pointer-events: none; }
         
         button.action-btn { padding: 0 16px; height: 44px; border: none; background: #2563eb; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(37,99,235,0.2); }
         button.action-btn:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
@@ -365,7 +367,7 @@
                     <div class="gif-results" id="friend-gif-results"></div>
                 </div>
 
-                <div id="friend-msg-input" class="chat-input" contenteditable="false" data-placeholder="Message connection..."></div>
+                <div id="friend-msg-input" class="chat-input disabled-input" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Message connection..."></div>
                 <button id="friend-send-btn" class="action-btn" disabled>
                     <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                 </button>
@@ -433,7 +435,7 @@
                 <div class="gif-results" id="random-gif-results"></div>
             </div>
 
-            <div id="msg-input" class="chat-input" contenteditable="false" data-placeholder="Type a message..."></div>
+            <div id="msg-input" class="chat-input disabled-input" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Type a message..."></div>
             <button id="send-btn" class="action-btn" disabled>
                 <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
@@ -634,8 +636,7 @@
                 hasImage = true;
                 const blob = items[i].getAsFile();
                 
-                // Firestore has a 1MB limit. 400KB base64 is safe.
-                if (blob.size > 400000) { 
+                if (blob.size > 500000) { 
                     alert("This image is too large! Please use the built-in GIF button to save network data.");
                     return;
                 }
@@ -646,7 +647,6 @@
             }
         }
         
-        // If it's normal text, force plain text paste to avoid ugly HTML formatting
         if (!hasImage) {
             e.preventDefault();
             const text = clipboardData.getData('text/plain');
@@ -654,12 +654,20 @@
         }
     }
 
-    msgInput.addEventListener('paste', (e) => handlePaste(e, (base64) => {
-        msgInput.innerText = base64; sendMessage();
+    msgInput.addEventListener('paste', (e) => handlePaste(e, async (base64) => {
+        if (!currentRoomId) return;
+        msgInput.innerHTML = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none'; 
+        appendMessage(base64, "my-msg"); displayedMessageCount++; 
+        await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: base64, senderId: myUserId, timestamp: Date.now() }) });
     }));
 
-    friendMsgInput.addEventListener('paste', (e) => handlePaste(e, (base64) => {
-        friendMsgInput.innerText = base64; sendFriendMessage();
+    friendMsgInput.addEventListener('paste', (e) => handlePaste(e, async (base64) => {
+        if (!currentFriendRoomId) return;
+        friendMsgInput.innerHTML = ''; friendEmojiPicker.style.display = 'none'; friendGifPicker.style.display = 'none'; 
+        await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
+            friendMessages: arrayUnion({ text: base64, senderId: myUserId, timestamp: Date.now() }),
+            [`lastRead.${myUserId}`]: Date.now() 
+        });
     }));
 
 
@@ -733,7 +741,12 @@
         randomEmojiPicker.style.display = 'none';
         randomGifPicker.style.display = randomGifPicker.style.display === 'flex' ? 'none' : 'flex';
         if(randomGifPicker.style.display === 'flex' && randomGifResults.innerHTML === '') {
-            loadGIFs('', randomGifResults, (url) => { msgInput.innerText = url; sendMessage(); randomGifPicker.style.display = 'none'; });
+            loadGIFs('', randomGifResults, async (url) => { 
+                if (!currentRoomId) return;
+                msgInput.innerHTML = ''; randomGifPicker.style.display = 'none'; 
+                appendMessage(url, "my-msg"); displayedMessageCount++; 
+                await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }) });
+            });
         }
     });
 
@@ -741,7 +754,12 @@
     randomGifSearch.addEventListener('input', (e) => {
         clearTimeout(randomGifTimeout);
         randomGifTimeout = setTimeout(() => {
-            loadGIFs(e.target.value, randomGifResults, (url) => { msgInput.innerText = url; sendMessage(); randomGifPicker.style.display = 'none'; });
+            loadGIFs(e.target.value, randomGifResults, async (url) => { 
+                if (!currentRoomId) return;
+                msgInput.innerHTML = ''; randomGifPicker.style.display = 'none'; 
+                appendMessage(url, "my-msg"); displayedMessageCount++; 
+                await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }) });
+            });
         }, 500);
     });
 
@@ -749,7 +767,14 @@
         friendEmojiPicker.style.display = 'none';
         friendGifPicker.style.display = friendGifPicker.style.display === 'flex' ? 'none' : 'flex';
         if(friendGifPicker.style.display === 'flex' && friendGifResults.innerHTML === '') {
-            loadGIFs('', friendGifResults, (url) => { friendMsgInput.innerText = url; sendFriendMessage(); friendGifPicker.style.display = 'none'; });
+            loadGIFs('', friendGifResults, async (url) => { 
+                if (!currentFriendRoomId) return;
+                friendMsgInput.innerHTML = ''; friendGifPicker.style.display = 'none'; 
+                await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
+                    friendMessages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }),
+                    [`lastRead.${myUserId}`]: Date.now() 
+                });
+            });
         }
     });
 
@@ -757,11 +782,17 @@
     friendGifSearch.addEventListener('input', (e) => {
         clearTimeout(friendGifTimeout);
         friendGifTimeout = setTimeout(() => {
-            loadGIFs(e.target.value, friendGifResults, (url) => { friendMsgInput.innerText = url; sendFriendMessage(); friendGifPicker.style.display = 'none'; });
+            loadGIFs(e.target.value, friendGifResults, async (url) => { 
+                if (!currentFriendRoomId) return;
+                friendMsgInput.innerHTML = ''; friendGifPicker.style.display = 'none'; 
+                await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
+                    friendMessages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }),
+                    [`lastRead.${myUserId}`]: Date.now() 
+                });
+            });
         }, 500);
     });
 
-    // --- PUSH NOTIFICATION LOGIC ---
     function showNotificationBanner(strangerName, strangerPhoto) {
         notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
         notifMsg.textContent = `${strangerName} wants to connect!`;
@@ -799,7 +830,6 @@
                     newTotal = (docSnap.data().totalLikes || 0) + 1;
                 }
 
-                // SENDER SEES "LIKED!"
                 pulseLikeBtn.innerHTML = `<span>💚</span> <span style="font-size: 0.8em; font-weight: 800; color: #059669; margin-right: 8px;">Liked!</span>`;
                 pulseLikeBtn.classList.add('liked-state');
 
@@ -1221,7 +1251,6 @@
     });
 
     friendSendBtn.addEventListener('click', sendFriendMessage);
-    // UPDATED: Enter key logic for contenteditable
     friendMsgInput.addEventListener('keydown', (e) => { 
         if (e.key === 'Enter' && !e.shiftKey) { 
             e.preventDefault();
@@ -1232,7 +1261,7 @@
     async function sendFriendMessage() {
         const text = friendMsgInput.innerText.trim();
         if (!text || !currentFriendRoomId) return;
-        friendMsgInput.innerText = ''; friendEmojiPicker.style.display = 'none'; friendGifPicker.style.display = 'none'; 
+        friendMsgInput.innerHTML = ''; friendEmojiPicker.style.display = 'none'; friendGifPicker.style.display = 'none'; 
         
         await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
             friendMessages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }),
@@ -1255,7 +1284,7 @@
     }
 
     function resetChat() {
-        chatBox.innerHTML = ''; msgInput.setAttribute('contenteditable', 'false'); sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
+        chatBox.innerHTML = ''; msgInput.classList.add('disabled-input'); sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Connect Request";
         
         hasLikedThisPersonInThisSession = false;
@@ -1335,7 +1364,7 @@
             if (data.status === "chatting" && !isChatting) {
                 isChatting = true;
                 appendMessage("Connection established. Say hi! 👋", "system-msg");
-                msgInput.setAttribute('contenteditable', 'true'); sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
+                msgInput.classList.remove('disabled-input'); sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
                 
                 currentStrangerId = strangerId;
                 if(currentStrangerId && !data.likeGiven) {
@@ -1346,7 +1375,7 @@
             }
             if (data.status === "closed" && isChatting) {
                 appendMessage("The other person has left the network.", "system-msg");
-                isChatting = false; msgInput.setAttribute('contenteditable', 'false'); sendBtn.disabled = true; addFriendBtn.style.display = 'none';
+                isChatting = false; msgInput.classList.add('disabled-input'); sendBtn.disabled = true; addFriendBtn.style.display = 'none';
                 likeStreamContainer.style.display = 'none'; 
                 appendMessage("⏬ Swipe or press ↓ to discover someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
@@ -1404,12 +1433,11 @@
     async function sendMessage() {
         const text = msgInput.innerText.trim();
         if (!text || !currentRoomId) return;
-        msgInput.innerText = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none'; 
+        msgInput.innerHTML = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none'; 
         appendMessage(text, "my-msg"); displayedMessageCount++; 
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
     sendBtn.addEventListener('click', sendMessage);
-    // UPDATED: Enter key logic for contenteditable
     msgInput.addEventListener('keydown', (e) => { 
         if (e.key === 'Enter' && !e.shiftKey) { 
             e.preventDefault();
@@ -1450,7 +1478,7 @@
     window.addEventListener('wheel', (e) => { if (e.deltaY > 20) handleSkipIntent(e, true); });
 
     window.addEventListener('keydown', (e) => {
-        if (document.activeElement.tagName === 'DIV' && document.activeElement.isContentEditable) return; // Prevent skip when typing
+        if (document.activeElement.tagName === 'DIV' && document.activeElement.isContentEditable) return; 
         if (isConfirming || settingsModal.style.display === 'flex') return;
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); handleSkipIntent(e, false); }
         
