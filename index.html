@@ -470,6 +470,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit, increment, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    // ADDED FOR STORAGE:
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDsFseykAMdcZhtW3fpg0nQiMd6datK55E",
@@ -484,6 +486,8 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
+    // ADDED FOR STORAGE:
+    const storage = getStorage(app);
 
     // DOM Elements
     const container = document.getElementById('main-container'); 
@@ -582,8 +586,8 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
-    // --- CUSTOM KEYBOARD PASTE INTERCEPTOR ---
-    function handlePaste(e, sendFn) {
+    // --- CUSTOM KEYBOARD PASTE INTERCEPTOR (UPDATED FOR FIREBASE STORAGE) ---
+    async function handlePaste(e, sendFn) {
         const clipboardData = e.clipboardData || window.clipboardData;
         const items = clipboardData.items;
         let hasImage = false;
@@ -594,13 +598,29 @@
                 hasImage = true;
                 const blob = items[i].getAsFile();
                 
-                if (blob.size > 500000) { 
-                    alert("This image is too large! Please use the built-in GIF button to save network data.");
+                // Bump limit to 10MB to accommodate chunky keyboard GIFs
+                if (blob.size > 10000000) { 
+                    alert("This image is too large (Max 10MB).");
                     return;
                 }
-                const reader = new FileReader();
-                reader.onload = (event) => sendFn(event.target.result);
-                reader.readAsDataURL(blob);
+
+                try {
+                    // 1. Create a unique file name in Firebase Storage
+                    const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
+                    const storageRef = ref(storage, fileName);
+                    
+                    // 2. Upload the raw blob
+                    await uploadBytes(storageRef, blob);
+                    
+                    // 3. Get the public URL
+                    const downloadURL = await getDownloadURL(storageRef);
+                    
+                    // 4. Send the URL to your chat
+                    sendFn(downloadURL);
+                } catch (error) {
+                    console.error("Upload failed:", error);
+                    alert("Failed to send image. Please try again.");
+                }
                 return; 
             }
         }
@@ -645,7 +665,7 @@
         const div = document.createElement('div');
         div.className = `message ${isMe ? 'my-msg' : 'stranger-msg'}`;
         
-        const isGifOrImage = text.match(/^https?:\/\/.*\.(gif|png|jpe?g|webp)(?:\?.*)?$/i) || text.includes('media.tenor.com') || text.startsWith('data:image/');
+        const isGifOrImage = text.match(/^https?:\/\/.*\.(gif|png|jpe?g|webp)(?:\?.*)?$/i) || text.includes('media.tenor.com') || text.includes('firebasestorage.googleapis.com') || text.startsWith('data:image/');
 
         if (isGifOrImage) {
             div.innerHTML = `<img src="${text}" style="max-width: 220px; width: 100%; border-radius: 12px; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">`;
