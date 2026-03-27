@@ -250,19 +250,21 @@
             align-items: center;
             color: #10B981; 
             overflow: hidden;
-            gap: 6px; /* Space between heart and number */
+            gap: 6px; 
+            padding: 0 10px;
         }
         #pulse-like-btn:active { transform: scale(0.85); box-shadow: 0 2px 6px rgba(0,0,0,0.05);}
         #pulse-like-btn:hover { border-color: #10B981; background: #ecfdf5; }
 
         /* When clicked or received, button expands into a pill */
         #pulse-like-btn.liked-state {
-            width: 95px; /* Wide enough for the number */
+            width: auto; 
+            min-width: 95px;
             background: #ecfdf5;
             border-color: #10B981;
             transform: scale(1.1);
             box-shadow: 0 8px 20px rgba(16, 185, 129, 0.2);
-            pointer-events: none; /* Disable clicking while animating */
+            pointer-events: none; 
         }
 
         /* Odometer specific to the button */
@@ -274,6 +276,7 @@
             font-size: 0.75em;
             font-weight: 800;
             color: #059669;
+            vertical-align: bottom;
         }
         .scroll-track {
             display: block;
@@ -504,7 +507,7 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    // DOM Elements
+    // DOM Elements - Screens
     const container = document.getElementById('main-container'); 
     const loginScreen = document.getElementById('login-screen');
     const homeScreen = document.getElementById('home-screen');
@@ -512,6 +515,7 @@
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
     
+    // Bottom Nav Elements
     const bottomNav = document.getElementById('bottom-nav');
     const tabFriends = document.getElementById('tab-friends');
     const tabHome = document.getElementById('tab-home');
@@ -519,6 +523,7 @@
     const tabProfile = document.getElementById('tab-profile');
     const globalUnreadBadge = document.getElementById('global-unread-badge');
     
+    // Random Chat Elements
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
@@ -526,11 +531,13 @@
     const skipHint = document.getElementById('skip-hint');
     const addFriendBtn = document.getElementById('add-friend-btn');
     
+    // Emoji Elements
     const randomEmojiBtn = document.getElementById('random-emoji-btn');
     const randomEmojiPicker = document.getElementById('random-emoji-picker');
     const friendEmojiBtn = document.getElementById('friend-emoji-btn');
     const friendEmojiPicker = document.getElementById('friend-emoji-picker');
     
+    // Friends Pane Elements
     const friendsListView = document.getElementById('friends-list-view');
     const friendChatView = document.getElementById('friend-chat-view');
     const friendProfileView = document.getElementById('friend-profile-view');
@@ -545,6 +552,7 @@
     const viewFriendProfileBtn = document.getElementById('view-friend-profile-btn');
     const backFromFriendProfileBtn = document.getElementById('back-from-friend-profile-btn'); 
     
+    // Modals & Banners
     const settingsModal = document.getElementById('settings-modal');
     const confirmModal = document.getElementById('confirm-modal');
     const btnStay = document.getElementById('btn-stay');
@@ -559,6 +567,7 @@
     let initialFriendsLoad = true;
     let notifTimeout;
 
+    // Like System Elements & State
     const pulseLikeBtn = document.getElementById('pulse-like-btn');
     const likeStreamContainer = document.getElementById('like-stream-container');
     const pageProfileLikes = document.getElementById('page-profile-likes');
@@ -567,6 +576,7 @@
     let previousLikeGivenState = false; 
     let currentStrangerId = null;
 
+    // State Variables
     let currentRoomId = null; 
     let unsubscribeRoom = null;
     let isChatting = false; 
@@ -613,7 +623,7 @@
         }, 5000);
     }
 
-    // --- NEW: IN-BUTTON ODOMETER ANIMATION LOGIC ---
+    // --- SENDER CLICK LOGIC ---
     pulseLikeBtn.addEventListener('click', async () => {
         if (!hasLikedThisPersonInThisSession && currentStrangerId && !roomLikeGiven) {
             
@@ -628,30 +638,19 @@
                 if(docSnap.exists()){
                     newTotal = (docSnap.data().totalLikes || 0) + 1;
                 }
-                let oldTotal = newTotal - 1;
 
-                // Expand button and insert odometer HTML
-                pulseLikeBtn.innerHTML = `
-                    <span>💚</span>
-                    <span class="scroll-counter">
-                        <span class="scroll-track" id="dynamic-like-track">
-                            <span>${oldTotal}</span>
-                            <span class="new-num">${newTotal}</span>
-                        </span>
-                    </span>
-                `;
+                // SENDER ONLY SEES "LIKED!"
+                pulseLikeBtn.innerHTML = `<span>💚</span> <span style="font-size: 0.8em; font-weight: 800; color: #059669; margin-right: 8px;">Liked!</span>`;
                 pulseLikeBtn.classList.add('liked-state');
-                
-                // Delay scroll so the pill has time to expand first
-                setTimeout(() => {
-                    const trackEl = document.getElementById('dynamic-like-track');
-                    if (trackEl) trackEl.classList.add('scrolled');
-                }, 300);
 
-                // Fade out the entire button container after the animation finishes
+                // Cleanup and remove completely
                 setTimeout(() => {
                     likeStreamContainer.classList.add('fade-out-up');
-                }, 2000);
+                    setTimeout(() => {
+                        likeStreamContainer.style.display = 'none';
+                        likeStreamContainer.classList.remove('fade-out-up');
+                    }, 600); // Wait for CSS animation to finish
+                }, 1500);
 
                 await updateDoc(doc(db, "rooms", currentRoomId), { 
                     likeGiven: true,
@@ -1082,16 +1081,15 @@
         chatBox.innerHTML = ''; msgInput.disabled = true; sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Friend Request";
         
-        // Reset Like button states
         hasLikedThisPersonInThisSession = false;
         roomLikeGiven = false; 
         previousLikeGivenState = false; 
         currentStrangerId = null;
         
-        pulseLikeBtn.innerHTML = '💚';
-        pulseLikeBtn.classList.remove('liked-state');
         likeStreamContainer.classList.remove('fade-out-up');
         likeStreamContainer.style.display = 'none';
+        pulseLikeBtn.classList.remove('liked-state');
+        pulseLikeBtn.innerHTML = '💚';
 
         if (unsubscribeRoom) unsubscribeRoom(); currentRoomId = null;
     }
@@ -1102,7 +1100,7 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // RECEIVER LIKED LOGIC
+            // --- RECEIVER SEES ODOMETER ---
             if (data.likeGiven && !previousLikeGivenState) {
                 previousLikeGivenState = true;
                 roomLikeGiven = true;
@@ -1113,7 +1111,7 @@
                     
                     pulseLikeBtn.innerHTML = `
                         <span>💚</span>
-                        <span class="scroll-counter">
+                        <span class="scroll-counter" style="margin-right: 8px;">
                             <span class="scroll-track" id="dynamic-like-track">
                                 <span>${oldTotal}</span>
                                 <span class="new-num">${newTotal}</span>
@@ -1127,8 +1125,13 @@
                         if (trackEl) trackEl.classList.add('scrolled');
                     }, 300);
 
+                    // Clean up properly so it doesn't replay when swapping tabs
                     setTimeout(() => {
                         likeStreamContainer.classList.add('fade-out-up');
+                        setTimeout(() => {
+                            likeStreamContainer.style.display = 'none';
+                            likeStreamContainer.classList.remove('fade-out-up');
+                        }, 600);
                     }, 2000);
                 } else {
                     likeStreamContainer.style.display = 'none';
@@ -1228,7 +1231,6 @@
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
-    // --- KEYBOARD & SKIP LOGIC ---
     function showConfirmModal() { isConfirming = true; confirmModal.style.display = 'flex'; }
     function hideConfirmModal() { isConfirming = false; confirmModal.style.display = 'none'; }
     btnStay.addEventListener('click', hideConfirmModal);
