@@ -1306,22 +1306,37 @@
     }
 
     // --- WEBRTC CORE FUNCTIONS ---
-    async function startWebRTCBroadcast(file) {
+    async function startWebRTCBroadcast() {
+    try {
+        // 1. Ask the browser to capture the screen/tab audio
+        // Note: Browsers usually require asking for video to get tab audio, 
+        // but we will only send the audio track to save bandwidth.
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true
+        });
+
+        // 2. Check if they actually shared audio (users sometimes forget to check the box)
+        const audioTracks = displayStream.getAudioTracks();
+        if (audioTracks.length === 0) {
+            alert("You didn't share audio! Please try again and make sure to toggle 'Share tab audio'.");
+            displayStream.getTracks().forEach(t => t.stop()); // Clean up
+            return;
+        }
+
         isBroadcasting = true;
-        
-        // 1. Play local audio
-        const fileURL = URL.createObjectURL(file);
-        localAudioPlayer.src = fileURL;
-        await localAudioPlayer.play();
-        
-        // 2. Capture Stream
-        localStream = localAudioPlayer.captureStream ? localAudioPlayer.captureStream() : localAudioPlayer.mozCaptureStream();
-        
-        // 3. Setup Peer Connection
+
+        // 3. Create a stream with ONLY the audio track to send to the friend
+        localStream = new MediaStream([audioTracks[0]]);
+
+        // Stop the video track locally so we don't waste resources capturing video we aren't using
+        displayStream.getVideoTracks().forEach(t => t.stop());
+
+        // 4. Setup Peer Connection
         peerConnection = new RTCPeerConnection(rtcConfig);
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
         
-        // 4. Handle ICE Candidates
+        // 5. Handle ICE Candidates
         peerConnection.onicecandidate = async (e) => {
             if (e.candidate && currentRoomId) {
                 await updateDoc(doc(db, "rooms", currentRoomId), {
@@ -1330,7 +1345,7 @@
             }
         };
 
-        // 5. Create Offer and send via Firestore
+        // 6. Create Offer and send via Firestore
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         
@@ -1345,8 +1360,21 @@
         listenTogetherBtn.classList.remove('music-btn-idle');
         listenTogetherBtn.classList.add('music-btn-active');
         listenTogetherBtn.title = "Stop Broadcast";
-        appendMessage("🎵 You are now broadcasting audio.", "system-msg");
+        appendMessage("🎵 You are now broadcasting tab audio.", "system-msg");
+
+        // Automatically stop broadcasting if the user clicks "Stop Sharing" on the browser's native UI bar
+        audioTracks[0].onended = () => {
+            if (isBroadcasting) {
+                stopWebRTCBroadcast();
+                appendMessage("⏹️ Broadcast stopped.", "system-msg");
+            }
+        };
+
+    } catch (err) {
+        console.error("Error capturing tab audio:", err);
+        appendMessage("❌ Could not capture audio. Permission denied.", "system-msg");
     }
+}
 
     async function joinWebRTCBroadcast(roomData) {
         isListening = true;
