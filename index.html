@@ -102,7 +102,7 @@
         .stranger-msg { background: #ffffff; color: #334e68; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
         .system-msg { text-align: center; color: #64748b; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: #e2e8f0; padding: 6px 12px; border-radius: 20px; font-weight: 600;}
         
-        /* Controls & Emoji/GIF Pickers */
+        /* Controls & Emoji Pickers */
         .controls { display: flex; gap: 8px; flex-shrink: 0; align-items: flex-end; position: relative; background: #ffffff; padding: 5px 0;}
         
         /* Beautiful Icon Buttons */
@@ -111,13 +111,6 @@
         
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;}
         emoji-picker { --background: #ffffff; --border-color: #e2e8f0; --input-border-color: #cbd5e1; --button-hover-background: #f1f5f9; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
-
-        .gif-picker-container { position: absolute; bottom: 60px; left: 0; display: none; flex-direction: column; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: #ffffff; width: 100%; max-width: 350px; }
-        .gif-picker-container input { width: 100%; padding: 15px; border: none; border-bottom: 1px solid #e2e8f0; outline: none; font-size: 0.95em; background: #f8fafc; color: #1e293b; font-weight: 600; border-radius: 0;}
-        .gif-picker-container input:focus { background: #ffffff; box-shadow: none; border-color: #e2e8f0;}
-        .gif-results { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; overflow-y: auto; height: 250px; background: #ffffff; align-content: flex-start;}
-        .gif-results img { width: calc(33.33% - 3px); height: 85px; object-fit: cover; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; background: #f1f5f9;}
-        .gif-results img:hover { transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 2;}
 
         /* ContentEditable Chat Input */
         .chat-input {
@@ -308,16 +301,9 @@
                 <button class="media-btn" id="friend-emoji-btn" title="Emojis">
                     <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
                 </button>
-                <button class="media-btn" id="friend-gif-btn" title="GIFs">
-                    <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M11.5 9H13v6h-1.5zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1z"/></svg>
-                </button>
                 
                 <div class="emoji-picker-container" id="friend-emoji-picker">
                     <emoji-picker></emoji-picker>
-                </div>
-                <div class="gif-picker-container" id="friend-gif-picker">
-                    <input type="text" id="friend-gif-search" placeholder="Search Tenor GIFs..." autocomplete="off">
-                    <div class="gif-results" id="friend-gif-results"></div>
                 </div>
 
                 <div id="friend-msg-input" class="chat-input disabled-input" contenteditable="false" data-placeholder="Message connection..."></div>
@@ -380,16 +366,9 @@
             <button class="media-btn" id="random-emoji-btn" title="Emojis">
                 <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
             </button>
-            <button class="media-btn" id="random-gif-btn" title="GIFs">
-                <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M11.5 9H13v6h-1.5zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1z"/></svg>
-            </button>
             
             <div class="emoji-picker-container" id="random-emoji-picker">
                 <emoji-picker></emoji-picker>
-            </div>
-            <div class="gif-picker-container" id="random-gif-picker">
-                <input type="text" id="random-gif-search" placeholder="Search Tenor GIFs..." autocomplete="off">
-                <div class="gif-results" id="random-gif-results"></div>
             </div>
 
             <div id="msg-input" class="chat-input disabled-input" contenteditable="false" data-placeholder="Type a message..."></div>
@@ -511,17 +490,9 @@
     
     const randomEmojiBtn = document.getElementById('random-emoji-btn');
     const randomEmojiPicker = document.getElementById('random-emoji-picker');
-    const randomGifBtn = document.getElementById('random-gif-btn');
-    const randomGifPicker = document.getElementById('random-gif-picker');
-    const randomGifSearch = document.getElementById('random-gif-search');
-    const randomGifResults = document.getElementById('random-gif-results');
 
     const friendEmojiBtn = document.getElementById('friend-emoji-btn');
     const friendEmojiPicker = document.getElementById('friend-emoji-picker');
-    const friendGifBtn = document.getElementById('friend-gif-btn');
-    const friendGifPicker = document.getElementById('friend-gif-picker');
-    const friendGifSearch = document.getElementById('friend-gif-search');
-    const friendGifResults = document.getElementById('friend-gif-results');
     
     const friendsListView = document.getElementById('friends-list-view');
     const friendChatView = document.getElementById('friend-chat-view');
@@ -584,7 +555,7 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
-    // --- CUSTOM KEYBOARD PASTE INTERCEPTOR (UPDATED FOR FIREBASE STORAGE) ---
+    // --- CUSTOM KEYBOARD PASTE INTERCEPTOR (FOR FIREBASE STORAGE IMAGES/GIFS) ---
     async function handlePaste(e, sendFn) {
         const clipboardData = e.clipboardData || window.clipboardData;
         const items = clipboardData.items;
@@ -604,8 +575,8 @@
                 const targetInput = e.currentTarget;
                 const originalContent = targetInput.innerHTML;
                 
-                // Give user immediate feedback that the keyboard GIF was caught and is uploading
-                targetInput.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size: 0.9em; user-select: none;">Uploading GIF...</span>';
+                // Give user immediate feedback that the media was caught and is uploading
+                targetInput.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size: 0.9em; user-select: none;">Uploading Image...</span>';
                 targetInput.setAttribute('contenteditable', 'false'); 
 
                 try {
@@ -642,14 +613,14 @@
 
     msgInput.addEventListener('paste', (e) => handlePaste(e, async (base64) => {
         if (!currentRoomId) return;
-        msgInput.innerHTML = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none'; 
+        msgInput.innerHTML = ''; randomEmojiPicker.style.display = 'none'; 
         appendMessage(base64, "my-msg"); displayedMessageCount++; 
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: base64, senderId: myUserId, timestamp: Date.now() }) });
     }));
 
     friendMsgInput.addEventListener('paste', (e) => handlePaste(e, async (base64) => {
         if (!currentFriendRoomId) return;
-        friendMsgInput.innerHTML = ''; friendEmojiPicker.style.display = 'none'; friendGifPicker.style.display = 'none'; 
+        friendMsgInput.innerHTML = ''; friendEmojiPicker.style.display = 'none'; 
         await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
             friendMessages: arrayUnion({ text: base64, senderId: myUserId, timestamp: Date.now() }),
             [`lastRead.${myUserId}`]: Date.now() 
@@ -657,7 +628,7 @@
     }));
 
 
-    // --- MESSAGE RENDERER LOGIC (Emojis & GIFs) ---
+    // --- MESSAGE RENDERER LOGIC (Emojis & Images) ---
     function isEmojiOnly(str) {
         try {
             const string = str.trim();
@@ -673,7 +644,7 @@
         const div = document.createElement('div');
         div.className = `message ${isMe ? 'my-msg' : 'stranger-msg'}`;
         
-        const isGifOrImage = text.match(/^https?:\/\/.*\.(gif|png|jpe?g|webp)(?:\?.*)?$/i) || text.includes('media.tenor.com') || text.includes('firebasestorage.googleapis.com') || text.startsWith('data:image/');
+        const isGifOrImage = text.match(/^https?:\/\/.*\.(gif|png|jpe?g|webp)(?:\?.*)?$/i) || text.includes('firebasestorage.googleapis.com') || text.startsWith('data:image/');
 
         if (isGifOrImage) {
             div.innerHTML = `<img src="${text}" style="max-width: 220px; width: 100%; border-radius: 12px; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">`;
@@ -695,89 +666,6 @@
         }
         return div;
     }
-
-    // --- GIF API LOGIC (TENOR) ---
-    async function loadGIFs(query, container, sendCallback) {
-        const url = query 
-            ? `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=21`
-            : `https://g.tenor.com/v1/trending?key=LIVDSRZULELA&limit=21`;
-        
-        container.innerHTML = '<div style="padding:15px; color:#94a3b8; font-size:0.85em; text-align:center; width:100%; font-weight:600;">Loading GIFs...</div>';
-        try {
-            const res = await fetch(url);
-            const data = await res.json();
-            container.innerHTML = '';
-            if (data.results.length === 0) {
-                container.innerHTML = '<div style="padding:15px; color:#94a3b8; font-size:0.85em; text-align:center; width:100%; font-weight:600;">No GIFs found.</div>';
-                return;
-            }
-            data.results.forEach(gif => {
-                const imgUrl = gif.media[0].tinygif.url; 
-                const img = document.createElement('img');
-                img.src = imgUrl;
-                img.onclick = () => sendCallback(imgUrl);
-                container.appendChild(img);
-            });
-        } catch(e) {
-            container.innerHTML = '<div style="padding:15px; color:#ef4444; font-size:0.85em; text-align:center; width:100%; font-weight:600;">Error loading GIFs.</div>';
-        }
-    }
-
-    randomGifBtn.addEventListener('click', () => {
-        randomEmojiPicker.style.display = 'none';
-        randomGifPicker.style.display = randomGifPicker.style.display === 'flex' ? 'none' : 'flex';
-        if(randomGifPicker.style.display === 'flex' && randomGifResults.innerHTML === '') {
-            loadGIFs('', randomGifResults, async (url) => { 
-                if (!currentRoomId) return;
-                msgInput.innerHTML = ''; randomGifPicker.style.display = 'none'; 
-                appendMessage(url, "my-msg"); displayedMessageCount++; 
-                await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }) });
-            });
-        }
-    });
-
-    let randomGifTimeout;
-    randomGifSearch.addEventListener('input', (e) => {
-        clearTimeout(randomGifTimeout);
-        randomGifTimeout = setTimeout(() => {
-            loadGIFs(e.target.value, randomGifResults, async (url) => { 
-                if (!currentRoomId) return;
-                msgInput.innerHTML = ''; randomGifPicker.style.display = 'none'; 
-                appendMessage(url, "my-msg"); displayedMessageCount++; 
-                await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }) });
-            });
-        }, 500);
-    });
-
-    friendGifBtn.addEventListener('click', () => {
-        friendEmojiPicker.style.display = 'none';
-        friendGifPicker.style.display = friendGifPicker.style.display === 'flex' ? 'none' : 'flex';
-        if(friendGifPicker.style.display === 'flex' && friendGifResults.innerHTML === '') {
-            loadGIFs('', friendGifResults, async (url) => { 
-                if (!currentFriendRoomId) return;
-                friendMsgInput.innerHTML = ''; friendGifPicker.style.display = 'none'; 
-                await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
-                    friendMessages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }),
-                    [`lastRead.${myUserId}`]: Date.now() 
-                });
-            });
-        }
-    });
-
-    let friendGifTimeout;
-    friendGifSearch.addEventListener('input', (e) => {
-        clearTimeout(friendGifTimeout);
-        friendGifTimeout = setTimeout(() => {
-            loadGIFs(e.target.value, friendGifResults, async (url) => { 
-                if (!currentFriendRoomId) return;
-                friendMsgInput.innerHTML = ''; friendGifPicker.style.display = 'none'; 
-                await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
-                    friendMessages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }),
-                    [`lastRead.${myUserId}`]: Date.now() 
-                });
-            });
-        }, 500);
-    });
 
     function showNotificationBanner(strangerName, strangerPhoto) {
         notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
@@ -836,14 +724,12 @@
         }
     });
 
-    randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; randomGifPicker.style.display='none';});
-    friendEmojiBtn.addEventListener('click', () => { friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block'; friendGifPicker.style.display='none';});
+    randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
+    friendEmojiBtn.addEventListener('click', () => { friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
     
     document.addEventListener('click', (e) => {
         if (!e.target.closest('#random-emoji-btn') && !e.target.closest('#random-emoji-picker')) randomEmojiPicker.style.display = 'none';
         if (!e.target.closest('#friend-emoji-btn') && !e.target.closest('#friend-emoji-picker')) friendEmojiPicker.style.display = 'none';
-        if (!e.target.closest('#random-gif-btn') && !e.target.closest('#random-gif-picker')) randomGifPicker.style.display = 'none';
-        if (!e.target.closest('#friend-gif-btn') && !e.target.closest('#friend-gif-picker')) friendGifPicker.style.display = 'none';
     });
 
     randomEmojiPicker.addEventListener('emoji-click', event => { msgInput.innerText += event.detail.unicode; msgInput.focus(); });
@@ -1256,7 +1142,7 @@
     async function sendFriendMessage() {
         const text = friendMsgInput.innerText.trim();
         if (!text || !currentFriendRoomId) return;
-        friendMsgInput.innerHTML = ''; friendEmojiPicker.style.display = 'none'; friendGifPicker.style.display = 'none'; 
+        friendMsgInput.innerHTML = ''; friendEmojiPicker.style.display = 'none'; 
         
         await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
             friendMessages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }),
@@ -1441,7 +1327,7 @@
     async function sendMessage() {
         const text = msgInput.innerText.trim();
         if (!text || !currentRoomId) return;
-        msgInput.innerHTML = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none'; 
+        msgInput.innerHTML = ''; randomEmojiPicker.style.display = 'none'; 
         appendMessage(text, "my-msg"); displayedMessageCount++; 
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
