@@ -96,17 +96,15 @@
         .chat-box-style::-webkit-scrollbar { width: 6px; }
         .chat-box-style::-webkit-scrollbar-track { background: transparent; }
         .chat-box-style::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .message { padding: 12px 16px; border-radius: 18px; max-width: 78%; word-wrap: break-word; line-height: 1.45; font-size: 0.95em; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform-origin: bottom; }
+        .message { padding: 12px 16px; border-radius: 18px; max-width: 78%; white-space: pre-wrap; word-wrap: break-word; line-height: 1.45; font-size: 0.95em; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform-origin: bottom; }
         @keyframes popIn { 0% { opacity: 0; transform: translateY(15px) scale(0.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
         .my-msg { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.2); }
         .stranger-msg { background: #ffffff; color: #334e68; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
-        .system-msg { text-align: center; color: #64748b; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: #e2e8f0; padding: 6px 12px; border-radius: 20px; font-weight: 600;}
+        .system-msg { text-align: left; color: #64748b; font-size: 0.75em; letter-spacing: 0.5px; align-self: center; background: #e2e8f0; padding: 10px 14px; border-radius: 16px; font-weight: 500;}
         
         /* Controls & Emoji/GIF Pickers */
-        /* MODIFIED: Align center, less padding, tighter gap */
         .controls { display: flex; gap: 8px; flex-shrink: 0; align-items: center; position: relative; background: #ffffff; padding: 8px 6px;}
         
-        /* Beautiful Icon Buttons - MODIFIED: Smaller size, transparent background */
         .media-btn { background: transparent; border: none; font-size: 1.2em; cursor: pointer; color: #64748b; transition: all 0.2s ease; padding: 0; width: 34px; height: 34px; border-radius: 50%; display: flex; justify-content: center; align-items: center; outline: none; flex-shrink: 0;}
         .media-btn:hover { background: #f1f5f9; color: #1e293b; transform: scale(1.05); }
         .media-btn svg { width: 22px; height: 22px; }
@@ -121,8 +119,6 @@
         .gif-results img { width: calc(33.33% - 3px); height: 85px; object-fit: cover; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; background: #f1f5f9;}
         .gif-results img:hover { transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 2;}
 
-        /* ContentEditable Chat Input (Single Bar Style) */
-        /* MODIFIED: Re-centered alignment, min-height adjusted */
         .chat-input {
             flex-grow: 1; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 20px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
             max-height: 100px; min-height: 40px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.4;
@@ -366,9 +362,14 @@
         <div class="top-nav">
             <div class="nav-spacer"></div>
             <h2 id="chat-header">Network Discovery</h2>
-            <button id="add-friend-btn" class="icon-btn" style="display:none;" title="Send Connect Request">
-                <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            </button>
+            <div style="display: flex; gap: 10px;">
+                <button id="analyze-btn" class="icon-btn" style="display:none; font-size: 1.2em;" title="Analyze Conversation">
+                    🧠
+                </button>
+                <button id="add-friend-btn" class="icon-btn" style="display:none;" title="Send Connect Request">
+                    <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                </button>
+            </div>
         </div>
         <div id="chat-box" class="chat-box-style">
             <div class="message system-msg">Ready to network? Click below.</div>
@@ -508,6 +509,7 @@
     const startBtn = document.getElementById('start-btn');
     const skipHint = document.getElementById('skip-hint');
     const addFriendBtn = document.getElementById('add-friend-btn');
+    const analyzeBtn = document.getElementById('analyze-btn');
     
     const randomEmojiBtn = document.getElementById('random-emoji-btn');
     const randomEmojiPicker = document.getElementById('random-emoji-picker');
@@ -718,7 +720,7 @@
 
 
     function showNotificationBanner(strangerName, strangerPhoto) {
-        notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
+        notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" stylewidth:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
         notifMsg.textContent = `${strangerName} wants to connect!`;
         
         notificationBanner.classList.add('show');
@@ -784,7 +786,6 @@
         if (!e.target.closest('#friend-gif-btn') && !e.target.closest('#friend-gif-picker')) friendGifPicker.style.display = 'none';
     });
 
-    // Safely insert emojis without destroying existing image previews in the canvas
     randomEmojiPicker.addEventListener('emoji-click', event => { 
         msgInput.focus();
         document.execCommand('insertText', false, event.detail.unicode); 
@@ -1123,6 +1124,22 @@
         appendMessage("Connection request sent!", "system-msg");
     });
 
+    // 🧠 ANALYZE CHAT BUTTON LISTENER 
+    analyzeBtn.addEventListener('click', async () => {
+        if (!currentRoomId) return;
+        
+        // Disable button to prevent spamming
+        analyzeBtn.disabled = true;
+        analyzeBtn.style.opacity = '0.5';
+        
+        appendMessage("🧠 Nova is analyzing the conversational dynamics. This deep analysis takes about 15-30 seconds...", "system-msg");
+        
+        // Flip the switch in Firebase
+        await updateDoc(doc(db, "rooms", currentRoomId), { 
+            analysisRequested: true 
+        });
+    });
+
     window.respondRequest = async (roomId, response) => {
         if (response === 'accepted') await updateDoc(doc(db, "rooms", roomId), { friendStatus: "accepted" });
         else await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" }); // Reject
@@ -1240,6 +1257,7 @@
         isChatting = false; 
         displayedMessageCount = 0;
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Connect Request";
+        analyzeBtn.style.display = 'none'; // 🧠 Hide analyze button
         
         hasLikedThisPersonInThisSession = false;
         roomLikeGiven = false; 
@@ -1325,6 +1343,11 @@
                 msgInput.focus(); 
                 addFriendBtn.style.display = 'flex';
                 
+                // 🧠 Show analyze button and reset state
+                analyzeBtn.style.display = 'flex';
+                analyzeBtn.disabled = false;
+                analyzeBtn.style.opacity = '1';
+                
                 currentStrangerId = strangerId;
                 if(currentStrangerId && !data.likeGiven) {
                     likeStreamContainer.style.display = 'flex';
@@ -1338,15 +1361,29 @@
                 msgInput.classList.add('disabled-input'); 
                 msgInput.setAttribute('contenteditable', 'false');
                 sendBtn.disabled = true; addFriendBtn.style.display = 'none';
+                analyzeBtn.style.display = 'none'; // 🧠 Hide analyze button
                 likeStreamContainer.style.display = 'none'; 
                 appendMessage("⏬ Swipe or press ↓ to discover someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
             }
+            
+            // Allow analyze button to be clicked again if the request was completed by the bot
+            if (isChatting && data.analysisRequested === false && analyzeBtn.disabled) {
+                analyzeBtn.disabled = false;
+                analyzeBtn.style.opacity = '1';
+            }
+
             if (isChatting && data.messages && data.messages.length > displayedMessageCount) {
                 const newMessages = data.messages.slice(displayedMessageCount);
                 newMessages.forEach(msg => { 
                     const isMe = msg.senderId === myUserId;
-                    appendMessage(msg.text, isMe ? "my-msg" : "stranger-msg"); 
+                    const isAI = msg.senderId === "nova-analyst-001";
+                    
+                    if (isAI) {
+                        appendMessage(msg.text, "stranger-msg"); // Show AI response as a regular chat message
+                    } else {
+                        appendMessage(msg.text, isMe ? "my-msg" : "stranger-msg"); 
+                    }
                 });
                 displayedMessageCount = data.messages.length;
             }
@@ -1386,7 +1423,8 @@
                 status: "waiting", creatorId: myUserId, participants: [myUserId], 
                 names: { [myUserId]: myUserName }, photos: { [myUserId]: myUserPhoto },
                 createdAt: serverTimestamp(), messages: [], friendMessages: [], lastRead: { [myUserId]: Date.now() },
-                likeGiven: false 
+                likeGiven: false,
+                analysisRequested: false // 🧠 Initialize analysis state
             });
             currentRoomId = newRoom.id; setupRoomListener(currentRoomId);
         }
