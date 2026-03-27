@@ -417,7 +417,6 @@
 
         <div id="music-sync-container">
             <button id="listen-together-btn" title="Start Listen Together" class="music-btn-idle">🎵</button>
-            <audio id="local-audio-player" style="display: none;"></audio>
             <audio id="remote-audio-player" autoplay style="display: none;"></audio>
         </div>
 
@@ -595,8 +594,6 @@
     /* --- WEBRTC GLOBALS --- */
     const musicSyncContainer = document.getElementById('music-sync-container');
     const listenTogetherBtn = document.getElementById('listen-together-btn');
-    const audioFileInput = document.getElementById('audio-file-input');
-    const localAudioPlayer = document.getElementById('local-audio-player');
     const remoteAudioPlayer = document.getElementById('remote-audio-player');
     
     let peerConnection = null;
@@ -1306,74 +1303,72 @@
 
     // --- WEBRTC CORE FUNCTIONS ---
     async function startWebRTCBroadcast() {
-    try {
-        // 1. Ask the browser to capture the screen/tab audio
-        // Note: Browsers usually require asking for video to get tab audio, 
-        // but we will only send the audio track to save bandwidth.
-        const displayStream = await navigator.mediaDevices.getDisplayMedia({
-            video: true,
-            audio: true
-        });
+        try {
+            // 1. Ask the browser to capture the screen/tab audio
+            const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                video: true,
+                audio: true
+            });
 
-        // 2. Check if they actually shared audio (users sometimes forget to check the box)
-        const audioTracks = displayStream.getAudioTracks();
-        if (audioTracks.length === 0) {
-            alert("You didn't share audio! Please try again and make sure to toggle 'Share tab audio'.");
-            displayStream.getTracks().forEach(t => t.stop()); // Clean up
-            return;
+            // 2. Check if they actually shared audio (users sometimes forget to check the box)
+            const audioTracks = displayStream.getAudioTracks();
+            if (audioTracks.length === 0) {
+                alert("You didn't share audio! Please try again and make sure to toggle 'Share tab audio'.");
+                displayStream.getTracks().forEach(t => t.stop()); // Clean up
+                return;
+            }
+
+            isBroadcasting = true;
+
+            // 3. Create a stream with ONLY the audio track to send to the friend
+            localStream = new MediaStream([audioTracks[0]]);
+
+            // Stop the video track locally so we don't waste resources
+            displayStream.getVideoTracks().forEach(t => t.stop());
+
+            // 4. Setup Peer Connection
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            
+            // 5. Handle ICE Candidates
+            peerConnection.onicecandidate = async (e) => {
+                if (e.candidate && currentRoomId) {
+                    await updateDoc(doc(db, "rooms", currentRoomId), {
+                        callerCandidates: arrayUnion(e.candidate.toJSON())
+                    });
+                }
+            };
+
+            // 6. Create Offer and send via Firestore
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            
+            await updateDoc(doc(db, "rooms", currentRoomId), {
+                webrtcOffer: { type: offer.type, sdp: offer.sdp },
+                broadcasterId: myUserId,
+                callerCandidates: [],
+                calleeCandidates: [],
+                webrtcAnswer: null
+            });
+
+            listenTogetherBtn.classList.remove('music-btn-idle');
+            listenTogetherBtn.classList.add('music-btn-active');
+            listenTogetherBtn.title = "Stop Broadcast";
+            appendMessage("🎵 You are now broadcasting tab audio.", "system-msg");
+
+            // Automatically stop broadcasting if the user clicks "Stop Sharing" natively
+            audioTracks[0].onended = () => {
+                if (isBroadcasting) {
+                    stopWebRTCBroadcast();
+                    appendMessage("⏹️ Broadcast stopped.", "system-msg");
+                }
+            };
+
+        } catch (err) {
+            console.error("Error capturing tab audio:", err);
+            appendMessage("❌ Could not capture audio. Permission denied.", "system-msg");
         }
-
-        isBroadcasting = true;
-
-        // 3. Create a stream with ONLY the audio track to send to the friend
-        localStream = new MediaStream([audioTracks[0]]);
-
-        // Stop the video track locally so we don't waste resources capturing video we aren't using
-        displayStream.getVideoTracks().forEach(t => t.stop());
-
-        // 4. Setup Peer Connection
-        peerConnection = new RTCPeerConnection(rtcConfig);
-        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-        
-        // 5. Handle ICE Candidates
-        peerConnection.onicecandidate = async (e) => {
-            if (e.candidate && currentRoomId) {
-                await updateDoc(doc(db, "rooms", currentRoomId), {
-                    callerCandidates: arrayUnion(e.candidate.toJSON())
-                });
-            }
-        };
-
-        // 6. Create Offer and send via Firestore
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        
-        await updateDoc(doc(db, "rooms", currentRoomId), {
-            webrtcOffer: { type: offer.type, sdp: offer.sdp },
-            broadcasterId: myUserId,
-            callerCandidates: [],
-            calleeCandidates: [],
-            webrtcAnswer: null
-        });
-
-        listenTogetherBtn.classList.remove('music-btn-idle');
-        listenTogetherBtn.classList.add('music-btn-active');
-        listenTogetherBtn.title = "Stop Broadcast";
-        appendMessage("🎵 You are now broadcasting tab audio.", "system-msg");
-
-        // Automatically stop broadcasting if the user clicks "Stop Sharing" on the browser's native UI bar
-        audioTracks[0].onended = () => {
-            if (isBroadcasting) {
-                stopWebRTCBroadcast();
-                appendMessage("⏹️ Broadcast stopped.", "system-msg");
-            }
-        };
-
-    } catch (err) {
-        console.error("Error capturing tab audio:", err);
-        appendMessage("❌ Could not capture audio. Permission denied.", "system-msg");
     }
-}
 
     async function joinWebRTCBroadcast(roomData) {
         isListening = true;
@@ -1416,8 +1411,6 @@
             localStream.getTracks().forEach(t => t.stop());
             localStream = null;
         }
-        localAudioPlayer.pause();
-        localAudioPlayer.src = "";
         remoteAudioPlayer.srcObject = null;
         
         isBroadcasting = false;
@@ -1436,34 +1429,25 @@
         }
     }
 
+    // --- UI Listeners for WebRTC ---
     listenTogetherBtn.addEventListener('click', async () => {
-    if (!currentRoomId || !isChatting) return;
+        if (!currentRoomId || !isChatting) return;
 
-    const roomDoc = await getDoc(doc(db, "rooms", currentRoomId));
-    const data = roomDoc.data();
+        const roomDoc = await getDoc(doc(db, "rooms", currentRoomId));
+        const data = roomDoc.data();
 
-    if (data.webrtcOffer && data.broadcasterId !== myUserId) {
-        // Join broadcast
-        if (!isListening) joinWebRTCBroadcast(data);
-    } else if (!isBroadcasting) {
-        // Start broadcast (Triggers the browser's "Share Screen/Tab" prompt)
-        startWebRTCBroadcast();
-    } else {
-        // Stop broadcast
-        stopWebRTCBroadcast();
-        appendMessage("⏹️ You stopped the broadcast.", "system-msg");
-    }
-});
-
-// Delete the old audioFileInput.addEventListener entirely.
-
-    audioFileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        startWebRTCBroadcast(file);
-        audioFileInput.value = ""; // Reset for next time
+        if (data.webrtcOffer && data.broadcasterId !== myUserId) {
+            // Join broadcast
+            if (!isListening) joinWebRTCBroadcast(data);
+        } else if (!isBroadcasting) {
+            // Start broadcast (Triggers native browser screen share prompt)
+            startWebRTCBroadcast();
+        } else {
+            // Stop broadcast
+            stopWebRTCBroadcast();
+            appendMessage("⏹️ You stopped the broadcast.", "system-msg");
+        }
     });
-
 
     function resetChat() {
         chatBox.innerHTML = ''; 
