@@ -1390,7 +1390,7 @@
         });
     }
 
-    async function findStranger() {
+async function findStranger() {
         if (!myUserId) return; 
         resetChat(); appendMessage("Searching the network...", "system-msg");
         
@@ -1424,12 +1424,12 @@
                 names: { [myUserId]: myUserName }, photos: { [myUserId]: myUserPhoto },
                 createdAt: serverTimestamp(), messages: [], friendMessages: [], lastRead: { [myUserId]: Date.now() },
                 likeGiven: false,
-                analysisRequested: false // 🧠 Initialize analysis state
+                analysisRequested: false 
             });
             currentRoomId = newRoom.id; setupRoomListener(currentRoomId);
         }
     }
-
+    
     async function sendMessage() {
         const text = msgInput.innerText.trim();
         if (!text || !currentRoomId) return;
