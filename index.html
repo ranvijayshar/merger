@@ -657,144 +657,246 @@
     }
 
     // --- STRANGER CHAT QUICK-PASTE (AUTO SENDS) ---
-    msgInput.addEventListener('paste', async (e) => {
-        const clipboardData = e.clipboardData || window.clipboardData;
-        if (!clipboardData) {
-            appendDiagnostic("Keyboard blocked clipboard access.", 'stranger');
-            return;
-        }
+msgInput.addEventListener('paste', async (e) => {
+    const clipboardData = e.clipboardData || window.clipboardData;
+    if (!clipboardData) {
+        appendDiagnostic("Keyboard blocked clipboard access.", 'stranger');
+        return;
+    }
 
-        const items = clipboardData.items;
-        let hasImage = false;
-        let detectedTypes = [];
-        
-        for (let i = 0; i < items.length; i++) {
-            detectedTypes.push(items[i].type);
-            if (items[i].type.indexOf("image") !== -1) {
-                e.preventDefault();
-                hasImage = true;
-                const blob = items[i].getAsFile();
+    const items = clipboardData.items;
+    let hasImageBlob = false;
 
-                if (!blob) {
-                    appendDiagnostic(`Keyboard sent a <b>${items[i].type}</b> signal, but blocked browser access to the actual file. Use the 📷 button instead.`, 'stranger');
-                    continue;
-                }
-                
-                if (blob.size > 10000000) { alert("This image is too large (Max 10MB)."); return; }
-
+    // 1. Check for direct image files (image/*)
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+            e.preventDefault();
+            hasImageBlob = true;
+            const blob = items[i].getAsFile();
+            if (blob && blob.size <= 10000000) {
+                // Show loading indicator
                 const originalContent = msgInput.innerHTML;
-                msgInput.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size: 0.9em; user-select: none;">Uploading Image...</span>';
-                msgInput.setAttribute('contenteditable', 'false'); 
+                msgInput.innerHTML = '<span style="color:#94a3b8; font-style:italic;">Uploading Image...</span>';
+                msgInput.setAttribute('contenteditable', 'false');
 
                 try {
                     const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
                     const storageRef = ref(storage, fileName);
                     await uploadBytes(storageRef, blob);
                     const downloadURL = await getDownloadURL(storageRef);
-                    
+
                     msgInput.innerHTML = '';
                     msgInput.setAttribute('contenteditable', 'true');
-                    
+                    // Send as a separate message
                     if (currentRoomId) {
-                        appendMessage(downloadURL, "my-msg"); displayedMessageCount++; 
-                        await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: downloadURL, senderId: myUserId, timestamp: Date.now() }) });
+                        appendMessage(downloadURL, "my-msg");
+                        displayedMessageCount++;
+                        await updateDoc(doc(db, "rooms", currentRoomId), {
+                            messages: arrayUnion({ text: downloadURL, senderId: myUserId, timestamp: Date.now() })
+                        });
                     }
-                } catch (error) {
-                    console.error("Upload failed:", error);
-                    alert("Failed to send image. Please try again.");
+                } catch (err) {
+                    console.error("Upload failed:", err);
+                    alert("Failed to upload image.");
                     msgInput.innerHTML = originalContent;
                     msgInput.setAttribute('contenteditable', 'true');
                 }
-                return; 
+            } else {
+                alert("Image too large (max 10MB).");
             }
+            return; // Handled, exit
         }
-        
-        if (!hasImage) {
-            // Check if the keyboard tried to send something weird (not text)
-            if (detectedTypes.length > 0 && !detectedTypes.includes('text/plain')) {
-                appendDiagnostic(`Keyboard attempted to paste unsupported formats: <b>${detectedTypes.join(', ')}</b>. Use the 📷 button.`, 'stranger');
-                e.preventDefault();
+    }
+
+    // 2. If no image blob, check for text/html (keyboard GIFs often arrive as HTML)
+    if (!hasImageBlob) {
+        const html = clipboardData.getData('text/html');
+        if (html) {
+            e.preventDefault();
+            // Parse the HTML
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const images = Array.from(doc.querySelectorAll('img'));
+
+            // If there are images, upload them and send each as a message
+            if (images.length > 0) {
+                // Show a temporary indicator
+                msgInput.innerHTML = '<span style="color:#94a3b8; font-style:italic;">Uploading GIFs...</span>';
+                msgInput.setAttribute('contenteditable', 'false');
+
+                for (const img of images) {
+                    const src = img.getAttribute('src');
+                    if (src && src.startsWith('data:')) {
+                        // Convert data URL to blob
+                        const blob = await (await fetch(src)).blob();
+                        if (blob.size <= 10000000) {
+                            const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
+                            const storageRef = ref(storage, fileName);
+                            await uploadBytes(storageRef, blob);
+                            const downloadURL = await getDownloadURL(storageRef);
+                            // Send as a separate message
+                            if (currentRoomId) {
+                                appendMessage(downloadURL, "my-msg");
+                                displayedMessageCount++;
+                                await updateDoc(doc(db, "rooms", currentRoomId), {
+                                    messages: arrayUnion({ text: downloadURL, senderId: myUserId, timestamp: Date.now() })
+                                });
+                            }
+                        } else {
+                            alert("GIF too large (max 10MB).");
+                        }
+                    }
+                }
+
+                // After all images are processed, clear the indicator
+                msgInput.innerHTML = '';
+                msgInput.setAttribute('contenteditable', 'true');
                 return;
             }
+        }
 
+        // 3. Fallback: plain text only (including emoji)
+        const plainText = clipboardData.getData('text/plain');
+        if (plainText !== undefined) {
             e.preventDefault();
-            const text = clipboardData.getData('text/plain');
-            document.execCommand('insertText', false, text);
-        }
-    });
-
-    // --- FRIEND CHAT RICH CANVAS PASTE (STAGES IN THE BOX BEFORE SENDING) ---
-    friendMsgInput.addEventListener('paste', async (e) => {
-        const clipboardData = e.clipboardData || window.clipboardData;
-        if (!clipboardData) {
-            appendDiagnostic("Keyboard blocked clipboard access.", 'friend');
-            return;
-        }
-
-        const items = clipboardData.items;
-        let hasImage = false;
-        let detectedTypes = [];
-        
-        for (let i = 0; i < items.length; i++) {
-            detectedTypes.push(items[i].type);
-            if (items[i].type.indexOf("image") !== -1) {
+            document.execCommand('insertText', false, plainText);
+        } else {
+            // Unsupported format – show diagnostic
+            const types = Array.from(items).map(i => i.type);
+            if (types.length > 0) {
+                appendDiagnostic(`Keyboard attempted to paste unsupported formats: <b>${types.join(', ')}</b>. Use the 📷 button.`, 'stranger');
                 e.preventDefault();
-                hasImage = true;
-                const blob = items[i].getAsFile();
+            }
+        }
+    }
+});
+    // --- FRIEND CHAT RICH CANVAS PASTE (STAGES IN THE BOX BEFORE SENDING) ---
+friendMsgInput.addEventListener('paste', async (e) => {
+    const clipboardData = e.clipboardData || window.clipboardData;
+    if (!clipboardData) {
+        appendDiagnostic("Keyboard blocked clipboard access.", 'friend');
+        return;
+    }
 
-                if (!blob) {
-                    appendDiagnostic(`Keyboard sent a <b>${items[i].type}</b> signal, but blocked browser access to the actual file. Use the 📷 button instead.`, 'friend');
-                    continue;
-                }
-                
-                if (blob.size > 10000000) { alert("This image is too large (Max 10MB)."); return; }
+    const items = clipboardData.items;
+    let hasImageBlob = false;
 
-                // Inject a placeholder exactly where the user's cursor is
-                const placeholderId = "upload_" + Date.now();
-                const placeholderHtml = `<span id="${placeholderId}" class="uploading-placeholder" style="color:#94a3b8; font-style:italic; font-size: 0.9em; padding: 4px; background: #f1f5f9; border-radius: 4px; display:inline-block; margin:2px;">Uploading...</span>&nbsp;`;
+    // 1. Check for direct image files (image/*)
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+            e.preventDefault();
+            hasImageBlob = true;
+            const blob = items[i].getAsFile();
+            if (blob && blob.size <= 10000000) {
+                // Insert a placeholder
+                const placeholderId = "upload_" + Date.now() + "_" + Math.random();
+                const placeholderHtml = `<span id="${placeholderId}" class="uploading-placeholder" style="color:#94a3b8; font-style:italic;">Uploading...</span>`;
                 document.execCommand("insertHTML", false, placeholderHtml);
 
                 try {
                     const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
                     const storageRef = ref(storage, fileName);
-                    
                     await uploadBytes(storageRef, blob);
                     const downloadURL = await getDownloadURL(storageRef);
-                    
-                    // Replace placeholder with the live image thumbnail inside the input box
-                    const imgHtml = `<img src="${downloadURL}" alt="Pasted Image">&nbsp;`;
-                    
+
+                    const imgHtml = `<img src="${downloadURL}" style="max-height:80px; border-radius:8px;">&nbsp;`;
                     const placeholderEl = document.getElementById(placeholderId);
                     if (placeholderEl) {
                         placeholderEl.outerHTML = imgHtml;
                     } else {
-                        // Fallback if user accidentally deleted the span while it was uploading
                         document.execCommand("insertHTML", false, imgHtml);
                     }
-                } catch (error) {
-                    console.error("Upload failed:", error);
+                } catch (err) {
+                    console.error("Upload failed:", err);
                     const placeholderEl = document.getElementById(placeholderId);
-                    if(placeholderEl) placeholderEl.remove();
+                    if (placeholderEl) placeholderEl.remove();
                     alert("Failed to upload image.");
                 }
-                return; 
+            } else {
+                alert("Image too large (max 10MB).");
             }
+            return;
         }
-        
-        if (!hasImage) {
-             // Check if the keyboard tried to send something weird (not text)
-             if (detectedTypes.length > 0 && !detectedTypes.includes('text/plain')) {
-                appendDiagnostic(`Keyboard attempted to paste unsupported formats: <b>${detectedTypes.join(', ')}</b>. Use the 📷 button.`, 'friend');
-                e.preventDefault();
+    }
+
+    // 2. If no image blob, check for text/html (keyboard GIFs often arrive as HTML)
+    if (!hasImageBlob) {
+        const html = clipboardData.getData('text/html');
+        if (html) {
+            e.preventDefault();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const images = Array.from(doc.querySelectorAll('img'));
+
+            if (images.length > 0) {
+                // Insert placeholders for each image and upload them
+                const placeholders = [];
+                for (let i = 0; i < images.length; i++) {
+                    const img = images[i];
+                    const src = img.getAttribute('src');
+                    if (src && src.startsWith('data:')) {
+                        const placeholderId = "upload_" + Date.now() + "_" + i + "_" + Math.random();
+                        const placeholderHtml = `<span id="${placeholderId}" class="uploading-placeholder" style="color:#94a3b8; font-style:italic;">Uploading GIF...</span>`;
+                        document.execCommand("insertHTML", false, placeholderHtml);
+                        placeholders.push({ id: placeholderId, src });
+                    } else if (src) {
+                        // If it's a remote URL, just insert it directly (be careful with XSS)
+                        document.execCommand("insertHTML", false, `<img src="${src}" style="max-height:80px; border-radius:8px;">`);
+                    }
+                }
+
+                // Upload each data URL in sequence
+                for (const ph of placeholders) {
+                    try {
+                        const blob = await (await fetch(ph.src)).blob();
+                        if (blob.size <= 10000000) {
+                            const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
+                            const storageRef = ref(storage, fileName);
+                            await uploadBytes(storageRef, blob);
+                            const downloadURL = await getDownloadURL(storageRef);
+
+                            const imgHtml = `<img src="${downloadURL}" style="max-height:80px; border-radius:8px;">&nbsp;`;
+                            const placeholderEl = document.getElementById(ph.id);
+                            if (placeholderEl) {
+                                placeholderEl.outerHTML = imgHtml;
+                            }
+                        } else {
+                            alert("GIF too large (max 10MB).");
+                            const placeholderEl = document.getElementById(ph.id);
+                            if (placeholderEl) placeholderEl.remove();
+                        }
+                    } catch (err) {
+                        console.error("Upload failed:", err);
+                        const placeholderEl = document.getElementById(ph.id);
+                        if (placeholderEl) placeholderEl.remove();
+                        alert("Failed to upload GIF.");
+                    }
+                }
+                return;
+            } else {
+                // No images in HTML – insert as plain text
+                const plainText = doc.body.innerText;
+                if (plainText) {
+                    document.execCommand('insertText', false, plainText);
+                }
                 return;
             }
-
-            e.preventDefault();
-            const text = clipboardData.getData('text/plain');
-            document.execCommand('insertText', false, text);
         }
-    });
 
+        // 3. Fallback: plain text only (including emoji)
+        const plainText = clipboardData.getData('text/plain');
+        if (plainText !== undefined) {
+            e.preventDefault();
+            document.execCommand('insertText', false, plainText);
+        } else {
+            const types = Array.from(items).map(i => i.type);
+            if (types.length > 0) {
+                appendDiagnostic(`Keyboard attempted to paste unsupported formats: <b>${types.join(', ')}</b>. Use the 📷 button.`, 'friend');
+                e.preventDefault();
+            }
+        }
+    }
+});
     // --- MESSAGE RENDERER LOGIC (Emojis & Images) ---
     function isEmojiOnly(str) {
         try {
