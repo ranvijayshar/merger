@@ -108,7 +108,6 @@
         .emoji-toggle-btn:hover { transform: scale(1.1); color: #64748b; }
         
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;}
-        /* Light Theme Emoji Picker */
         emoji-picker { --background: #ffffff; --border-color: #e2e8f0; --input-border-color: #cbd5e1; --button-hover-background: #f1f5f9; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
 
         input[type="text"] { flex-grow: 1; padding: 12px 18px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
@@ -218,7 +217,7 @@
             overflow: hidden; font-size: 3.5em; font-weight: 800; background: #eff6ff; color: #2563eb;
         }
 
-        /* --- LIKED ANIMATION OVERLAY --- */
+        /* --- NEW: LIKED ANIMATION WITH NUMBER POP --- */
         .liked-popup {
             position: absolute;
             top: 50%;
@@ -241,12 +240,25 @@
             letter-spacing: 1px;
             white-space: nowrap;
         }
-        .liked-popup span { font-size: 1.4em; animation: pulseHeart 0.8s infinite; }
+        .liked-popup span.heart { font-size: 1.4em; animation: pulseHeart 0.8s infinite; }
+        
+        /* The specific class that makes the number scale and glow when updated */
+        .pop-number {
+            display: inline-block;
+            animation: numberPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            color: #a7f3d0; /* Highlight color during the pop */
+        }
         
         @keyframes pulseHeart { 
             0% { transform: scale(1); } 
             50% { transform: scale(1.2); } 
             100% { transform: scale(1); } 
+        }
+        
+        @keyframes numberPop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.6); color: #ffffff; text-shadow: 0 0 10px rgba(255,255,255,0.8); }
+            100% { transform: scale(1); color: #ffffff; }
         }
         
         .liked-popup.animate { animation: likedPop 2.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
@@ -621,32 +633,42 @@
         }, 5000);
     }
 
-    // --- LIKE PULSE LOGIC WITH DB SYNC ---
+    // --- LIKED NUMBER POP ANIMATION LOGIC ---
     pulseLikeBtn.addEventListener('click', async () => {
         if (!hasLikedThisPersonInThisSession && currentStrangerId && !roomLikeGiven) {
             
             // Set local locks immediately
             hasLikedThisPersonInThisSession = true;
             roomLikeGiven = true; 
-            previousLikeGivenState = true; // Stop sender from getting double animation
+            previousLikeGivenState = true; 
             
             likeStreamContainer.style.display = 'none';
 
             try {
-                // Fetch the stranger's current total to show accurate number
+                // Fetch the stranger's current total
                 const strangerRef = doc(db, "users", currentStrangerId);
                 const docSnap = await getDoc(strangerRef);
                 let newTotal = 1;
                 if(docSnap.exists()){
                     newTotal = (docSnap.data().totalLikes || 0) + 1;
                 }
+                let oldTotal = newTotal - 1;
 
-                // 1. Show immediate animation for the Sender
+                // 1. Show immediate animation for the Sender with OLD number
                 const likedPopup = document.getElementById('liked-popup');
-                likedPopup.innerHTML = `<span>💚</span> Liked by You! (Total: ${newTotal})`;
+                likedPopup.innerHTML = `<span class="heart">💚</span> Liked by <strong id="dynamic-like-count">${oldTotal}</strong>`;
                 likedPopup.classList.remove('animate');
                 void likedPopup.offsetWidth;
                 likedPopup.classList.add('animate');
+                
+                // Trigger the text flip and pop halfway through the animation (800ms)
+                setTimeout(() => {
+                    const countEl = document.getElementById('dynamic-like-count');
+                    if (countEl) {
+                        countEl.textContent = newTotal;
+                        countEl.classList.add('pop-number');
+                    }
+                }, 800);
 
                 // 2. Update Database
                 await updateDoc(doc(db, "rooms", currentRoomId), { 
@@ -1109,14 +1131,24 @@
                 roomLikeGiven = true;
                 likeStreamContainer.style.display = 'none';
                 
-                // If I am NOT the one who clicked the button, show the receiver animation
                 if (isChatting && !hasLikedThisPersonInThisSession) {
+                    const newTotal = data.newLikeCount || 1;
+                    const oldTotal = newTotal - 1;
+                    
                     const likedPopup = document.getElementById('liked-popup');
-                    let countText = data.newLikeCount ? ` (Total: ${data.newLikeCount})` : "";
-                    likedPopup.innerHTML = `<span>💚</span> Liked by Connection!${countText}`;
+                    likedPopup.innerHTML = `<span class="heart">💚</span> Liked by <strong id="dynamic-like-count">${oldTotal}</strong>`;
                     likedPopup.classList.remove('animate');
                     void likedPopup.offsetWidth; 
                     likedPopup.classList.add('animate');
+                    
+                    // Trigger the text flip and pop halfway through the animation
+                    setTimeout(() => {
+                        const countEl = document.getElementById('dynamic-like-count');
+                        if (countEl) {
+                            countEl.textContent = newTotal;
+                            countEl.classList.add('pop-number');
+                        }
+                    }, 800);
                 }
             }
 
