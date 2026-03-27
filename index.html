@@ -615,16 +615,40 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
+    // --- CUSTOM KEYBOARD PASTE INTERCEPTOR ---
+    function handlePaste(e, sendFn) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                e.preventDefault();
+                const blob = items[i].getAsFile();
+                if (blob.size > 250000) { 
+                    alert("This image is too large! Please use the built-in GIF button.");
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (event) => sendFn(event.target.result);
+                reader.readAsDataURL(blob);
+                return; 
+            }
+        }
+    }
+
+    msgInput.addEventListener('paste', (e) => handlePaste(e, (base64) => {
+        msgInput.value = base64; sendMessage();
+    }));
+
+    friendMsgInput.addEventListener('paste', (e) => handlePaste(e, (base64) => {
+        friendMsgInput.value = base64; sendFriendMessage();
+    }));
+
     // --- MESSAGE RENDERER LOGIC (Emojis & GIFs) ---
     function isEmojiOnly(str) {
         try {
             const string = str.trim();
             if (string.length === 0) return false;
-            // Verify there are NO normal characters
             const noEmojis = string.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '');
             if (noEmojis.replace(/[\s\u200D\uFEFF]/g, '').length > 0) return false; 
-            
-            // Count string length roughly based on unicode points
             const emojiCount = Array.from(string.replace(/[\s\u200D\uFEFF]/g, '')).length;
             return emojiCount >= 1 && emojiCount <= 3;
         } catch(e) { return false; }
@@ -634,7 +658,7 @@
         const div = document.createElement('div');
         div.className = `message ${isMe ? 'my-msg' : 'stranger-msg'}`;
         
-        const isGifOrImage = text.match(/^https?:\/\/.*\.(gif|png|jpe?g|webp)(?:\?.*)?$/i) || text.includes('media.tenor.com');
+        const isGifOrImage = text.match(/^https?:\/\/.*\.(gif|png|jpe?g|webp)(?:\?.*)?$/i) || text.includes('media.tenor.com') || text.startsWith('data:image/');
 
         if (isGifOrImage) {
             div.innerHTML = `<img src="${text}" style="max-width: 220px; width: 100%; border-radius: 12px; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">`;
@@ -943,19 +967,17 @@
         currentFriendId = null;
     });
 
-
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             myUserId = user.uid;
             myUserName = user.displayName || "Unknown User";
             myUserPhoto = user.photoURL || "";
 
-            // Cleanup ghost matchmaking rooms so you don't get stuck alone
             try {
                 const deadRoomsQ = query(collection(db, "rooms"), where("creatorId", "==", myUserId), where("status", "==", "waiting"));
                 const deadSnap = await getDocs(deadRoomsQ);
                 deadSnap.forEach(d => updateDoc(doc(db, "rooms", d.id), {status: "closed"}));
-            } catch(e) { console.log(e); }
+            } catch(e) {}
 
             document.getElementById('tab-profile-pic').src = myUserPhoto; 
             document.getElementById('page-profile-pic').src = myUserPhoto; 
@@ -1189,10 +1211,6 @@
         });
     }
 
-    // ==========================================
-    // --- FEATURE 2: RANDOM CHAT ---
-    // ==========================================
-    
     function appendMessage(text, type) {
         if (type === "system-msg") {
             const div = document.createElement('div'); 
@@ -1230,7 +1248,6 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // RECEIVER SEES ODOMETER
             if (data.likeGiven && !previousLikeGivenState) {
                 previousLikeGivenState = true;
                 roomLikeGiven = true;
@@ -1255,7 +1272,6 @@
                         if (trackEl) trackEl.classList.add('scrolled');
                     }, 300);
 
-                    // Clean up properly so it doesn't replay when swapping tabs
                     setTimeout(() => {
                         likeStreamContainer.classList.add('fade-out-up');
                         setTimeout(() => {
@@ -1268,11 +1284,9 @@
                 }
             }
 
-            // Sync initial lock state if joining late
             if (data.likeGiven) {
                 roomLikeGiven = true;
                 previousLikeGivenState = true;
-                likeStreamContainer.style.display = 'none';
             }
 
             const strangerId = data.participants.find(id => id !== myUserId);
@@ -1320,9 +1334,8 @@
 
     async function findStranger() {
         if (!myUserId) return; 
-        resetChat(); appendMessage("Looking for a connection...", "system-msg");
+        resetChat(); appendMessage("Searching the network...", "system-msg");
         
-        // Increased limit to 50 so matchmaking doesn't choke on old test rooms
         const q = query(collection(db, "rooms"), where("status", "==", "waiting"), limit(50)); 
         const querySnapshot = await getDocs(q);
 
@@ -1362,7 +1375,6 @@
         const text = msgInput.value.trim();
         if (!text || !currentRoomId) return;
         msgInput.value = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none'; 
-        // Note: appendMessage expects 'my-msg' inside the setupRoomListener loops, but here we can just pass "my-msg" directly
         appendMessage(text, "my-msg"); displayedMessageCount++; 
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
