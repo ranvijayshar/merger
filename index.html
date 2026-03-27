@@ -126,7 +126,7 @@
         }
         .chat-input:empty:before { content: attr(data-placeholder); color: #94a3b8; pointer-events: none; display: block; }
         .chat-input:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        .disabled-input { background: #f1f5f9 !important; cursor: not-allowed !important; border-color: #e2e8f0 !important; color: #94a3b8 !important; opacity: 0.8; pointer-events: none; }
+        .disabled-input { background: #f1f5f9 !important; cursor: not-allowed !important; border-color: #e2e8f0 !important; color: #94a3b8 !important; opacity: 0.8; }
         
         button.action-btn { padding: 0 16px; height: 44px; border: none; background: #2563eb; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(37,99,235,0.2); flex-shrink: 0;}
         button.action-btn:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
@@ -320,7 +320,7 @@
                     <div class="gif-results" id="friend-gif-results"></div>
                 </div>
 
-                <div id="friend-msg-input" class="chat-input disabled-input" contenteditable="true" data-placeholder="Message connection..."></div>
+                <div id="friend-msg-input" class="chat-input disabled-input" contenteditable="false" data-placeholder="Message connection..."></div>
                 <button id="friend-send-btn" class="action-btn" disabled>
                     <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                 </button>
@@ -392,7 +392,7 @@
                 <div class="gif-results" id="random-gif-results"></div>
             </div>
 
-            <div id="msg-input" class="chat-input disabled-input" contenteditable="true" data-placeholder="Type a message..."></div>
+            <div id="msg-input" class="chat-input disabled-input" contenteditable="false" data-placeholder="Type a message..."></div>
             
             <button id="send-btn" class="action-btn" disabled>
                 <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -470,7 +470,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit, increment, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-    // ADDED FOR STORAGE:
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
     const firebaseConfig = {
@@ -486,7 +485,6 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
-    // ADDED FOR STORAGE:
     const storage = getStorage(app);
 
     // DOM Elements
@@ -598,18 +596,17 @@
                 hasImage = true;
                 const blob = items[i].getAsFile();
                 
-                // Bump limit to 10MB to accommodate chunky keyboard GIFs
                 if (blob.size > 10000000) { 
                     alert("This image is too large (Max 10MB).");
                     return;
                 }
 
-                const targetInput = e.target;
+                const targetInput = e.currentTarget;
                 const originalContent = targetInput.innerHTML;
                 
                 // Give user immediate feedback that the keyboard GIF was caught and is uploading
-                targetInput.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size: 0.9em;">Uploading GIF...</span>';
-                targetInput.contentEditable = "false"; 
+                targetInput.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size: 0.9em; user-select: none;">Uploading GIF...</span>';
+                targetInput.setAttribute('contenteditable', 'false'); 
 
                 try {
                     // 1. Create a unique file name in Firebase Storage
@@ -624,13 +621,13 @@
                     
                     // 4. Restore input state and Send the URL to your chat
                     targetInput.innerHTML = '';
-                    targetInput.contentEditable = "true";
+                    targetInput.setAttribute('contenteditable', 'true');
                     sendFn(downloadURL);
                 } catch (error) {
                     console.error("Upload failed:", error);
                     alert("Failed to send image. Please try again.");
                     targetInput.innerHTML = originalContent;
-                    targetInput.contentEditable = "true";
+                    targetInput.setAttribute('contenteditable', 'true');
                 }
                 return; 
             }
@@ -1201,6 +1198,10 @@
         let localFriendMsgCount = 0;
         friendChatBox.innerHTML = '<div class="message system-msg">You are connected! Say hello.</div>';
         
+        friendMsgInput.classList.remove('disabled-input');
+        friendMsgInput.setAttribute('contenteditable', 'true');
+        friendSendBtn.disabled = false;
+
         if (unsubscribeFriendChat) unsubscribeFriendChat();
         unsubscribeFriendChat = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
             const data = snapshot.data();
@@ -1237,6 +1238,11 @@
         if (unsubscribeFriendChat) unsubscribeFriendChat(); 
         currentFriendRoomId = null;
         currentFriendId = null;
+
+        friendMsgInput.classList.add('disabled-input');
+        friendMsgInput.setAttribute('contenteditable', 'false');
+        friendMsgInput.innerHTML = '';
+        friendSendBtn.disabled = true;
     });
 
     friendSendBtn.addEventListener('click', sendFriendMessage);
@@ -1273,7 +1279,12 @@
     }
 
     function resetChat() {
-        chatBox.innerHTML = ''; msgInput.classList.add('disabled-input'); sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
+        chatBox.innerHTML = ''; 
+        msgInput.classList.add('disabled-input'); 
+        msgInput.setAttribute('contenteditable', 'false');
+        sendBtn.disabled = true; 
+        isChatting = false; 
+        displayedMessageCount = 0;
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Connect Request";
         
         hasLikedThisPersonInThisSession = false;
@@ -1353,7 +1364,12 @@
             if (data.status === "chatting" && !isChatting) {
                 isChatting = true;
                 appendMessage("Connection established. Say hi! 👋", "system-msg");
-                msgInput.classList.remove('disabled-input'); sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
+                
+                msgInput.classList.remove('disabled-input'); 
+                msgInput.setAttribute('contenteditable', 'true');
+                sendBtn.disabled = false; 
+                msgInput.focus(); 
+                addFriendBtn.style.display = 'flex';
                 
                 currentStrangerId = strangerId;
                 if(currentStrangerId && !data.likeGiven) {
@@ -1364,7 +1380,10 @@
             }
             if (data.status === "closed" && isChatting) {
                 appendMessage("The other person has left the network.", "system-msg");
-                isChatting = false; msgInput.classList.add('disabled-input'); sendBtn.disabled = true; addFriendBtn.style.display = 'none';
+                isChatting = false; 
+                msgInput.classList.add('disabled-input'); 
+                msgInput.setAttribute('contenteditable', 'false');
+                sendBtn.disabled = true; addFriendBtn.style.display = 'none';
                 likeStreamContainer.style.display = 'none'; 
                 appendMessage("⏬ Swipe or press ↓ to discover someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
