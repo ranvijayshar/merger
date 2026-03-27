@@ -108,7 +108,6 @@
         .emoji-toggle-btn:hover { transform: scale(1.1); color: #64748b; }
         
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;}
-        /* Light Theme Emoji Picker */
         emoji-picker { --background: #ffffff; --border-color: #e2e8f0; --input-border-color: #cbd5e1; --button-hover-background: #f1f5f9; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
 
         input[type="text"] { flex-grow: 1; padding: 12px 18px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
@@ -218,77 +217,7 @@
             overflow: hidden; font-size: 3.5em; font-weight: 800; background: #eff6ff; color: #2563eb;
         }
 
-        /* --- UPDATED: SCROLLING ODOMETER LIKE SYSTEM (PERFECT ALIGNMENT) --- */
-        .liked-popup {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            padding: 15px 35px;
-            border-radius: 50px;
-            font-weight: 800;
-            font-size: 1.1em;
-            box-shadow: 0 10px 40px rgba(16, 185, 129, 0.5), inset 0 -3px 0 rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            z-index: 1000;
-            pointer-events: none; 
-            opacity: 0;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            white-space: nowrap;
-        }
-        .liked-popup span.heart { font-size: 1.4em; animation: pulseHeart 0.8s infinite; }
-        
-        @keyframes pulseHeart { 
-            0% { transform: scale(1); } 
-            50% { transform: scale(1.2); } 
-            100% { transform: scale(1); } 
-        }
-
-        /* Strict block sizing for perfect scroll snapping */
-        .scroll-counter {
-            display: inline-block;
-            height: 1.2em; 
-            line-height: 1.2em;
-            overflow: hidden;
-            vertical-align: bottom;
-        }
-        .scroll-track {
-            display: block;
-            transform: translateY(0);
-            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .scroll-track.scrolled {
-            transform: translateY(-1.2em); /* Moves up exactly one number height */
-        }
-        .scroll-track > span {
-            display: block;
-            height: 1.2em;
-            line-height: 1.2em;
-            text-align: center;
-        }
-        
-        .scroll-track.scrolled .new-num {
-            color: #ffffff;
-            text-shadow: 0 0 12px rgba(255,255,255,0.9);
-            transition: text-shadow 0.3s;
-        }
-        
-        .liked-popup.animate { animation: likedPop 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        
-        @keyframes likedPop {
-            0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
-            15% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); opacity: 1; }
-            25% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; filter: brightness(1.2); }
-            85% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
-            100% { transform: translate(-50%, -100%) scale(0.8); opacity: 0; }
-        }
-
-        /* --- LIKE BUTTON --- */
+        /* --- UPDATED DYNAMIC LIKE BUTTON --- */
         #like-stream-container {
             position: absolute;
             top: 50%;
@@ -296,26 +225,70 @@
             right: 15px;
             z-index: 100;
             display: flex;
-            flex-direction: column;
             align-items: center;
+        }
+        
+        /* The container fading out after animation finishes */
+        .fade-out-up {
+            animation: fadeOutUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes fadeOutUp {
+            to { opacity: 0; transform: translateY(-80px) scale(0.8); pointer-events: none; }
         }
 
         #pulse-like-btn {
             background: #ffffff;
-            border-radius: 50%;
+            border-radius: 24px; /* pill shape ready */
             width: 48px; height: 48px;
             border: 1px solid #e2e8f0;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transition: transform 0.1s ease, box-shadow 0.2s ease;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             font-size: 22px;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #10B981; /* Emerald Green */
+            color: #10B981; 
+            overflow: hidden;
+            gap: 6px; /* Space between heart and number */
         }
         #pulse-like-btn:active { transform: scale(0.85); box-shadow: 0 2px 6px rgba(0,0,0,0.05);}
         #pulse-like-btn:hover { border-color: #10B981; background: #ecfdf5; }
+
+        /* When clicked or received, button expands into a pill */
+        #pulse-like-btn.liked-state {
+            width: 95px; /* Wide enough for the number */
+            background: #ecfdf5;
+            border-color: #10B981;
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.2);
+            pointer-events: none; /* Disable clicking while animating */
+        }
+
+        /* Odometer specific to the button */
+        .scroll-counter {
+            display: inline-block;
+            height: 1.2em; 
+            line-height: 1.2em;
+            overflow: hidden;
+            font-size: 0.75em;
+            font-weight: 800;
+            color: #059669;
+        }
+        .scroll-track {
+            display: block;
+            transform: translateY(0);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .scroll-track.scrolled {
+            transform: translateY(-1.2em);
+        }
+        .scroll-track > span {
+            display: block;
+            height: 1.2em;
+            line-height: 1.2em;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -433,8 +406,6 @@
         <div id="like-stream-container" style="display: none;">
             <button id="pulse-like-btn" title="Send a Like">💚</button>
         </div>
-        
-        <div id="liked-popup" class="liked-popup"></div>
 
         <div class="controls">
             <button class="emoji-toggle-btn" id="random-emoji-btn">😀</button>
@@ -533,7 +504,7 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    // DOM Elements - Screens
+    // DOM Elements
     const container = document.getElementById('main-container'); 
     const loginScreen = document.getElementById('login-screen');
     const homeScreen = document.getElementById('home-screen');
@@ -541,7 +512,6 @@
     const chatInterface = document.getElementById('chat-interface');
     const profileScreen = document.getElementById('profile-screen');
     
-    // Bottom Nav Elements
     const bottomNav = document.getElementById('bottom-nav');
     const tabFriends = document.getElementById('tab-friends');
     const tabHome = document.getElementById('tab-home');
@@ -549,7 +519,6 @@
     const tabProfile = document.getElementById('tab-profile');
     const globalUnreadBadge = document.getElementById('global-unread-badge');
     
-    // Random Chat Elements
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
@@ -557,13 +526,11 @@
     const skipHint = document.getElementById('skip-hint');
     const addFriendBtn = document.getElementById('add-friend-btn');
     
-    // Emoji Elements
     const randomEmojiBtn = document.getElementById('random-emoji-btn');
     const randomEmojiPicker = document.getElementById('random-emoji-picker');
     const friendEmojiBtn = document.getElementById('friend-emoji-btn');
     const friendEmojiPicker = document.getElementById('friend-emoji-picker');
     
-    // Friends Pane Elements
     const friendsListView = document.getElementById('friends-list-view');
     const friendChatView = document.getElementById('friend-chat-view');
     const friendProfileView = document.getElementById('friend-profile-view');
@@ -578,7 +545,6 @@
     const viewFriendProfileBtn = document.getElementById('view-friend-profile-btn');
     const backFromFriendProfileBtn = document.getElementById('back-from-friend-profile-btn'); 
     
-    // Modals & Banners
     const settingsModal = document.getElementById('settings-modal');
     const confirmModal = document.getElementById('confirm-modal');
     const btnStay = document.getElementById('btn-stay');
@@ -593,7 +559,6 @@
     let initialFriendsLoad = true;
     let notifTimeout;
 
-    // Like System Elements & State
     const pulseLikeBtn = document.getElementById('pulse-like-btn');
     const likeStreamContainer = document.getElementById('like-stream-container');
     const pageProfileLikes = document.getElementById('page-profile-likes');
@@ -602,7 +567,6 @@
     let previousLikeGivenState = false; 
     let currentStrangerId = null;
 
-    // State Variables
     let currentRoomId = null; 
     let unsubscribeRoom = null;
     let isChatting = false; 
@@ -628,7 +592,6 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
-    // --- PUSH NOTIFICATION LOGIC ---
     function showNotificationBanner(strangerName, strangerPhoto) {
         notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
         notifMsg.textContent = `${strangerName} wants to connect!`;
@@ -650,16 +613,13 @@
         }, 5000);
     }
 
-    // --- LIKED ODOMETER ANIMATION LOGIC ---
+    // --- NEW: IN-BUTTON ODOMETER ANIMATION LOGIC ---
     pulseLikeBtn.addEventListener('click', async () => {
         if (!hasLikedThisPersonInThisSession && currentStrangerId && !roomLikeGiven) {
             
-            // Set local locks immediately
             hasLikedThisPersonInThisSession = true;
             roomLikeGiven = true; 
             previousLikeGivenState = true; 
-            
-            likeStreamContainer.style.display = 'none';
 
             try {
                 const strangerRef = doc(db, "users", currentStrangerId);
@@ -670,29 +630,29 @@
                 }
                 let oldTotal = newTotal - 1;
 
-                const likedPopup = document.getElementById('liked-popup');
-                likedPopup.innerHTML = `
-                    <span class="heart">💚</span> Liked by You! &nbsp;
+                // Expand button and insert odometer HTML
+                pulseLikeBtn.innerHTML = `
+                    <span>💚</span>
                     <span class="scroll-counter">
                         <span class="scroll-track" id="dynamic-like-track">
-                            <span class="old-num">${oldTotal}</span>
+                            <span>${oldTotal}</span>
                             <span class="new-num">${newTotal}</span>
                         </span>
                     </span>
                 `;
-                likedPopup.classList.remove('animate');
-                void likedPopup.offsetWidth;
-                likedPopup.classList.add('animate');
+                pulseLikeBtn.classList.add('liked-state');
                 
-                // Trigger the CSS slide-up
+                // Delay scroll so the pill has time to expand first
                 setTimeout(() => {
                     const trackEl = document.getElementById('dynamic-like-track');
-                    if (trackEl) {
-                        trackEl.classList.add('scrolled');
-                    }
-                }, 800);
+                    if (trackEl) trackEl.classList.add('scrolled');
+                }, 300);
 
-                // Update Database
+                // Fade out the entire button container after the animation finishes
+                setTimeout(() => {
+                    likeStreamContainer.classList.add('fade-out-up');
+                }, 2000);
+
                 await updateDoc(doc(db, "rooms", currentRoomId), { 
                     likeGiven: true,
                     newLikeCount: newTotal 
@@ -702,7 +662,6 @@
         }
     });
 
-    // --- EMOJI PICKER LOGIC ---
     randomEmojiBtn.addEventListener('click', () => { randomEmojiPicker.style.display = randomEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
     friendEmojiBtn.addEventListener('click', () => { friendEmojiPicker.style.display = friendEmojiPicker.style.display === 'block' ? 'none' : 'block'; });
     
@@ -714,8 +673,6 @@
     randomEmojiPicker.addEventListener('emoji-click', event => { msgInput.value += event.detail.unicode; msgInput.focus(); });
     friendEmojiPicker.addEventListener('emoji-click', event => { friendMsgInput.value += event.detail.unicode; friendMsgInput.focus(); });
 
-
-    // --- NAVIGATION LOGIC ---
     const screens = [
         { element: friendsScreen, tab: tabFriends, name: 'friends' },
         { element: homeScreen, tab: tabHome, name: 'home' },
@@ -769,7 +726,6 @@
         if(currentIdx !== 3) openProfileFrom(currentIdx); 
     });
 
-    // --- UNIFIED SWIPE LOGIC ---
     let startX = 0, startY = 0, isDragging = false;
     function handleInputStart(x, y) { startX = x; startY = y; isDragging = true; }
     function handleInputEnd(e, isTouch) {
@@ -811,7 +767,6 @@
     });
     screens.forEach(s => s.element.addEventListener('mouseleave', () => isDragging = false));
 
-    // --- MODALS & FRIEND PROFILE SCREEN LOGIC ---
     document.getElementById('open-settings-btn').addEventListener('click', () => settingsModal.style.display = 'flex');
     document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
     settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
@@ -875,7 +830,6 @@
     });
 
 
-    // --- AUTHENTICATION ---
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             myUserId = user.uid;
@@ -922,10 +876,6 @@
     document.getElementById('login-btn').addEventListener('click', () => signInWithPopup(auth, provider));
     document.getElementById('btn-logout').addEventListener('click', () => { settingsModal.style.display = 'none'; signOut(auth); });
 
-    // ==========================================
-    // --- FEATURE 1: FRIENDS SYSTEM ---
-    // ==========================================
-    
     async function markRoomAsRead(roomId) {
         if (!myUserId || !roomId) return;
         try { await updateDoc(doc(db, "rooms", roomId), { [`lastRead.${myUserId}`]: Date.now() }); } catch(e) {}
@@ -1132,10 +1082,15 @@
         chatBox.innerHTML = ''; msgInput.disabled = true; sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Friend Request";
         
+        // Reset Like button states
         hasLikedThisPersonInThisSession = false;
         roomLikeGiven = false; 
         previousLikeGivenState = false; 
         currentStrangerId = null;
+        
+        pulseLikeBtn.innerHTML = '💚';
+        pulseLikeBtn.classList.remove('liked-state');
+        likeStreamContainer.classList.remove('fade-out-up');
         likeStreamContainer.style.display = 'none';
 
         if (unsubscribeRoom) unsubscribeRoom(); currentRoomId = null;
@@ -1147,44 +1102,42 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // --- CATCH LIKE EVENT FOR RECEIVER ODOMETER ANIMATION ---
+            // RECEIVER LIKED LOGIC
             if (data.likeGiven && !previousLikeGivenState) {
                 previousLikeGivenState = true;
                 roomLikeGiven = true;
-                likeStreamContainer.style.display = 'none';
                 
                 if (isChatting && !hasLikedThisPersonInThisSession) {
                     const newTotal = data.newLikeCount || 1;
                     const oldTotal = newTotal - 1;
                     
-                    const likedPopup = document.getElementById('liked-popup');
-                    likedPopup.innerHTML = `
-                        <span class="heart">💚</span> Liked by Connection! &nbsp;
+                    pulseLikeBtn.innerHTML = `
+                        <span>💚</span>
                         <span class="scroll-counter">
                             <span class="scroll-track" id="dynamic-like-track">
-                                <span class="old-num">${oldTotal}</span>
+                                <span>${oldTotal}</span>
                                 <span class="new-num">${newTotal}</span>
                             </span>
                         </span>
                     `;
-                    likedPopup.classList.remove('animate');
-                    void likedPopup.offsetWidth; 
-                    likedPopup.classList.add('animate');
+                    pulseLikeBtn.classList.add('liked-state');
                     
                     setTimeout(() => {
                         const trackEl = document.getElementById('dynamic-like-track');
-                        if (trackEl) {
-                            trackEl.classList.add('scrolled');
-                        }
-                    }, 800);
+                        if (trackEl) trackEl.classList.add('scrolled');
+                    }, 300);
+
+                    setTimeout(() => {
+                        likeStreamContainer.classList.add('fade-out-up');
+                    }, 2000);
+                } else {
+                    likeStreamContainer.style.display = 'none';
                 }
             }
 
-            // Sync initial lock state if joining late
             if (data.likeGiven) {
                 roomLikeGiven = true;
                 previousLikeGivenState = true;
-                likeStreamContainer.style.display = 'none';
             }
 
             const strangerId = data.participants.find(id => id !== myUserId);
@@ -1208,7 +1161,7 @@
                 currentStrangerId = strangerId;
                 if(currentStrangerId && !data.likeGiven) {
                     likeStreamContainer.style.display = 'flex';
-                } else {
+                } else if (data.likeGiven) {
                     likeStreamContainer.style.display = 'none';
                 }
             }
