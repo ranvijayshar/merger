@@ -103,11 +103,13 @@
         .system-msg { text-align: center; color: #64748b; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: #e2e8f0; padding: 6px 12px; border-radius: 20px; font-weight: 600;}
         
         /* Controls & Emoji/GIF Pickers */
-        .controls { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-end; position: relative; background: #ffffff; padding: 8px 4px;}
+        /* MODIFIED: Align center, less padding, tighter gap */
+        .controls { display: flex; gap: 8px; flex-shrink: 0; align-items: center; position: relative; background: #ffffff; padding: 8px 6px;}
         
-        /* Beautiful Icon Buttons */
-        .media-btn { background: #f1f5f9; border: none; font-size: 1.2em; cursor: pointer; color: #64748b; transition: all 0.2s ease; padding: 0; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; outline: none; flex-shrink: 0;}
-        .media-btn:hover { background: #e2e8f0; color: #1e293b; transform: scale(1.05); }
+        /* Beautiful Icon Buttons - MODIFIED: Smaller size, transparent background */
+        .media-btn { background: transparent; border: none; font-size: 1.2em; cursor: pointer; color: #64748b; transition: all 0.2s ease; padding: 0; width: 34px; height: 34px; border-radius: 50%; display: flex; justify-content: center; align-items: center; outline: none; flex-shrink: 0;}
+        .media-btn:hover { background: #f1f5f9; color: #1e293b; transform: scale(1.05); }
+        .media-btn svg { width: 22px; height: 22px; }
         
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;}
         emoji-picker { --background: #ffffff; --border-color: #e2e8f0; --input-border-color: #cbd5e1; --button-hover-background: #f1f5f9; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
@@ -120,6 +122,7 @@
         .gif-results img:hover { transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 2;}
 
         /* ContentEditable Chat Input (Single Bar Style) */
+        /* MODIFIED: Re-centered alignment, min-height adjusted */
         .chat-input {
             flex-grow: 1; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 20px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
             max-height: 100px; min-height: 40px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.4;
@@ -305,10 +308,10 @@
             <div id="friend-chat-box" class="chat-box-style"></div>
             <div class="controls">
                 <button class="media-btn" id="friend-emoji-btn" title="Emojis">
-                    <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
                 </button>
                 <button class="media-btn" id="friend-gif-btn" title="GIFs">
-                    <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M11.5 9H13v6h-1.5zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M11.5 9H13v6h-1.5zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1z"/></svg>
                 </button>
                 
                 <div class="emoji-picker-container" id="friend-emoji-picker">
@@ -377,10 +380,10 @@
 
         <div class="controls">
             <button class="media-btn" id="random-emoji-btn" title="Emojis">
-                <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
             </button>
             <button class="media-btn" id="random-gif-btn" title="GIFs">
-                <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M11.5 9H13v6h-1.5zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M11.5 9H13v6h-1.5zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1z"/></svg>
             </button>
             
             <div class="emoji-picker-container" id="random-emoji-picker">
