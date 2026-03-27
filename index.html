@@ -101,6 +101,7 @@
         .my-msg { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.2); }
         .stranger-msg { background: #ffffff; color: #334e68; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
         .system-msg { text-align: center; color: #64748b; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; align-self: center; background: #e2e8f0; padding: 6px 12px; border-radius: 20px; font-weight: 600;}
+        .diag-msg { text-align: center; color: #b45309; font-size: 0.75em; align-self: center; background: #fef3c7; padding: 6px 12px; border-radius: 8px; font-weight: 500; border: 1px dashed #f59e0b; width: 90%; }
         
         /* Controls & Emoji Pickers */
         .controls { display: flex; gap: 8px; flex-shrink: 0; align-items: flex-end; position: relative; background: #ffffff; padding: 5px 0;}
@@ -258,6 +259,9 @@
 </head>
 <body>
 
+<!-- Hidden File Upload Input for native device bypassing -->
+<input type="file" id="native-media-upload" accept="image/*,image/gif" style="display: none;">
+
 <div class="chat-container" id="main-container">
 
     <div id="notification-banner" class="notification-banner">
@@ -314,6 +318,9 @@
             <div class="controls">
                 <button class="media-btn" id="friend-emoji-btn" title="Emojis">
                     <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
+                </button>
+                <button class="media-btn trigger-upload-btn" title="Upload Image/GIF">
+                    <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
                 </button>
                 
                 <div class="emoji-picker-container" id="friend-emoji-picker">
@@ -379,6 +386,9 @@
         <div class="controls">
             <button class="media-btn" id="random-emoji-btn" title="Emojis">
                 <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
+            </button>
+            <button class="media-btn trigger-upload-btn" title="Upload Image/GIF">
+                <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
             </button>
             
             <div class="emoji-picker-container" id="random-emoji-picker">
@@ -532,6 +542,10 @@
     const notifMsg = document.getElementById('notif-msg');
     const notifViewBtn = document.getElementById('notif-view-btn');
     const notifCloseBtn = document.getElementById('notif-close-btn');
+
+    const nativeMediaUpload = document.getElementById('native-media-upload');
+    const triggerUploadBtns = document.querySelectorAll('.trigger-upload-btn');
+
     let notifiedRequestIds = new Set();
     let initialFriendsLoad = true;
     let notifTimeout;
@@ -569,17 +583,102 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
+    // --- NATIVE FILE UPLOAD LOGIC (THE ULTIMATE BYPASS) ---
+    triggerUploadBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            nativeMediaUpload.click(); // Opens native phone file picker
+        });
+    });
+
+    nativeMediaUpload.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > 10000000) { alert("This image is too large (Max 10MB)."); return; }
+
+        // Determine which chat is active to provide loading feedback
+        let activeInput, activeChatType;
+        if (chatInterface.style.display === 'flex' && isChatting) {
+            activeInput = msgInput;
+            activeChatType = 'stranger';
+        } else if (friendChatView.style.display === 'flex') {
+            activeInput = friendMsgInput;
+            activeChatType = 'friend';
+        } else {
+            return;
+        }
+
+        const originalContent = activeInput.innerHTML;
+        activeInput.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size: 0.9em;">Uploading Native File...</span>';
+        activeInput.setAttribute('contenteditable', 'false');
+
+        try {
+            const fileName = `chat_media/${Date.now()}_${file.name}`;
+            const storageRef = ref(storage, fileName);
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            activeInput.innerHTML = '';
+            activeInput.setAttribute('contenteditable', 'true');
+
+            if (activeChatType === 'stranger' && currentRoomId) {
+                appendMessage(downloadURL, "my-msg"); displayedMessageCount++; 
+                await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: downloadURL, senderId: myUserId, timestamp: Date.now() }) });
+            } else if (activeChatType === 'friend') {
+                // For friends, we stage it on the canvas
+                const imgHtml = `<img src="${downloadURL}" alt="Uploaded Image">&nbsp;`;
+                activeInput.innerHTML = originalContent + imgHtml;
+            }
+
+        } catch (error) {
+            console.error("Upload failed:", error);
+            alert("Failed to upload native file.");
+            activeInput.innerHTML = originalContent;
+            activeInput.setAttribute('contenteditable', 'true');
+        }
+        
+        // Reset input so you can upload the same file again if needed
+        nativeMediaUpload.value = "";
+    });
+
+    // --- DIAGNOSTIC APPENDER ---
+    function appendDiagnostic(message, chatType) {
+        const div = document.createElement('div'); 
+        div.className = `message diag-msg`; 
+        div.innerHTML = `🛠️ <b>System Debug:</b><br>${message}`;
+        
+        if (chatType === 'stranger') {
+            chatBox.appendChild(div);
+            chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        } else {
+            friendChatBox.appendChild(div);
+            friendChatBox.scrollTo({ top: friendChatBox.scrollHeight, behavior: 'smooth' });
+        }
+    }
+
     // --- STRANGER CHAT QUICK-PASTE (AUTO SENDS) ---
     msgInput.addEventListener('paste', async (e) => {
         const clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData) {
+            appendDiagnostic("Keyboard blocked clipboard access.", 'stranger');
+            return;
+        }
+
         const items = clipboardData.items;
         let hasImage = false;
+        let detectedTypes = [];
         
         for (let i = 0; i < items.length; i++) {
+            detectedTypes.push(items[i].type);
             if (items[i].type.indexOf("image") !== -1) {
                 e.preventDefault();
                 hasImage = true;
                 const blob = items[i].getAsFile();
+
+                if (!blob) {
+                    appendDiagnostic(`Keyboard sent a <b>${items[i].type}</b> signal, but blocked browser access to the actual file. Use the 📷 button instead.`, 'stranger');
+                    continue;
+                }
                 
                 if (blob.size > 10000000) { alert("This image is too large (Max 10MB)."); return; }
 
@@ -611,6 +710,13 @@
         }
         
         if (!hasImage) {
+            // Check if the keyboard tried to send something weird (not text)
+            if (detectedTypes.length > 0 && !detectedTypes.includes('text/plain')) {
+                appendDiagnostic(`Keyboard attempted to paste unsupported formats: <b>${detectedTypes.join(', ')}</b>. Use the 📷 button.`, 'stranger');
+                e.preventDefault();
+                return;
+            }
+
             e.preventDefault();
             const text = clipboardData.getData('text/plain');
             document.execCommand('insertText', false, text);
@@ -620,14 +726,26 @@
     // --- FRIEND CHAT RICH CANVAS PASTE (STAGES IN THE BOX BEFORE SENDING) ---
     friendMsgInput.addEventListener('paste', async (e) => {
         const clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData) {
+            appendDiagnostic("Keyboard blocked clipboard access.", 'friend');
+            return;
+        }
+
         const items = clipboardData.items;
         let hasImage = false;
+        let detectedTypes = [];
         
         for (let i = 0; i < items.length; i++) {
+            detectedTypes.push(items[i].type);
             if (items[i].type.indexOf("image") !== -1) {
                 e.preventDefault();
                 hasImage = true;
                 const blob = items[i].getAsFile();
+
+                if (!blob) {
+                    appendDiagnostic(`Keyboard sent a <b>${items[i].type}</b> signal, but blocked browser access to the actual file. Use the 📷 button instead.`, 'friend');
+                    continue;
+                }
                 
                 if (blob.size > 10000000) { alert("This image is too large (Max 10MB)."); return; }
 
@@ -664,6 +782,13 @@
         }
         
         if (!hasImage) {
+             // Check if the keyboard tried to send something weird (not text)
+             if (detectedTypes.length > 0 && !detectedTypes.includes('text/plain')) {
+                appendDiagnostic(`Keyboard attempted to paste unsupported formats: <b>${detectedTypes.join(', ')}</b>. Use the 📷 button.`, 'friend');
+                e.preventDefault();
+                return;
+            }
+
             e.preventDefault();
             const text = clipboardData.getData('text/plain');
             document.execCommand('insertText', false, text);
