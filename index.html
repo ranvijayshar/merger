@@ -120,9 +120,16 @@
         .gif-results img { width: calc(33.33% - 3px); height: 85px; object-fit: cover; border-radius: 6px; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; background: #f1f5f9;}
         .gif-results img:hover { transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 2;}
 
-        input[type="text"] { flex-grow: 1; padding: 12px 18px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
-        input[type="text"]:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        input[type="text"]:disabled { background: #f1f5f9; cursor: not-allowed; border-color: #e2e8f0; color: #94a3b8;}
+        /* --- UPDATED: ContentEditable Chat Input for Mobile Keyboard Support --- */
+        .chat-input {
+            flex-grow: 1; padding: 12px 18px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+            max-height: 100px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.4;
+        }
+        .chat-input:empty:before {
+            content: attr(data-placeholder); color: #94a3b8; pointer-events: none; display: block;
+        }
+        .chat-input:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .chat-input[contenteditable="false"] { background: #f1f5f9; cursor: not-allowed; border-color: #e2e8f0; color: #94a3b8; opacity: 0.8;}
         
         button.action-btn { padding: 0 16px; height: 44px; border: none; background: #2563eb; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(37,99,235,0.2); }
         button.action-btn:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
@@ -358,8 +365,8 @@
                     <div class="gif-results" id="friend-gif-results"></div>
                 </div>
 
-                <input type="text" id="friend-msg-input" placeholder="Message connection..." autocomplete="off">
-                <button id="friend-send-btn" class="action-btn">
+                <div id="friend-msg-input" class="chat-input" contenteditable="false" data-placeholder="Message connection..."></div>
+                <button id="friend-send-btn" class="action-btn" disabled>
                     <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                 </button>
             </div>
@@ -426,7 +433,7 @@
                 <div class="gif-results" id="random-gif-results"></div>
             </div>
 
-            <input type="text" id="msg-input" placeholder="Type a message..." disabled autocomplete="off">
+            <div id="msg-input" class="chat-input" contenteditable="false" data-placeholder="Type a message..."></div>
             <button id="send-btn" class="action-btn" disabled>
                 <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
@@ -617,13 +624,19 @@
 
     // --- CUSTOM KEYBOARD PASTE INTERCEPTOR ---
     function handlePaste(e, sendFn) {
-        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        const clipboardData = e.clipboardData || window.clipboardData;
+        const items = clipboardData.items;
+        let hasImage = false;
+        
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf("image") !== -1) {
                 e.preventDefault();
+                hasImage = true;
                 const blob = items[i].getAsFile();
-                if (blob.size > 250000) { 
-                    alert("This image is too large! Please use the built-in GIF button.");
+                
+                // Firestore has a 1MB limit. 400KB base64 is safe.
+                if (blob.size > 400000) { 
+                    alert("This image is too large! Please use the built-in GIF button to save network data.");
                     return;
                 }
                 const reader = new FileReader();
@@ -632,15 +645,23 @@
                 return; 
             }
         }
+        
+        // If it's normal text, force plain text paste to avoid ugly HTML formatting
+        if (!hasImage) {
+            e.preventDefault();
+            const text = clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+        }
     }
 
     msgInput.addEventListener('paste', (e) => handlePaste(e, (base64) => {
-        msgInput.value = base64; sendMessage();
+        msgInput.innerText = base64; sendMessage();
     }));
 
     friendMsgInput.addEventListener('paste', (e) => handlePaste(e, (base64) => {
-        friendMsgInput.value = base64; sendFriendMessage();
+        friendMsgInput.innerText = base64; sendFriendMessage();
     }));
+
 
     // --- MESSAGE RENDERER LOGIC (Emojis & GIFs) ---
     function isEmojiOnly(str) {
@@ -712,7 +733,7 @@
         randomEmojiPicker.style.display = 'none';
         randomGifPicker.style.display = randomGifPicker.style.display === 'flex' ? 'none' : 'flex';
         if(randomGifPicker.style.display === 'flex' && randomGifResults.innerHTML === '') {
-            loadGIFs('', randomGifResults, (url) => { msgInput.value = url; sendMessage(); randomGifPicker.style.display = 'none'; });
+            loadGIFs('', randomGifResults, (url) => { msgInput.innerText = url; sendMessage(); randomGifPicker.style.display = 'none'; });
         }
     });
 
@@ -720,7 +741,7 @@
     randomGifSearch.addEventListener('input', (e) => {
         clearTimeout(randomGifTimeout);
         randomGifTimeout = setTimeout(() => {
-            loadGIFs(e.target.value, randomGifResults, (url) => { msgInput.value = url; sendMessage(); randomGifPicker.style.display = 'none'; });
+            loadGIFs(e.target.value, randomGifResults, (url) => { msgInput.innerText = url; sendMessage(); randomGifPicker.style.display = 'none'; });
         }, 500);
     });
 
@@ -728,7 +749,7 @@
         friendEmojiPicker.style.display = 'none';
         friendGifPicker.style.display = friendGifPicker.style.display === 'flex' ? 'none' : 'flex';
         if(friendGifPicker.style.display === 'flex' && friendGifResults.innerHTML === '') {
-            loadGIFs('', friendGifResults, (url) => { friendMsgInput.value = url; sendFriendMessage(); friendGifPicker.style.display = 'none'; });
+            loadGIFs('', friendGifResults, (url) => { friendMsgInput.innerText = url; sendFriendMessage(); friendGifPicker.style.display = 'none'; });
         }
     });
 
@@ -736,7 +757,7 @@
     friendGifSearch.addEventListener('input', (e) => {
         clearTimeout(friendGifTimeout);
         friendGifTimeout = setTimeout(() => {
-            loadGIFs(e.target.value, friendGifResults, (url) => { friendMsgInput.value = url; sendFriendMessage(); friendGifPicker.style.display = 'none'; });
+            loadGIFs(e.target.value, friendGifResults, (url) => { friendMsgInput.innerText = url; sendFriendMessage(); friendGifPicker.style.display = 'none'; });
         }, 500);
     });
 
@@ -778,6 +799,7 @@
                     newTotal = (docSnap.data().totalLikes || 0) + 1;
                 }
 
+                // SENDER SEES "LIKED!"
                 pulseLikeBtn.innerHTML = `<span>💚</span> <span style="font-size: 0.8em; font-weight: 800; color: #059669; margin-right: 8px;">Liked!</span>`;
                 pulseLikeBtn.classList.add('liked-state');
 
@@ -808,8 +830,8 @@
         if (!e.target.closest('#friend-gif-btn') && !e.target.closest('#friend-gif-picker')) friendGifPicker.style.display = 'none';
     });
 
-    randomEmojiPicker.addEventListener('emoji-click', event => { msgInput.value += event.detail.unicode; msgInput.focus(); });
-    friendEmojiPicker.addEventListener('emoji-click', event => { friendMsgInput.value += event.detail.unicode; friendMsgInput.focus(); });
+    randomEmojiPicker.addEventListener('emoji-click', event => { msgInput.innerText += event.detail.unicode; msgInput.focus(); });
+    friendEmojiPicker.addEventListener('emoji-click', event => { friendMsgInput.innerText += event.detail.unicode; friendMsgInput.focus(); });
 
     const screens = [
         { element: friendsScreen, tab: tabFriends, name: 'friends' },
@@ -966,6 +988,7 @@
         currentFriendRoomId = null;
         currentFriendId = null;
     });
+
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -1198,12 +1221,18 @@
     });
 
     friendSendBtn.addEventListener('click', sendFriendMessage);
-    friendMsgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendFriendMessage(); });
+    // UPDATED: Enter key logic for contenteditable
+    friendMsgInput.addEventListener('keydown', (e) => { 
+        if (e.key === 'Enter' && !e.shiftKey) { 
+            e.preventDefault();
+            sendFriendMessage(); 
+        } 
+    });
 
     async function sendFriendMessage() {
-        const text = friendMsgInput.value.trim();
+        const text = friendMsgInput.innerText.trim();
         if (!text || !currentFriendRoomId) return;
-        friendMsgInput.value = ''; friendEmojiPicker.style.display = 'none'; friendGifPicker.style.display = 'none'; 
+        friendMsgInput.innerText = ''; friendEmojiPicker.style.display = 'none'; friendGifPicker.style.display = 'none'; 
         
         await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
             friendMessages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }),
@@ -1226,7 +1255,7 @@
     }
 
     function resetChat() {
-        chatBox.innerHTML = ''; msgInput.disabled = true; sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
+        chatBox.innerHTML = ''; msgInput.setAttribute('contenteditable', 'false'); sendBtn.disabled = true; isChatting = false; displayedMessageCount = 0;
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Connect Request";
         
         hasLikedThisPersonInThisSession = false;
@@ -1248,6 +1277,7 @@
             const data = snapshot.data();
             if (!data) return;
 
+            // RECEIVER SEES ODOMETER
             if (data.likeGiven && !previousLikeGivenState) {
                 previousLikeGivenState = true;
                 roomLikeGiven = true;
@@ -1305,7 +1335,7 @@
             if (data.status === "chatting" && !isChatting) {
                 isChatting = true;
                 appendMessage("Connection established. Say hi! 👋", "system-msg");
-                msgInput.disabled = false; sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
+                msgInput.setAttribute('contenteditable', 'true'); sendBtn.disabled = false; msgInput.focus(); addFriendBtn.style.display = 'flex';
                 
                 currentStrangerId = strangerId;
                 if(currentStrangerId && !data.likeGiven) {
@@ -1316,7 +1346,7 @@
             }
             if (data.status === "closed" && isChatting) {
                 appendMessage("The other person has left the network.", "system-msg");
-                isChatting = false; msgInput.disabled = true; sendBtn.disabled = true; addFriendBtn.style.display = 'none';
+                isChatting = false; msgInput.setAttribute('contenteditable', 'false'); sendBtn.disabled = true; addFriendBtn.style.display = 'none';
                 likeStreamContainer.style.display = 'none'; 
                 appendMessage("⏬ Swipe or press ↓ to discover someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
@@ -1372,14 +1402,20 @@
     }
 
     async function sendMessage() {
-        const text = msgInput.value.trim();
+        const text = msgInput.innerText.trim();
         if (!text || !currentRoomId) return;
-        msgInput.value = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none'; 
+        msgInput.innerText = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none'; 
         appendMessage(text, "my-msg"); displayedMessageCount++; 
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
     }
     sendBtn.addEventListener('click', sendMessage);
-    msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    // UPDATED: Enter key logic for contenteditable
+    msgInput.addEventListener('keydown', (e) => { 
+        if (e.key === 'Enter' && !e.shiftKey) { 
+            e.preventDefault();
+            sendMessage(); 
+        } 
+    });
 
     function showConfirmModal() { isConfirming = true; confirmModal.style.display = 'flex'; }
     function hideConfirmModal() { isConfirming = false; confirmModal.style.display = 'none'; }
@@ -1414,7 +1450,8 @@
     window.addEventListener('wheel', (e) => { if (e.deltaY > 20) handleSkipIntent(e, true); });
 
     window.addEventListener('keydown', (e) => {
-        if (document.activeElement.tagName === 'INPUT' || isConfirming || settingsModal.style.display === 'flex') return;
+        if (document.activeElement.tagName === 'DIV' && document.activeElement.isContentEditable) return; // Prevent skip when typing
+        if (isConfirming || settingsModal.style.display === 'flex') return;
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); handleSkipIntent(e, false); }
         
         const currentIdx = screens.findIndex(s => s.element.style.display === 'flex');
