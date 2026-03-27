@@ -108,6 +108,7 @@
         .emoji-toggle-btn:hover { transform: scale(1.1); color: #64748b; }
         
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;}
+        /* Light Theme Emoji Picker */
         emoji-picker { --background: #ffffff; --border-color: #e2e8f0; --input-border-color: #cbd5e1; --button-hover-background: #f1f5f9; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
 
         input[type="text"] { flex-grow: 1; padding: 12px 18px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 25px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
@@ -149,46 +150,6 @@
         #notif-view-btn:hover { background: #dbeafe; }
         #notif-close-btn { background: none; border: none; color: #94a3b8; font-size: 1.5em; cursor: pointer; padding: 0 5px; line-height: 1; }
         #notif-close-btn:hover { color: #475569; }
-
-        /* --- 2-SECOND ADMIRED ANIMATION OVERLAY --- */
-        .admired-popup {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            padding: 15px 35px;
-            border-radius: 50px;
-            font-weight: 800;
-            font-size: 1.3em;
-            box-shadow: 0 10px 40px rgba(16, 185, 129, 0.5), inset 0 -3px 0 rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            z-index: 1000;
-            pointer-events: none; 
-            opacity: 0;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .admired-popup span { font-size: 1.4em; animation: pulseHeart 0.8s infinite; }
-        
-        @keyframes pulseHeart { 
-            0% { transform: scale(1); } 
-            50% { transform: scale(1.2); } 
-            100% { transform: scale(1); } 
-        }
-        
-        .admired-popup.animate { animation: admiredPop 2.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        
-        @keyframes admiredPop {
-            0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
-            15% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); opacity: 1; }
-            25% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; filter: brightness(1.2); }
-            80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
-            100% { transform: translate(-50%, -100%) scale(0.8); opacity: 0; }
-        }
 
         /* 3. Profile Screen */
         .profile-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; user-select: none; }
@@ -257,7 +218,48 @@
             overflow: hidden; font-size: 3.5em; font-weight: 800; background: #eff6ff; color: #2563eb;
         }
 
-        /* --- ADMIRE BUTTON --- */
+        /* --- LIKED ANIMATION OVERLAY --- */
+        .liked-popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 15px 35px;
+            border-radius: 50px;
+            font-weight: 800;
+            font-size: 1.1em;
+            box-shadow: 0 10px 40px rgba(16, 185, 129, 0.5), inset 0 -3px 0 rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            pointer-events: none; 
+            opacity: 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        .liked-popup span { font-size: 1.4em; animation: pulseHeart 0.8s infinite; }
+        
+        @keyframes pulseHeart { 
+            0% { transform: scale(1); } 
+            50% { transform: scale(1.2); } 
+            100% { transform: scale(1); } 
+        }
+        
+        .liked-popup.animate { animation: likedPop 2.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        @keyframes likedPop {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
+            15% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); opacity: 1; }
+            25% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; filter: brightness(1.2); }
+            80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
+            100% { transform: translate(-50%, -100%) scale(0.8); opacity: 0; }
+        }
+
+        /* --- LIKE BUTTON --- */
         #like-stream-container {
             position: absolute;
             top: 50%;
@@ -369,7 +371,7 @@
                 
                 <div style="background: #ecfdf5; padding: 12px 24px; border-radius: 20px; border: 1px solid #d1fae5; display: flex; align-items: center; gap: 10px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(16,185,129,0.05);">
                     <span style="font-size: 1.3em;">💚</span>
-                    <span id="fps-likes" style="font-weight: 800; font-size: 1.15em; color: #059669;">Admired by - 0</span>
+                    <span id="fps-likes" style="font-weight: 800; font-size: 1.15em; color: #059669;">Liked by - 0</span>
                 </div>
 
                 <button id="btn-block-friend" class="danger-btn" style="max-width: 200px;">Remove Connection</button>
@@ -403,7 +405,7 @@
             <button id="pulse-like-btn" title="Send a Like">💚</button>
         </div>
         
-        <div id="admired-popup" class="admired-popup"></div>
+        <div id="liked-popup" class="liked-popup"></div>
 
         <div class="controls">
             <button class="emoji-toggle-btn" id="random-emoji-btn">😀</button>
@@ -434,7 +436,7 @@
             
             <div style="background: #ecfdf5; padding: 12px 24px; border-radius: 20px; border: 1px solid #d1fae5; display: flex; align-items: center; gap: 10px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(16,185,129,0.05);">
                 <span style="font-size: 1.3em;">💚</span>
-                <span id="page-profile-likes" style="font-weight: 800; font-size: 1.15em; color: #059669;">Admired by - 0</span>
+                <span id="page-profile-likes" style="font-weight: 800; font-size: 1.15em; color: #059669;">Liked by - 0</span>
             </div>
         </div>
     </div>
@@ -568,7 +570,7 @@
     const pageProfileLikes = document.getElementById('page-profile-likes');
     let hasLikedThisPersonInThisSession = false;
     let roomLikeGiven = false; 
-    let previousLikeGivenState = false; // NEW: Track for the animation trigger
+    let previousLikeGivenState = false; 
     let currentStrangerId = null;
 
     // State Variables
@@ -619,28 +621,38 @@
         }, 5000);
     }
 
-    // --- ADMIRE PULSE LOGIC WITH ANIMATION OVERLAY ---
+    // --- LIKE PULSE LOGIC WITH DB SYNC ---
     pulseLikeBtn.addEventListener('click', async () => {
         if (!hasLikedThisPersonInThisSession && currentStrangerId && !roomLikeGiven) {
             
-            // 1. Trigger immediate local animation for sender
-            const admiredPopup = document.getElementById('admired-popup');
-            admiredPopup.innerHTML = "<span>💚</span> Admired by You!";
-            admiredPopup.classList.remove('animate');
-            void admiredPopup.offsetWidth;
-            admiredPopup.classList.add('animate');
-            
-            // 2. Set Locks
+            // Set local locks immediately
             hasLikedThisPersonInThisSession = true;
             roomLikeGiven = true; 
-            previousLikeGivenState = true; // Prevent DB listener from re-triggering for sender
+            previousLikeGivenState = true; // Stop sender from getting double animation
             
             likeStreamContainer.style.display = 'none';
 
-            // 3. Update Database
             try {
-                await updateDoc(doc(db, "rooms", currentRoomId), { likeGiven: true });
+                // Fetch the stranger's current total to show accurate number
                 const strangerRef = doc(db, "users", currentStrangerId);
+                const docSnap = await getDoc(strangerRef);
+                let newTotal = 1;
+                if(docSnap.exists()){
+                    newTotal = (docSnap.data().totalLikes || 0) + 1;
+                }
+
+                // 1. Show immediate animation for the Sender
+                const likedPopup = document.getElementById('liked-popup');
+                likedPopup.innerHTML = `<span>💚</span> Liked by You! (Total: ${newTotal})`;
+                likedPopup.classList.remove('animate');
+                void likedPopup.offsetWidth;
+                likedPopup.classList.add('animate');
+
+                // 2. Update Database
+                await updateDoc(doc(db, "rooms", currentRoomId), { 
+                    likeGiven: true,
+                    newLikeCount: newTotal 
+                });
                 await setDoc(strangerRef, { totalLikes: increment(1) }, { merge: true });
             } catch (e) { console.error("Error sending like:", e); }
         }
@@ -770,17 +782,17 @@
         else avatarContainer.innerHTML = currentFriendName.substring(0,1).toUpperCase();
         
         document.getElementById('fps-name').textContent = currentFriendName;
-        document.getElementById('fps-likes').textContent = "Admired by - ..."; 
+        document.getElementById('fps-likes').textContent = "Liked by - ..."; 
         
         if (currentFriendId) {
             getDoc(doc(db, "users", currentFriendId)).then(docSnap => {
                 if(docSnap.exists()){
-                    document.getElementById('fps-likes').textContent = "Admired by - " + (docSnap.data().totalLikes || 0);
+                    document.getElementById('fps-likes').textContent = "Liked by - " + (docSnap.data().totalLikes || 0);
                 } else {
-                    document.getElementById('fps-likes').textContent = "Admired by - 0";
+                    document.getElementById('fps-likes').textContent = "Liked by - 0";
                 }
             }).catch(e => {
-                document.getElementById('fps-likes').textContent = "Admired by - ?";
+                document.getElementById('fps-likes').textContent = "Liked by - ?";
             });
         }
     }
@@ -838,7 +850,7 @@
             unsubscribeMyUser = onSnapshot(userRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    pageProfileLikes.textContent = "Admired by - " + (data.totalLikes || 0);
+                    pageProfileLikes.textContent = "Liked by - " + (data.totalLikes || 0);
                 }
             });
             
@@ -1078,7 +1090,7 @@
         
         hasLikedThisPersonInThisSession = false;
         roomLikeGiven = false; 
-        previousLikeGivenState = false; // Reset listener lock
+        previousLikeGivenState = false; 
         currentStrangerId = null;
         likeStreamContainer.style.display = 'none';
 
@@ -1091,7 +1103,7 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // --- NEW: CATCH LIKE EVENT FOR RECEIVER ANIMATION ---
+            // --- CATCH LIKE EVENT FOR RECEIVER ANIMATION ---
             if (data.likeGiven && !previousLikeGivenState) {
                 previousLikeGivenState = true;
                 roomLikeGiven = true;
@@ -1099,15 +1111,16 @@
                 
                 // If I am NOT the one who clicked the button, show the receiver animation
                 if (isChatting && !hasLikedThisPersonInThisSession) {
-                    const admiredPopup = document.getElementById('admired-popup');
-                    admiredPopup.innerHTML = "<span>💚</span> Admired by Connection!";
-                    admiredPopup.classList.remove('animate');
-                    void admiredPopup.offsetWidth; // trigger reflow
-                    admiredPopup.classList.add('animate');
+                    const likedPopup = document.getElementById('liked-popup');
+                    let countText = data.newLikeCount ? ` (Total: ${data.newLikeCount})` : "";
+                    likedPopup.innerHTML = `<span>💚</span> Liked by Connection!${countText}`;
+                    likedPopup.classList.remove('animate');
+                    void likedPopup.offsetWidth; 
+                    likedPopup.classList.add('animate');
                 }
             }
 
-            // Set Initial Locks (e.g., joining a room that already has a like)
+            // Sync initial lock state if joining late
             if (data.likeGiven) {
                 roomLikeGiven = true;
                 previousLikeGivenState = true;
