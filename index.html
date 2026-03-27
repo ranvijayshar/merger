@@ -417,7 +417,6 @@
 
         <div id="music-sync-container">
             <button id="listen-together-btn" title="Start Listen Together" class="music-btn-idle">🎵</button>
-            <input type="file" id="audio-file-input" accept="audio/*" style="display: none;">
             <audio id="local-audio-player" style="display: none;"></audio>
             <audio id="remote-audio-player" autoplay style="display: none;"></audio>
         </div>
@@ -1437,25 +1436,26 @@
         }
     }
 
-    // --- UI Listeners for WebRTC ---
     listenTogetherBtn.addEventListener('click', async () => {
-        if (!currentRoomId || !isChatting) return;
+    if (!currentRoomId || !isChatting) return;
 
-        const roomDoc = await getDoc(doc(db, "rooms", currentRoomId));
-        const data = roomDoc.data();
+    const roomDoc = await getDoc(doc(db, "rooms", currentRoomId));
+    const data = roomDoc.data();
 
-        if (data.webrtcOffer && data.broadcasterId !== myUserId) {
-            // Join broadcast
-            if (!isListening) joinWebRTCBroadcast(data);
-        } else if (!isBroadcasting) {
-            // Start broadcast (triggers file input)
-            audioFileInput.click();
-        } else {
-            // Stop broadcast
-            stopWebRTCBroadcast();
-            appendMessage("⏹️ You stopped the broadcast.", "system-msg");
-        }
-    });
+    if (data.webrtcOffer && data.broadcasterId !== myUserId) {
+        // Join broadcast
+        if (!isListening) joinWebRTCBroadcast(data);
+    } else if (!isBroadcasting) {
+        // Start broadcast (Triggers the browser's "Share Screen/Tab" prompt)
+        startWebRTCBroadcast();
+    } else {
+        // Stop broadcast
+        stopWebRTCBroadcast();
+        appendMessage("⏹️ You stopped the broadcast.", "system-msg");
+    }
+});
+
+// Delete the old audioFileInput.addEventListener entirely.
 
     audioFileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
