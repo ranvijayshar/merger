@@ -245,6 +245,42 @@
         .scroll-track { display: block; transform: translateY(0); transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .scroll-track.scrolled { transform: translateY(-1.2em); }
         .scroll-track > span { display: block; height: 1.2em; line-height: 1.2em; text-align: center; }
+
+        /* --- WEBRTC LISTEN TOGETHER STYLES --- */
+        #music-sync-container {
+            position: absolute; top: calc(50% + 60px); transform: translateY(-50%); right: 15px; z-index: 100; display: none; align-items: center;
+        }
+        #listen-together-btn {
+            background: #ffffff; border-radius: 24px; width: 48px; height: 48px; border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.3s ease;
+            font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center;
+            outline: none;
+        }
+        #listen-together-btn:hover { transform: scale(1.05); }
+
+        .music-btn-idle { color: #2563eb; }
+        .music-btn-idle:hover { border-color: #2563eb; background: #eff6ff; }
+        
+        .music-btn-active { 
+            background: #2563eb !important; color: white !important; border-color: #1d4ed8 !important;
+            animation: musicPulse 2s infinite; 
+        }
+        .music-btn-ready-to-join { 
+            background: #10b981 !important; color: white !important; border-color: #059669 !important;
+            animation: musicPulseJoin 2s infinite; 
+        }
+
+        @keyframes musicPulse {
+            0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
+            70% { box-shadow: 0 0 0 15px rgba(37, 99, 235, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+        @keyframes musicPulseJoin {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+            70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
     </style>
 </head>
 <body>
@@ -377,6 +413,13 @@
 
         <div id="like-stream-container" style="display: none;">
             <button id="pulse-like-btn" title="Send a Like">💚</button>
+        </div>
+
+        <div id="music-sync-container">
+            <button id="listen-together-btn" title="Start Listen Together" class="music-btn-idle">🎵</button>
+            <input type="file" id="audio-file-input" accept="audio/*" style="display: none;">
+            <audio id="local-audio-player" style="display: none;"></audio>
+            <audio id="remote-audio-player" autoplay style="display: none;"></audio>
         </div>
 
         <div class="controls">
@@ -550,6 +593,21 @@
     const notifViewBtn = document.getElementById('notif-view-btn');
     const notifCloseBtn = document.getElementById('notif-close-btn');
 
+    /* --- WEBRTC GLOBALS --- */
+    const musicSyncContainer = document.getElementById('music-sync-container');
+    const listenTogetherBtn = document.getElementById('listen-together-btn');
+    const audioFileInput = document.getElementById('audio-file-input');
+    const localAudioPlayer = document.getElementById('local-audio-player');
+    const remoteAudioPlayer = document.getElementById('remote-audio-player');
+    
+    let peerConnection = null;
+    let localStream = null;
+    let isBroadcasting = false;
+    let isListening = false;
+    let processedCandidates = new Set();
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    /* ---------------------- */
+
     let notifiedRequestIds = new Set();
     let initialFriendsLoad = true;
     let notifTimeout;
@@ -717,7 +775,6 @@
             });
         }, 500);
     });
-
 
     function showNotificationBanner(strangerName, strangerPhoto) {
         notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" stylewidth:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
@@ -950,7 +1007,6 @@
         currentFriendRoomId = null;
         currentFriendId = null;
     });
-
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -1249,6 +1305,138 @@
         chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
     }
 
+    // --- WEBRTC CORE FUNCTIONS ---
+    async function startWebRTCBroadcast(file) {
+        isBroadcasting = true;
+        
+        // 1. Play local audio
+        const fileURL = URL.createObjectURL(file);
+        localAudioPlayer.src = fileURL;
+        await localAudioPlayer.play();
+        
+        // 2. Capture Stream
+        localStream = localAudioPlayer.captureStream ? localAudioPlayer.captureStream() : localAudioPlayer.mozCaptureStream();
+        
+        // 3. Setup Peer Connection
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        
+        // 4. Handle ICE Candidates
+        peerConnection.onicecandidate = async (e) => {
+            if (e.candidate && currentRoomId) {
+                await updateDoc(doc(db, "rooms", currentRoomId), {
+                    callerCandidates: arrayUnion(e.candidate.toJSON())
+                });
+            }
+        };
+
+        // 5. Create Offer and send via Firestore
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        
+        await updateDoc(doc(db, "rooms", currentRoomId), {
+            webrtcOffer: { type: offer.type, sdp: offer.sdp },
+            broadcasterId: myUserId,
+            callerCandidates: [],
+            calleeCandidates: [],
+            webrtcAnswer: null
+        });
+
+        listenTogetherBtn.classList.remove('music-btn-idle');
+        listenTogetherBtn.classList.add('music-btn-active');
+        listenTogetherBtn.title = "Stop Broadcast";
+        appendMessage("🎵 You are now broadcasting audio.", "system-msg");
+    }
+
+    async function joinWebRTCBroadcast(roomData) {
+        isListening = true;
+        listenTogetherBtn.classList.remove('music-btn-ready-to-join');
+        listenTogetherBtn.classList.add('music-btn-active');
+        
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        
+        // 1. Receive incoming tracks
+        peerConnection.ontrack = (e) => {
+            remoteAudioPlayer.srcObject = e.streams[0];
+            appendMessage("🎧 You are now listening to the broadcast!", "system-msg");
+        };
+
+        // 2. Handle ICE Candidates
+        peerConnection.onicecandidate = async (e) => {
+            if (e.candidate && currentRoomId) {
+                await updateDoc(doc(db, "rooms", currentRoomId), {
+                    calleeCandidates: arrayUnion(e.candidate.toJSON())
+                });
+            }
+        };
+
+        // 3. Set Remote Offer, Create Answer, and send via Firestore
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(roomData.webrtcOffer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        
+        await updateDoc(doc(db, "rooms", currentRoomId), {
+            webrtcAnswer: { type: answer.type, sdp: answer.sdp }
+        });
+    }
+
+    async function stopWebRTCBroadcast() {
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
+        if (localStream) {
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null;
+        }
+        localAudioPlayer.pause();
+        localAudioPlayer.src = "";
+        remoteAudioPlayer.srcObject = null;
+        
+        isBroadcasting = false;
+        isListening = false;
+        processedCandidates.clear();
+        
+        listenTogetherBtn.className = "music-btn-idle";
+        listenTogetherBtn.title = "Start Listen Together";
+
+        if (currentRoomId) {
+            try {
+                await updateDoc(doc(db, "rooms", currentRoomId), {
+                    webrtcOffer: null, webrtcAnswer: null, broadcasterId: null
+                });
+            } catch(e){}
+        }
+    }
+
+    // --- UI Listeners for WebRTC ---
+    listenTogetherBtn.addEventListener('click', async () => {
+        if (!currentRoomId || !isChatting) return;
+
+        const roomDoc = await getDoc(doc(db, "rooms", currentRoomId));
+        const data = roomDoc.data();
+
+        if (data.webrtcOffer && data.broadcasterId !== myUserId) {
+            // Join broadcast
+            if (!isListening) joinWebRTCBroadcast(data);
+        } else if (!isBroadcasting) {
+            // Start broadcast (triggers file input)
+            audioFileInput.click();
+        } else {
+            // Stop broadcast
+            stopWebRTCBroadcast();
+            appendMessage("⏹️ You stopped the broadcast.", "system-msg");
+        }
+    });
+
+    audioFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        startWebRTCBroadcast(file);
+        audioFileInput.value = ""; // Reset for next time
+    });
+
+
     function resetChat() {
         chatBox.innerHTML = ''; 
         msgInput.classList.add('disabled-input'); 
@@ -1268,6 +1456,10 @@
         likeStreamContainer.style.display = 'none';
         pulseLikeBtn.classList.remove('liked-state');
         pulseLikeBtn.innerHTML = '💚';
+
+        // WEBRTC RESET
+        stopWebRTCBroadcast();
+        musicSyncContainer.style.display = 'none';
 
         if (unsubscribeRoom) unsubscribeRoom(); currentRoomId = null;
     }
@@ -1347,6 +1539,8 @@
                 analyzeBtn.style.display = 'flex';
                 analyzeBtn.disabled = false;
                 analyzeBtn.style.opacity = '1';
+
+                musicSyncContainer.style.display = 'flex'; // Show listen together button
                 
                 currentStrangerId = strangerId;
                 if(currentStrangerId && !data.likeGiven) {
@@ -1355,6 +1549,52 @@
                     likeStreamContainer.style.display = 'none';
                 }
             }
+            
+            // --- WEBRTC SIGNALING HANDLERS ---
+            if (isChatting) {
+                // Broadcaster receives Answer
+                if (data.webrtcAnswer && isBroadcasting && peerConnection && !peerConnection.currentRemoteDescription) {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.webrtcAnswer)).catch(console.error);
+                }
+
+                // Listener sees Offer
+                if (data.webrtcOffer && data.broadcasterId !== myUserId) {
+                    if (!isListening && !peerConnection) {
+                        listenTogetherBtn.classList.add('music-btn-ready-to-join');
+                        listenTogetherBtn.title = "Join Audio Broadcast";
+                    }
+                }
+
+                // Listener sees broadcast stopped
+                if (!data.webrtcOffer && isListening) {
+                    stopWebRTCBroadcast();
+                    appendMessage("⏹️ Broadcaster stopped the audio.", "system-msg");
+                }
+
+                // Process ICE candidates for Broadcaster
+                if (isBroadcasting && data.calleeCandidates && peerConnection) {
+                    data.calleeCandidates.forEach(async candidate => {
+                        const candidateString = JSON.stringify(candidate);
+                        if (!processedCandidates.has(candidateString)) {
+                            processedCandidates.add(candidateString);
+                            try { await peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e){}
+                        }
+                    });
+                }
+
+                // Process ICE candidates for Listener
+                if (isListening && data.callerCandidates && peerConnection) {
+                     data.callerCandidates.forEach(async candidate => {
+                        const candidateString = JSON.stringify(candidate);
+                        if (!processedCandidates.has(candidateString)) {
+                            processedCandidates.add(candidateString);
+                            try { await peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e){}
+                        }
+                    });
+                }
+            }
+            // ---------------------------------
+
             if (data.status === "closed" && isChatting) {
                 appendMessage("The other person has left the network.", "system-msg");
                 isChatting = false; 
@@ -1363,6 +1603,10 @@
                 sendBtn.disabled = true; addFriendBtn.style.display = 'none';
                 analyzeBtn.style.display = 'none'; // 🧠 Hide analyze button
                 likeStreamContainer.style.display = 'none'; 
+                
+                stopWebRTCBroadcast();
+                musicSyncContainer.style.display = 'none';
+
                 appendMessage("⏬ Swipe or press ↓ to discover someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
             }
