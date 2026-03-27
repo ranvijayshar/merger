@@ -112,7 +112,7 @@
         .emoji-picker-container { position: absolute; bottom: 60px; left: 0; display: none; z-index: 100; animation: popIn 0.2s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;}
         emoji-picker { --background: #ffffff; --border-color: #e2e8f0; --input-border-color: #cbd5e1; --button-hover-background: #f1f5f9; --emoji-font-family: 'Noto Color Emoji', sans-serif; height: 350px; width: 100%;}
 
-        /* ContentEditable Chat Input */
+        /* ContentEditable Chat Input (Stranger Chat) */
         .chat-input {
             flex-grow: 1; padding: 12px 18px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; border-radius: 22px; outline: none; font-size: 0.95em; transition: all 0.3s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
             max-height: 100px; min-height: 44px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.4;
@@ -120,6 +120,20 @@
         .chat-input:empty:before { content: attr(data-placeholder); color: #94a3b8; pointer-events: none; display: block; }
         .chat-input:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
         .disabled-input { background: #f1f5f9 !important; cursor: not-allowed !important; border-color: #e2e8f0 !important; color: #94a3b8 !important; opacity: 0.8; }
+        
+        /* Rich Canvas Input (Friend Chat) */
+        #friend-msg-input {
+            max-height: 150px; 
+            min-height: 44px;
+        }
+        #friend-msg-input img {
+            max-height: 80px;
+            border-radius: 8px;
+            vertical-align: middle;
+            margin: 2px 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: default;
+        }
         
         button.action-btn { padding: 0 16px; height: 44px; border: none; background: #2563eb; color: white; border-radius: 25px; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(37,99,235,0.2); flex-shrink: 0;}
         button.action-btn:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
@@ -555,8 +569,8 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
-    // --- CUSTOM KEYBOARD PASTE INTERCEPTOR (FOR FIREBASE STORAGE IMAGES/GIFS) ---
-    async function handlePaste(e, sendFn) {
+    // --- STRANGER CHAT QUICK-PASTE (AUTO SENDS) ---
+    msgInput.addEventListener('paste', async (e) => {
         const clipboardData = e.clipboardData || window.clipboardData;
         const items = clipboardData.items;
         let hasImage = false;
@@ -567,38 +581,30 @@
                 hasImage = true;
                 const blob = items[i].getAsFile();
                 
-                if (blob.size > 10000000) { 
-                    alert("This image is too large (Max 10MB).");
-                    return;
-                }
+                if (blob.size > 10000000) { alert("This image is too large (Max 10MB)."); return; }
 
-                const targetInput = e.currentTarget;
-                const originalContent = targetInput.innerHTML;
-                
-                // Give user immediate feedback that the media was caught and is uploading
-                targetInput.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size: 0.9em; user-select: none;">Uploading Image...</span>';
-                targetInput.setAttribute('contenteditable', 'false'); 
+                const originalContent = msgInput.innerHTML;
+                msgInput.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size: 0.9em; user-select: none;">Uploading Image...</span>';
+                msgInput.setAttribute('contenteditable', 'false'); 
 
                 try {
-                    // 1. Create a unique file name in Firebase Storage
                     const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
                     const storageRef = ref(storage, fileName);
-                    
-                    // 2. Upload the raw blob
                     await uploadBytes(storageRef, blob);
-                    
-                    // 3. Get the public URL
                     const downloadURL = await getDownloadURL(storageRef);
                     
-                    // 4. Restore input state and Send the URL to your chat
-                    targetInput.innerHTML = '';
-                    targetInput.setAttribute('contenteditable', 'true');
-                    sendFn(downloadURL);
+                    msgInput.innerHTML = '';
+                    msgInput.setAttribute('contenteditable', 'true');
+                    
+                    if (currentRoomId) {
+                        appendMessage(downloadURL, "my-msg"); displayedMessageCount++; 
+                        await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: downloadURL, senderId: myUserId, timestamp: Date.now() }) });
+                    }
                 } catch (error) {
                     console.error("Upload failed:", error);
                     alert("Failed to send image. Please try again.");
-                    targetInput.innerHTML = originalContent;
-                    targetInput.setAttribute('contenteditable', 'true');
+                    msgInput.innerHTML = originalContent;
+                    msgInput.setAttribute('contenteditable', 'true');
                 }
                 return; 
             }
@@ -609,24 +615,60 @@
             const text = clipboardData.getData('text/plain');
             document.execCommand('insertText', false, text);
         }
-    }
+    });
 
-    msgInput.addEventListener('paste', (e) => handlePaste(e, async (base64) => {
-        if (!currentRoomId) return;
-        msgInput.innerHTML = ''; randomEmojiPicker.style.display = 'none'; 
-        appendMessage(base64, "my-msg"); displayedMessageCount++; 
-        await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: base64, senderId: myUserId, timestamp: Date.now() }) });
-    }));
+    // --- FRIEND CHAT RICH CANVAS PASTE (STAGES IN THE BOX BEFORE SENDING) ---
+    friendMsgInput.addEventListener('paste', async (e) => {
+        const clipboardData = e.clipboardData || window.clipboardData;
+        const items = clipboardData.items;
+        let hasImage = false;
+        
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                e.preventDefault();
+                hasImage = true;
+                const blob = items[i].getAsFile();
+                
+                if (blob.size > 10000000) { alert("This image is too large (Max 10MB)."); return; }
 
-    friendMsgInput.addEventListener('paste', (e) => handlePaste(e, async (base64) => {
-        if (!currentFriendRoomId) return;
-        friendMsgInput.innerHTML = ''; friendEmojiPicker.style.display = 'none'; 
-        await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
-            friendMessages: arrayUnion({ text: base64, senderId: myUserId, timestamp: Date.now() }),
-            [`lastRead.${myUserId}`]: Date.now() 
-        });
-    }));
+                // Inject a placeholder exactly where the user's cursor is
+                const placeholderId = "upload_" + Date.now();
+                const placeholderHtml = `<span id="${placeholderId}" class="uploading-placeholder" style="color:#94a3b8; font-style:italic; font-size: 0.9em; padding: 4px; background: #f1f5f9; border-radius: 4px; display:inline-block; margin:2px;">Uploading...</span>&nbsp;`;
+                document.execCommand("insertHTML", false, placeholderHtml);
 
+                try {
+                    const fileName = `chat_media/${Date.now()}_${Math.random().toString(36).substring(7)}`;
+                    const storageRef = ref(storage, fileName);
+                    
+                    await uploadBytes(storageRef, blob);
+                    const downloadURL = await getDownloadURL(storageRef);
+                    
+                    // Replace placeholder with the live image thumbnail inside the input box
+                    const imgHtml = `<img src="${downloadURL}" alt="Pasted Image">&nbsp;`;
+                    
+                    const placeholderEl = document.getElementById(placeholderId);
+                    if (placeholderEl) {
+                        placeholderEl.outerHTML = imgHtml;
+                    } else {
+                        // Fallback if user accidentally deleted the span while it was uploading
+                        document.execCommand("insertHTML", false, imgHtml);
+                    }
+                } catch (error) {
+                    console.error("Upload failed:", error);
+                    const placeholderEl = document.getElementById(placeholderId);
+                    if(placeholderEl) placeholderEl.remove();
+                    alert("Failed to upload image.");
+                }
+                return; 
+            }
+        }
+        
+        if (!hasImage) {
+            e.preventDefault();
+            const text = clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+        }
+    });
 
     // --- MESSAGE RENDERER LOGIC (Emojis & Images) ---
     function isEmojiOnly(str) {
@@ -732,8 +774,15 @@
         if (!e.target.closest('#friend-emoji-btn') && !e.target.closest('#friend-emoji-picker')) friendEmojiPicker.style.display = 'none';
     });
 
-    randomEmojiPicker.addEventListener('emoji-click', event => { msgInput.innerText += event.detail.unicode; msgInput.focus(); });
-    friendEmojiPicker.addEventListener('emoji-click', event => { friendMsgInput.innerText += event.detail.unicode; friendMsgInput.focus(); });
+    // Safely insert emojis without destroying existing image previews in the canvas
+    randomEmojiPicker.addEventListener('emoji-click', event => { 
+        msgInput.focus();
+        document.execCommand('insertText', false, event.detail.unicode); 
+    });
+    friendEmojiPicker.addEventListener('emoji-click', event => { 
+        friendMsgInput.focus();
+        document.execCommand('insertText', false, event.detail.unicode); 
+    });
 
     const screens = [
         { element: friendsScreen, tab: tabFriends, name: 'friends' },
@@ -1131,6 +1180,48 @@
         friendSendBtn.disabled = true;
     });
 
+    // --- FRIEND CHAT SEND (PARSES THE RICH CANVAS) ---
+    async function sendFriendMessage() {
+        if (!currentFriendRoomId) return;
+
+        // Clone the input container to analyze its mixed content
+        const container = friendMsgInput.cloneNode(true);
+        const images = Array.from(container.querySelectorAll('img')).map(img => img.src);
+        
+        // Remove visuals from clone to extract only the text
+        container.querySelectorAll('img').forEach(img => img.remove());
+        container.querySelectorAll('.uploading-placeholder').forEach(el => el.remove());
+        
+        const textContent = container.innerText.trim();
+        
+        if (!textContent && images.length === 0) return;
+
+        // Instantly clear out the UI so it feels snappy
+        friendMsgInput.innerHTML = ''; 
+        friendEmojiPicker.style.display = 'none'; 
+        friendSendBtn.disabled = true; // Prevent double sending
+
+        // 1. Send Text if any
+        if (textContent) {
+            await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
+                friendMessages: arrayUnion({ text: textContent, senderId: myUserId, timestamp: Date.now() }),
+                [`lastRead.${myUserId}`]: Date.now() 
+            });
+        }
+
+        // 2. Send Images sequentially
+        for (let imgUrl of images) {
+            await new Promise(resolve => setTimeout(resolve, 100)); // order preservation pause
+            await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
+                friendMessages: arrayUnion({ text: imgUrl, senderId: myUserId, timestamp: Date.now() }),
+                [`lastRead.${myUserId}`]: Date.now() 
+            });
+        }
+        
+        friendSendBtn.disabled = false;
+        friendMsgInput.focus();
+    }
+
     friendSendBtn.addEventListener('click', sendFriendMessage);
     friendMsgInput.addEventListener('keydown', (e) => { 
         if (e.key === 'Enter' && !e.shiftKey) { 
@@ -1139,16 +1230,6 @@
         } 
     });
 
-    async function sendFriendMessage() {
-        const text = friendMsgInput.innerText.trim();
-        if (!text || !currentFriendRoomId) return;
-        friendMsgInput.innerHTML = ''; friendEmojiPicker.style.display = 'none'; 
-        
-        await updateDoc(doc(db, "rooms", currentFriendRoomId), { 
-            friendMessages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }),
-            [`lastRead.${myUserId}`]: Date.now() 
-        });
-    }
 
     function appendMessage(text, type) {
         if (type === "system-msg") {
