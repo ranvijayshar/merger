@@ -633,41 +633,110 @@
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
     // --- SPOTIFY AUTHENTICATION LOGIC ---
-    function checkSpotifyAuth() {
-        const hash = window.location.hash.substring(1);
-        const params = new URLSearchParams(hash);
-        if (params.has('access_token')) {
-            spotifyAccessToken = params.get('access_token');
-            window.location.hash = ''; // Clean the URL
+    // --- SPOTIFY AUTHENTICATION LOGIC (PKCE Authorization Code Flow) ---
+    
+    // 1. PKCE Helper Functions for Frontend Security
+    function generateRandomString(length) {
+        let text = '';
+        let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < length; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
+    }
+
+    async function generateCodeChallenge(codeVerifier) {
+        const data = new TextEncoder().encode(codeVerifier);
+        const digest = await window.crypto.subtle.digest('SHA-256', data);
+        return btoa(String.fromCharCode.apply(null, [...new Uint8Array(digest)]))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+    }
+
+    // 2. Handle the returning code from Spotify
+    async function checkSpotifyAuth() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        
+        if (code) {
+            const codeVerifier = localStorage.getItem('spotify_code_verifier');
             
-            // Update UI
-            connectSpotifyBtn.style.display = 'none';
-            spotifyStatus.style.display = 'block';
-            
-            // Show the profile screen to the user so they know it worked
-            screens.forEach(s => s.element.style.display = 'none');
-            screens.forEach(s => s.tab.classList.remove('active'));
-            profileScreen.style.display = 'flex';
-            tabProfile.classList.add('active');
+            try {
+                // Exchange the code for an Access Token
+                const response = await fetch('https://accounts.spotify.com/api/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        client_id: SPOTIFY_CLIENT_ID,
+                        grant_type: 'authorization_code',
+                        code: code,
+                        redirect_uri: SPOTIFY_REDIRECT_URI,
+                        code_verifier: codeVerifier,
+                    }),
+                });
+
+                const data = await response.json();
+                
+                if (data.access_token) {
+                    spotifyAccessToken = data.access_token;
+                    
+                    // Clean up the URL so it looks nice
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    
+                    // Update UI
+                    connectSpotifyBtn.style.display = 'none';
+                    spotifyStatus.style.display = 'block';
+                    
+                    // Force the profile screen to show so the user sees the success
+                    screens.forEach(s => s.element.style.display = 'none');
+                    screens.forEach(s => s.tab.classList.remove('active'));
+                    profileScreen.style.display = 'flex';
+                    tabProfile.classList.add('active');
+                } else {
+                    console.error('Spotify Auth Error:', data);
+                    alert("Failed to get token from Spotify.");
+                }
+            } catch (error) {
+                console.error('Error exchanging code for token:', error);
+            }
         }
     }
     
-    connectSpotifyBtn.addEventListener('click', () => {
+    // 3. The Login Button Click
+    connectSpotifyBtn.addEventListener('click', async () => {
         if(SPOTIFY_CLIENT_ID === 'YOUR_SPOTIFY_CLIENT_ID_HERE') {
             alert("Developer: Please enter your Spotify Client ID in the code first.");
             return;
         }
+
+        // Generate and store the verifier
+        const codeVerifier = generateRandomString(128);
+        window.localStorage.setItem('spotify_code_verifier', codeVerifier);
+        const codeChallenge = await generateCodeChallenge(codeVerifier);
+
         const scopes = [
             'user-read-currently-playing', 
             'user-modify-playback-state',
             'user-read-playback-state'
         ].join(' ');
         
-        const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}`;
-        window.location.href = authUrl;
+        const params = new URLSearchParams({
+            response_type: 'code', // As requested by Spotify
+            client_id: SPOTIFY_CLIENT_ID,
+            scope: scopes,
+            redirect_uri: SPOTIFY_REDIRECT_URI,
+            code_challenge_method: 'S256',
+            code_challenge: codeChallenge
+        });
+
+        // Redirect to Spotify Login
+        window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
     });
 
     checkSpotifyAuth(); // Run on page load
+    // -------------------------------------------------------------------
+    
     // ------------------------------------
 
     // --- PASTE HANDLER (TEXT ONLY) ---
