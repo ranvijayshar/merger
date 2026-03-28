@@ -717,9 +717,6 @@
     let isConfirming = false; 
     let displayedMessageCount = 0; 
     
-    window.lastTruthPromptIndex = -1; 
-    window.lastAnsweredTruthIdx = -1;
-    
     let myUserId = null; 
     let myUserName = "Unknown User";
     let myUserPhoto = "";
@@ -940,6 +937,7 @@
                 msgInput.innerHTML = ''; randomGifPicker.style.display = 'none'; 
                 appendMessage(url, "my-msg"); displayedMessageCount++; 
                 await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }) });
+                floatTruthBtn.classList.add('truth-expanded-state'); // Expand Truth Button
             });
         }
     });
@@ -953,6 +951,7 @@
                 msgInput.innerHTML = ''; randomGifPicker.style.display = 'none'; 
                 appendMessage(url, "my-msg"); displayedMessageCount++; 
                 await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: url, senderId: myUserId, timestamp: Date.now() }) });
+                floatTruthBtn.classList.add('truth-expanded-state'); // Expand Truth Button
             });
         }, 500);
     });
@@ -1164,10 +1163,6 @@
     // --- TRUTH MODAL EVENT LISTENERS ---
     floatTruthBtn.addEventListener('click', () => {
         if (!currentRoomId || !isChatting) return;
-        
-        // Collapse the button if it was expanded
-        floatTruthBtn.classList.remove('truth-expanded-state');
-        
         truthModal.style.display = 'flex';
     });
 
@@ -1609,9 +1604,6 @@
         isChatting = false; 
         displayedMessageCount = 0;
         
-        window.lastTruthPromptIndex = -1;
-        window.lastAnsweredTruthIdx = -1;
-
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Connect Request";
         analyzeBtn.style.display = 'none';
         
@@ -1657,6 +1649,9 @@
                         truthModal.style.display = 'none'; 
                         truthStateInitial.style.display = 'block';
                         truthStateOptions.style.display = 'none';
+                        
+                        // Collapse the button once I ask a question
+                        floatTruthBtn.classList.remove('truth-expanded-state');
 
                         await updateDoc(doc(db, "rooms", currentRoomId), { 
                             messages: arrayUnion({ text: "🎭 Truth: " + question, senderId: myUserId, timestamp: Date.now() }),
@@ -1745,7 +1740,7 @@
                 analyzeBtn.style.opacity = '1';
 
                 musicSyncContainer.style.display = 'flex'; 
-                truthGameContainer.style.display = 'flex'; // Show Floating Truth Button
+                truthGameContainer.style.display = 'flex'; 
                 
                 currentStrangerId = strangerId;
                 if(currentStrangerId && !data.likeGiven) {
@@ -1828,38 +1823,22 @@
                     }
                 });
 
-                // --- SMART TURN DETECTION (ANIMATED TRUTH BUTTON) ---
+                // --- ULTRA-SIMPLE TRUTH BUTTON LOGIC ---
                 if (data.messages.length > 0) {
-                    const lastTruthIdx = data.messages.findLastIndex(m => m.text.startsWith("🎭 Truth:"));
-                    
-                    if (lastTruthIdx !== -1) {
-                        const truthMsg = data.messages[lastTruthIdx];
-                        const messagesAfterTruth = data.messages.slice(lastTruthIdx + 1);
-                        
-                        const strangerAsked = truthMsg.senderId !== myUserId;
-                        const iAsked = truthMsg.senderId === myUserId;
-                        
-                        const iAnswered = messagesAfterTruth.some(m => m.senderId === myUserId);
-                        const strangerAnswered = messagesAfterTruth.some(m => m.senderId !== myUserId);
+                    const lastMsg = data.messages[data.messages.length - 1];
+                    const isMe = lastMsg.senderId === myUserId;
+                    const isTruth = lastMsg.text && lastMsg.text.startsWith("🎭 Truth:");
 
-                        // If the stranger asked a Truth question, and I have answered it: Expand my button!
-                        if (strangerAsked && iAnswered && window.lastAnsweredTruthIdx !== lastTruthIdx) {
-                            window.lastAnsweredTruthIdx = lastTruthIdx;
-                            floatTruthBtn.classList.add('truth-expanded-state');
-                        } 
-                        else if (!strangerAsked || !iAnswered) {
-                            // Failsafe to ensure it collapses if conditions aren't met
-                            floatTruthBtn.classList.remove('truth-expanded-state');
-                        }
-
-                        // If I asked, and the stranger answered: Show system text only once
-                        if (iAsked && strangerAnswered && window.lastTruthPromptIndex !== lastTruthIdx) {
-                            window.lastTruthPromptIndex = lastTruthIdx;
-                            appendMessage("They answered! Waiting for them to ask a question...", "system-msg");
-                        }
+                    // If I sent the last message, and it wasn't a Truth question, expand the button!
+                    if (isMe && !isTruth) {
+                        floatTruthBtn.classList.add('truth-expanded-state');
+                    } 
+                    // If I just sent a Truth question, collapse it!
+                    else if (isMe && isTruth) {
+                        floatTruthBtn.classList.remove('truth-expanded-state');
                     }
                 }
-                // ------------------------------------
+                // ---------------------------------------
 
                 displayedMessageCount = data.messages.length;
             }
@@ -1911,7 +1890,11 @@ async function findStranger() {
         if (!text || !currentRoomId) return;
         msgInput.innerHTML = ''; randomEmojiPicker.style.display = 'none'; randomGifPicker.style.display = 'none';
         appendMessage(text, "my-msg"); displayedMessageCount++; 
+        
         await updateDoc(doc(db, "rooms", currentRoomId), { messages: arrayUnion({ text: text, senderId: myUserId, timestamp: Date.now() }) });
+        
+        // Expand truth button after sending a regular text message!
+        floatTruthBtn.classList.add('truth-expanded-state');
     }
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keydown', (e) => { 
