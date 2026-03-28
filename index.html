@@ -275,12 +275,40 @@
         }
         #float-truth-btn {
             background: #ffffff; border-radius: 24px; width: 48px; height: 48px; border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center;
-            outline: none; color: #1e293b;
+            outline: none; color: #1e293b; overflow: hidden; white-space: nowrap; padding: 0 10px;
         }
         #float-truth-btn:hover { transform: scale(1.05); border-color: #2563eb; background: #eff6ff;}
 
+        /* Expanded Animation State */
+        #float-truth-btn.truth-expanded-state {
+            width: auto;
+            min-width: 160px;
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            animation: pulse-border 2s infinite;
+        }
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+        
+        .truth-btn-text {
+            display: none;
+            font-size: 14px;
+            font-weight: 700;
+            margin-left: 8px;
+            letter-spacing: 0.5px;
+        }
+        #float-truth-btn.truth-expanded-state .truth-btn-text {
+            display: inline-block;
+        }
+
+        /* Options inside modal */
         .truth-option-btn {
             padding: 12px; border-radius: 12px; border: 1px solid #2563eb;
             background: #eff6ff; color: #2563eb; cursor: pointer; font-weight: bold;
@@ -428,7 +456,9 @@
         </div>
         
         <div id="truth-game-container">
-            <button id="float-truth-btn" title="Ask a Truth Question">🎭</button>
+            <button id="float-truth-btn" title="Ask a Truth Question">
+                🎭 <span class="truth-btn-text">Ask a Question</span>
+            </button>
         </div>
 
         <div class="controls">
@@ -686,7 +716,9 @@
     let isSkipping = false; 
     let isConfirming = false; 
     let displayedMessageCount = 0; 
-    window.lastTruthPromptIndex = 0; // Tracks when we showed the "Your Turn" prompt
+    
+    window.lastTruthPromptIndex = -1; 
+    window.lastAnsweredTruthIdx = -1;
     
     let myUserId = null; 
     let myUserName = "Unknown User";
@@ -1132,6 +1164,10 @@
     // --- TRUTH MODAL EVENT LISTENERS ---
     floatTruthBtn.addEventListener('click', () => {
         if (!currentRoomId || !isChatting) return;
+        
+        // Collapse the button if it was expanded
+        floatTruthBtn.classList.remove('truth-expanded-state');
+        
         truthModal.style.display = 'flex';
     });
 
@@ -1572,7 +1608,10 @@
         sendBtn.disabled = true; 
         isChatting = false; 
         displayedMessageCount = 0;
-        window.lastTruthPromptIndex = 0;
+        
+        window.lastTruthPromptIndex = -1;
+        window.lastAnsweredTruthIdx = -1;
+
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Connect Request";
         analyzeBtn.style.display = 'none';
         
@@ -1588,6 +1627,7 @@
 
         musicSyncContainer.style.display = 'none';
         truthGameContainer.style.display = 'none';
+        floatTruthBtn.classList.remove('truth-expanded-state');
 
         if (unsubscribeRoom) unsubscribeRoom(); currentRoomId = null;
     }
@@ -1788,43 +1828,35 @@
                     }
                 });
 
-                // --- SMART TURN PROMPT DETECTION ---
-                // Wait for the UI to append messages, then check if someone answered a Truth
-                if (data.messages.length >= 2) {
-                    const lastMsg = data.messages[data.messages.length - 1];
-                    const prevMsg = data.messages[data.messages.length - 2];
+                // --- SMART TURN DETECTION (ANIMATED TRUTH BUTTON) ---
+                if (data.messages.length > 0) {
+                    const lastTruthIdx = data.messages.findLastIndex(m => m.text.startsWith("🎭 Truth:"));
                     
-                    const strangerAsked = prevMsg.senderId !== myUserId && prevMsg.text.startsWith("🎭 Truth:");
-                    const iAnswered = lastMsg.senderId === myUserId;
-                    
-                    const iAsked = prevMsg.senderId === myUserId && prevMsg.text.startsWith("🎭 Truth:");
-                    const strangerAnswered = lastMsg.senderId !== myUserId;
-
-                    if (strangerAsked && iAnswered && window.lastTruthPromptIndex !== data.messages.length) {
-                        window.lastTruthPromptIndex = data.messages.length;
+                    if (lastTruthIdx !== -1) {
+                        const truthMsg = data.messages[lastTruthIdx];
+                        const messagesAfterTruth = data.messages.slice(lastTruthIdx + 1);
                         
-                        // Show prompt to ME
-                        const promptDiv = document.createElement('div');
-                        promptDiv.className = 'message system-msg';
-                        promptDiv.style.display = 'flex';
-                        promptDiv.style.flexDirection = 'column';
-                        promptDiv.style.alignItems = 'center';
-                        promptDiv.style.gap = '8px';
-                        promptDiv.style.alignSelf = 'center';
-                        promptDiv.innerHTML = `
-                            <span>Great answer! Now it's your turn to ask.</span>
-                            <button class="spotify-btn" style="background: #10b981; padding: 8px 16px; margin-bottom: 0; width: auto; font-size: 0.9em; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);" onclick="document.getElementById('float-truth-btn').click()">
-                                Ask a Question
-                            </button>
-                        `;
-                        chatBox.appendChild(promptDiv);
-                        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
-                    }
-                    
-                    if (iAsked && strangerAnswered && window.lastTruthPromptIndex !== data.messages.length) {
-                        window.lastTruthPromptIndex = data.messages.length;
-                        // Tell ME that the stranger is choosing
-                        appendMessage("They answered! Waiting for them to ask a question...", "system-msg");
+                        const strangerAsked = truthMsg.senderId !== myUserId;
+                        const iAsked = truthMsg.senderId === myUserId;
+                        
+                        const iAnswered = messagesAfterTruth.some(m => m.senderId === myUserId);
+                        const strangerAnswered = messagesAfterTruth.some(m => m.senderId !== myUserId);
+
+                        // If the stranger asked a Truth question, and I have answered it: Expand my button!
+                        if (strangerAsked && iAnswered && window.lastAnsweredTruthIdx !== lastTruthIdx) {
+                            window.lastAnsweredTruthIdx = lastTruthIdx;
+                            floatTruthBtn.classList.add('truth-expanded-state');
+                        } 
+                        else if (!strangerAsked || !iAnswered) {
+                            // Failsafe to ensure it collapses if conditions aren't met
+                            floatTruthBtn.classList.remove('truth-expanded-state');
+                        }
+
+                        // If I asked, and the stranger answered: Show system text only once
+                        if (iAsked && strangerAnswered && window.lastTruthPromptIndex !== lastTruthIdx) {
+                            window.lastTruthPromptIndex = lastTruthIdx;
+                            appendMessage("They answered! Waiting for them to ask a question...", "system-msg");
+                        }
                     }
                 }
                 // ------------------------------------
