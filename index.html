@@ -171,7 +171,7 @@
         .friend-avatar { width: 44px; height: 44px; border-radius: 50%; background: #eff6ff; color: #2563eb; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid transparent; flex-shrink: 0; overflow: hidden;}
         .friend-info { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; pointer-events: none; }
         .friend-name { font-weight: 700; color: #1e293b; font-size: 1.05em; margin-bottom: 3px; }
-        .friend-msg { color: #64748b; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: max-width: 180px; }
+        .friend-msg { color: #64748b; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
         
         .unread-badge { background: #ef4444; color: white; border-radius: 50%; padding: 2px 8px; font-size: 0.75em; font-weight: bold; margin-left: auto; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.2);}
 
@@ -268,6 +268,15 @@
         .spotify-connected-status {
             font-size: 0.85em; color: #10b981; font-weight: 700; text-align: center; margin-bottom: 15px; display: none;
         }
+
+        /* --- TRUTH GAME MODAL STYLES --- */
+        .truth-option-btn {
+            padding: 12px; border-radius: 12px; border: 1px solid #2563eb;
+            background: #eff6ff; color: #2563eb; cursor: pointer; font-weight: bold;
+            text-align: left; transition: all 0.2s ease; width: 100%;
+            margin-bottom: 8px; font-size: 0.95em; line-height: 1.4;
+        }
+        .truth-option-btn:hover { background: #dbeafe; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(37,99,235,0.1); }
 
     </style>
 </head>
@@ -463,6 +472,31 @@
         </div>
     </div>
 
+    <div id="truth-modal" class="modal-overlay">
+        <div class="modal-content" style="padding: 30px 20px;">
+            <button id="close-truth-btn" class="close-modal-btn">×</button>
+            <h3 style="font-size: 1.5em; margin-bottom: 5px;">🎭 Truth Game</h3>
+            
+            <div id="truth-state-initial">
+                <p style="color: #64748b; margin-bottom: 25px;">Ready to put them on the spot? Generate a random truth question!</p>
+                <button id="btn-generate-truth" class="spotify-btn" style="background: #2563eb; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);">
+                    Ask a Question
+                </button>
+            </div>
+
+            <div id="truth-state-loading" style="display: none;">
+                <p style="color: #64748b; font-weight: 600; margin: 20px 0; animation: pulse 1.5s infinite;">
+                    🤖 AI is generating juicy questions...
+                </p>
+            </div>
+
+            <div id="truth-state-options" style="display: none; text-align: left;">
+                <p style="font-weight: 700; color: #1e293b; margin-bottom: 15px; text-align: center;">Choose the question you want to ask:</p>
+                <div id="truth-options-list"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="bottom-nav">
         <div class="nav-tab" id="tab-friends">
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
@@ -582,6 +616,15 @@
     const confirmModal = document.getElementById('confirm-modal');
     const btnStay = document.getElementById('btn-stay');
     const btnLeave = document.getElementById('btn-leave');
+
+    // Truth Modal Elements
+    const truthModal = document.getElementById('truth-modal');
+    const closeTruthBtn = document.getElementById('close-truth-btn');
+    const btnGenerateTruth = document.getElementById('btn-generate-truth');
+    const truthStateInitial = document.getElementById('truth-state-initial');
+    const truthStateLoading = document.getElementById('truth-state-loading');
+    const truthStateOptions = document.getElementById('truth-state-options');
+    const truthOptionsList = document.getElementById('truth-options-list');
     
     const notificationBanner = document.getElementById('notification-banner');
     const notifAvatarContainer = document.getElementById('notif-avatar-container');
@@ -590,7 +633,7 @@
     const notifCloseBtn = document.getElementById('notif-close-btn');
 
     /* --- SPOTIFY GLOBALS --- */
-    const SPOTIFY_CLIENT_ID = '95eb69dcc6b5434eb42616c34f30fd26'; // <--- PASTE YOUR CLIENT ID HERE
+    const SPOTIFY_CLIENT_ID = '95eb69dcc6b5434eb42616c34f30fd26'; 
     const SPOTIFY_REDIRECT_URI = window.location.origin + window.location.pathname;
     let spotifyAccessToken = null;
     let spotifyDeviceId = null;
@@ -1090,6 +1133,27 @@
     document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
     settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
 
+    // --- TRUTH MODAL EVENT LISTENERS ---
+    playTruthBtn.addEventListener('click', () => {
+        if (!currentRoomId || !isChatting) return;
+        truthModal.style.display = 'flex';
+    });
+
+    closeTruthBtn.addEventListener('click', () => { truthModal.style.display = 'none'; });
+    truthModal.addEventListener('click', (e) => { if(e.target === truthModal) truthModal.style.display = 'none'; });
+
+    btnGenerateTruth.addEventListener('click', async () => {
+        truthStateInitial.style.display = 'none';
+        truthStateLoading.style.display = 'block';
+        truthStateOptions.style.display = 'none';
+        
+        await updateDoc(doc(db, "rooms", currentRoomId), {
+            needsTruthQuestion: true,
+            truthRequester: myUserId
+        });
+    });
+    // -----------------------------------
+
     function openFriendProfile() {
         friendChatView.style.display = 'none';
         friendProfileView.style.display = 'flex';
@@ -1329,32 +1393,14 @@
     analyzeBtn.addEventListener('click', async () => {
         if (!currentRoomId) return;
         
-        // Disable button to prevent spamming
         analyzeBtn.disabled = true;
         analyzeBtn.style.opacity = '0.5';
         
         appendMessage("🧠 Nova is analyzing the conversational dynamics. This deep analysis takes about 15-30 seconds...", "system-msg");
         
-        // Flip the switch in Firebase
         await updateDoc(doc(db, "rooms", currentRoomId), { 
             analysisRequested: true 
         });
-    });
-
-    // 🎭 PLAY TRUTH BUTTON LISTENER
-    playTruthBtn.addEventListener('click', async () => {
-        if (!currentRoomId || !isChatting) return;
-        
-        playTruthBtn.disabled = true;
-        appendMessage("Asking the AI for some juicy questions...", "system-msg");
-
-        // Tell Firebase we need questions (Your local Node bot will see this)
-        await updateDoc(doc(db, "rooms", currentRoomId), {
-            needsTruthQuestion: true
-        });
-        
-        // Re-enable after a few seconds
-        setTimeout(() => { playTruthBtn.disabled = false; }, 5000);
     });
 
     window.respondRequest = async (roomId, response) => {
@@ -1477,7 +1523,6 @@
         listenTogetherBtn.style.opacity = '0.5';
 
         try {
-            // 1. Fetch what the user is currently playing
             const res = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
                 headers: { 'Authorization': `Bearer ${spotifyAccessToken}` }
             });
@@ -1505,7 +1550,6 @@
                 return;
             }
 
-            // 2. Push the playback data to Firebase to sync the partner
             await updateDoc(doc(db, "rooms", currentRoomId), {
                 spotifySync: {
                     trackUri: currentData.item.uri,
@@ -1560,56 +1604,49 @@
             const data = snapshot.data();
             if (!data) return;
 
-            // --- TRUTH GAME SYNC ---
-            if (data.truthOptions && data.truthOptions.length > 0 && data.systemMessage) {
-                if (!document.getElementById('truth-options-container')) {
-                    appendMessage(data.systemMessage, "system-msg");
-                    
-                    const optionsDiv = document.createElement('div');
-                    optionsDiv.id = 'truth-options-container';
-                    optionsDiv.style.display = 'flex';
-                    optionsDiv.style.flexDirection = 'column';
-                    optionsDiv.style.gap = '8px';
-                    optionsDiv.style.marginTop = '10px';
-                    optionsDiv.style.marginBottom = '10px';
-                    optionsDiv.style.padding = '0 15px';
+            // --- TRUTH GAME UI LOGIC ---
+            if (data.needsTruthQuestion && data.truthRequester === myUserId) {
+                // We requested it, waiting for AI...
+                truthStateInitial.style.display = 'none';
+                truthStateLoading.style.display = 'block';
+                truthStateOptions.style.display = 'none';
+            } else if (data.truthOptions && data.truthOptions.length > 0 && data.truthRequester === myUserId) {
+                // Questions have arrived from the AI!
+                truthStateInitial.style.display = 'none';
+                truthStateLoading.style.display = 'none';
+                truthStateOptions.style.display = 'block';
+                truthOptionsList.innerHTML = ''; 
 
-                    data.truthOptions.forEach(question => {
-                        const btn = document.createElement('button');
-                        btn.textContent = question;
-                        btn.style.padding = '12px';
-                        btn.style.borderRadius = '12px';
-                        btn.style.border = '1px solid #2563eb';
-                        btn.style.background = '#eff6ff';
-                        btn.style.color = '#2563eb';
-                        btn.style.cursor = 'pointer';
-                        btn.style.fontWeight = 'bold';
-                        btn.style.textAlign = 'left';
-                        btn.style.transition = 'all 0.2s ease';
+                data.truthOptions.forEach(question => {
+                    const btn = document.createElement('button');
+                    btn.className = 'truth-option-btn';
+                    btn.textContent = question;
+                    btn.onclick = async () => {
+                        // Close Modal immediately
+                        truthModal.style.display = 'none'; 
                         
-                        btn.onmouseover = () => { btn.style.background = '#dbeafe'; };
-                        btn.onmouseout = () => { btn.style.background = '#eff6ff'; };
+                        // Reset modal UI for next time
+                        truthStateInitial.style.display = 'block';
+                        truthStateOptions.style.display = 'none';
 
-                        btn.onclick = async () => {
-                            // Send the chosen question to the chat
-                            await updateDoc(doc(db, "rooms", currentRoomId), { 
-                                messages: arrayUnion({ text: "🎭 Truth Question: " + question, senderId: myUserId, timestamp: Date.now() }),
-                                truthOptions: deleteField(), // Clear the options so they disappear
-                                systemMessage: deleteField()
-                            });
-                            // Remove the options UI instantly for the user who clicked
-                            optionsDiv.remove();
-                        };
-                        optionsDiv.appendChild(btn);
-                    });
-
-                    chatBox.appendChild(optionsDiv);
-                    chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
-                }
-            } else {
-                // If truthOptions is gone from the database, ensure the UI container is removed (for the other user)
-                const existingOptions = document.getElementById('truth-options-container');
-                if (existingOptions) existingOptions.remove();
+                        // Push the chosen question to chat
+                        await updateDoc(doc(db, "rooms", currentRoomId), { 
+                            messages: arrayUnion({ text: "🎭 Truth: " + question, senderId: myUserId, timestamp: Date.now() }),
+                            truthOptions: deleteField(),
+                            truthRequester: deleteField(),
+                            systemMessage: deleteField() 
+                        });
+                    };
+                    truthOptionsList.appendChild(btn);
+                });
+                
+                // Force modal to open in case the user clicked away
+                truthModal.style.display = 'flex';
+            } else if (!data.truthOptions) {
+                // Default state if no active questions
+                truthStateInitial.style.display = 'block';
+                truthStateLoading.style.display = 'none';
+                truthStateOptions.style.display = 'none';
             }
             // ------------------------
 
@@ -1695,13 +1732,11 @@
             
             // --- RECEIVE SPOTIFY SYNC COMMAND ---
             if (isChatting && data.spotifySync && data.spotifySync.initiatorId !== myUserId) {
-                // To prevent re-running the same sync multiple times, check a local timestamp
                 if (!window.lastSpotifySyncTime || window.lastSpotifySyncTime < data.spotifySync.timestamp) {
                     window.lastSpotifySyncTime = data.spotifySync.timestamp;
 
                     if (data.spotifySync.isPlaying && spotifyAccessToken) {
                         
-                        // Calculate precise latency to match milliseconds
                         const timePassed = Date.now() - data.spotifySync.timestamp;
                         const exactPosition = data.spotifySync.positionMs + timePassed;
                         
