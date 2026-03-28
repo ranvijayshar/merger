@@ -171,7 +171,7 @@
         .friend-avatar { width: 44px; height: 44px; border-radius: 50%; background: #eff6ff; color: #2563eb; margin-right: 15px; display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid transparent; flex-shrink: 0; overflow: hidden;}
         .friend-info { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; pointer-events: none; }
         .friend-name { font-weight: 700; color: #1e293b; font-size: 1.05em; margin-bottom: 3px; }
-        .friend-msg { color: #64748b; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+        .friend-msg { color: #64748b; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: max-width: 180px; }
         
         .unread-badge { background: #ef4444; color: white; border-radius: 50%; padding: 2px 8px; font-size: 0.75em; font-weight: bold; margin-left: auto; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.2);}
 
@@ -408,6 +408,9 @@
         </div>
 
         <div class="controls">
+            <button class="media-btn" id="play-truth-btn" title="Ask a Truth Question" style="font-size: 1.3em;">
+                🎭
+            </button>
             <button class="media-btn" id="random-emoji-btn" title="Emojis">
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
             </button>
@@ -506,7 +509,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit, increment, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, arrayUnion, limit, increment, setDoc, getDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -545,6 +548,7 @@
     const skipHint = document.getElementById('skip-hint');
     const addFriendBtn = document.getElementById('add-friend-btn');
     const analyzeBtn = document.getElementById('analyze-btn');
+    const playTruthBtn = document.getElementById('play-truth-btn');
     
     const randomEmojiBtn = document.getElementById('random-emoji-btn');
     const randomEmojiPicker = document.getElementById('random-emoji-picker');
@@ -1337,6 +1341,22 @@
         });
     });
 
+    // 🎭 PLAY TRUTH BUTTON LISTENER
+    playTruthBtn.addEventListener('click', async () => {
+        if (!currentRoomId || !isChatting) return;
+        
+        playTruthBtn.disabled = true;
+        appendMessage("Asking the AI for some juicy questions...", "system-msg");
+
+        // Tell Firebase we need questions (Your local Node bot will see this)
+        await updateDoc(doc(db, "rooms", currentRoomId), {
+            needsTruthQuestion: true
+        });
+        
+        // Re-enable after a few seconds
+        setTimeout(() => { playTruthBtn.disabled = false; }, 5000);
+    });
+
     window.respondRequest = async (roomId, response) => {
         if (response === 'accepted') await updateDoc(doc(db, "rooms", roomId), { friendStatus: "accepted" });
         else await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" }); // Reject
@@ -1539,6 +1559,59 @@
         unsubscribeRoom = onSnapshot(doc(db, "rooms", roomId), async (snapshot) => {
             const data = snapshot.data();
             if (!data) return;
+
+            // --- TRUTH GAME SYNC ---
+            if (data.truthOptions && data.truthOptions.length > 0 && data.systemMessage) {
+                if (!document.getElementById('truth-options-container')) {
+                    appendMessage(data.systemMessage, "system-msg");
+                    
+                    const optionsDiv = document.createElement('div');
+                    optionsDiv.id = 'truth-options-container';
+                    optionsDiv.style.display = 'flex';
+                    optionsDiv.style.flexDirection = 'column';
+                    optionsDiv.style.gap = '8px';
+                    optionsDiv.style.marginTop = '10px';
+                    optionsDiv.style.marginBottom = '10px';
+                    optionsDiv.style.padding = '0 15px';
+
+                    data.truthOptions.forEach(question => {
+                        const btn = document.createElement('button');
+                        btn.textContent = question;
+                        btn.style.padding = '12px';
+                        btn.style.borderRadius = '12px';
+                        btn.style.border = '1px solid #2563eb';
+                        btn.style.background = '#eff6ff';
+                        btn.style.color = '#2563eb';
+                        btn.style.cursor = 'pointer';
+                        btn.style.fontWeight = 'bold';
+                        btn.style.textAlign = 'left';
+                        btn.style.transition = 'all 0.2s ease';
+                        
+                        btn.onmouseover = () => { btn.style.background = '#dbeafe'; };
+                        btn.onmouseout = () => { btn.style.background = '#eff6ff'; };
+
+                        btn.onclick = async () => {
+                            // Send the chosen question to the chat
+                            await updateDoc(doc(db, "rooms", currentRoomId), { 
+                                messages: arrayUnion({ text: "🎭 Truth Question: " + question, senderId: myUserId, timestamp: Date.now() }),
+                                truthOptions: deleteField(), // Clear the options so they disappear
+                                systemMessage: deleteField()
+                            });
+                            // Remove the options UI instantly for the user who clicked
+                            optionsDiv.remove();
+                        };
+                        optionsDiv.appendChild(btn);
+                    });
+
+                    chatBox.appendChild(optionsDiv);
+                    chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+                }
+            } else {
+                // If truthOptions is gone from the database, ensure the UI container is removed (for the other user)
+                const existingOptions = document.getElementById('truth-options-container');
+                if (existingOptions) existingOptions.remove();
+            }
+            // ------------------------
 
             // RECEIVER SEES ODOMETER
             if (data.likeGiven && !previousLikeGivenState) {
