@@ -587,7 +587,7 @@
 
     /* --- SPOTIFY GLOBALS --- */
     const SPOTIFY_CLIENT_ID = '95eb69dcc6b5434eb42616c34f30fd26'; // <--- PASTE YOUR CLIENT ID HERE
-    const SPOTIFY_REDIRECT_URI = window.location.href.split('#')[0]; 
+    const SPOTIFY_REDIRECT_URI = window.location.origin + window.location.pathname;
     let spotifyAccessToken = null;
     const connectSpotifyBtn = document.getElementById('connect-spotify-btn');
     const spotifyStatus = document.getElementById('spotify-status');
@@ -736,7 +736,7 @@
 
     checkSpotifyAuth(); // Run on page load
     // -------------------------------------------------------------------
-    
+
     // ------------------------------------
 
     // --- PASTE HANDLER (TEXT ONLY) ---
