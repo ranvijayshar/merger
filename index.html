@@ -269,7 +269,18 @@
             font-size: 0.85em; color: #10b981; font-weight: 700; text-align: center; margin-bottom: 15px; display: none;
         }
 
-        /* --- TRUTH GAME MODAL STYLES --- */
+        /* --- TRUTH GAME STYLES --- */
+        #truth-game-container {
+            position: absolute; top: calc(50% + 120px); transform: translateY(-50%); right: 15px; z-index: 100; display: none; align-items: center;
+        }
+        #float-truth-btn {
+            background: #ffffff; border-radius: 24px; width: 48px; height: 48px; border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.3s ease;
+            font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center;
+            outline: none; color: #1e293b;
+        }
+        #float-truth-btn:hover { transform: scale(1.05); border-color: #2563eb; background: #eff6ff;}
+
         .truth-option-btn {
             padding: 12px; border-radius: 12px; border: 1px solid #2563eb;
             background: #eff6ff; color: #2563eb; cursor: pointer; font-weight: bold;
@@ -415,11 +426,12 @@
         <div id="music-sync-container">
             <button id="listen-together-btn" title="Sync Spotify Playback">🎵</button>
         </div>
+        
+        <div id="truth-game-container">
+            <button id="float-truth-btn" title="Ask a Truth Question">🎭</button>
+        </div>
 
         <div class="controls">
-            <button class="media-btn" id="play-truth-btn" title="Ask a Truth Question" style="font-size: 1.3em;">
-                🎭
-            </button>
             <button class="media-btn" id="random-emoji-btn" title="Emojis">
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 8c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-7 0c.83 0 1.5.67 1.5 1.5S9.33 13 8.5 13 7 12.33 7 11.5 7.67 10 8.5 10zm3.5 8c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>
             </button>
@@ -582,7 +594,6 @@
     const skipHint = document.getElementById('skip-hint');
     const addFriendBtn = document.getElementById('add-friend-btn');
     const analyzeBtn = document.getElementById('analyze-btn');
-    const playTruthBtn = document.getElementById('play-truth-btn');
     
     const randomEmojiBtn = document.getElementById('random-emoji-btn');
     const randomEmojiPicker = document.getElementById('random-emoji-picker');
@@ -617,7 +628,7 @@
     const btnStay = document.getElementById('btn-stay');
     const btnLeave = document.getElementById('btn-leave');
 
-    // Truth Modal Elements
+    // Truth Modal Elements & New Floating Button
     const truthModal = document.getElementById('truth-modal');
     const closeTruthBtn = document.getElementById('close-truth-btn');
     const btnGenerateTruth = document.getElementById('btn-generate-truth');
@@ -625,6 +636,8 @@
     const truthStateLoading = document.getElementById('truth-state-loading');
     const truthStateOptions = document.getElementById('truth-state-options');
     const truthOptionsList = document.getElementById('truth-options-list');
+    const truthGameContainer = document.getElementById('truth-game-container');
+    const floatTruthBtn = document.getElementById('float-truth-btn');
     
     const notificationBanner = document.getElementById('notification-banner');
     const notifAvatarContainer = document.getElementById('notif-avatar-container');
@@ -673,6 +686,7 @@
     let isSkipping = false; 
     let isConfirming = false; 
     let displayedMessageCount = 0; 
+    window.lastTruthPromptIndex = 0; // Tracks when we showed the "Your Turn" prompt
     
     let myUserId = null; 
     let myUserName = "Unknown User";
@@ -683,7 +697,6 @@
 
     // --- SPOTIFY AUTHENTICATION LOGIC (PKCE Authorization Code Flow) ---
     
-    // 1. PKCE Helper Functions for Frontend Security
     function generateRandomString(length) {
         let text = '';
         let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -702,7 +715,6 @@
             .replace(/=+$/, '');
     }
 
-    // 2. Handle the returning code from Spotify
     async function checkSpotifyAuth() {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
@@ -711,7 +723,6 @@
             const codeVerifier = localStorage.getItem('spotify_code_verifier');
             
             try {
-                // Exchange the code for an Access Token
                 const response = await fetch('https://accounts.spotify.com/api/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -728,18 +739,12 @@
                 
                 if (data.access_token) {
                     spotifyAccessToken = data.access_token;
-
-                    // Initialize the Web Playback SDK
                     initializeSpotifyPlayer(spotifyAccessToken);
-                    
-                    // Clean up the URL so it looks nice
                     window.history.replaceState({}, document.title, window.location.pathname);
                     
-                    // Update UI
                     connectSpotifyBtn.style.display = 'none';
                     spotifyStatus.style.display = 'block';
                     
-                    // Force the profile screen to show so the user sees the success
                     screens.forEach(s => s.element.style.display = 'none');
                     screens.forEach(s => s.tab.classList.remove('active'));
                     profileScreen.style.display = 'flex';
@@ -754,7 +759,6 @@
         }
     }
     
-    // Web Playback SDK Initialization
     function initializeSpotifyPlayer(token) {
         const script = document.createElement("script");
         script.src = "https://sdk.scdn.co/spotify-player.js";
@@ -772,7 +776,6 @@
                 console.log('Web Player Ready with Device ID', device_id);
                 spotifyDeviceId = device_id;
                 
-                // Automatically transfer playback to this browser tab
                 fetch('https://api.spotify.com/v1/me/player', {
                     method: 'PUT',
                     headers: {
@@ -790,14 +793,12 @@
         };
     }
 
-    // 3. The Login Button Click
     connectSpotifyBtn.addEventListener('click', async () => {
         if(SPOTIFY_CLIENT_ID === 'YOUR_SPOTIFY_CLIENT_ID_HERE') {
             alert("Developer: Please enter your Spotify Client ID in the code first.");
             return;
         }
 
-        // Generate and store the verifier
         const codeVerifier = generateRandomString(128);
         window.localStorage.setItem('spotify_code_verifier', codeVerifier);
         const codeChallenge = await generateCodeChallenge(codeVerifier);
@@ -820,14 +821,12 @@
             code_challenge: codeChallenge
         });
 
-        // Redirect to Spotify Login
         window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
     });
 
-    checkSpotifyAuth(); // Run on page load
+    checkSpotifyAuth(); 
     // -------------------------------------------------------------------
 
-    // --- PASTE HANDLER (TEXT ONLY) ---
     function handlePaste(e) {
         e.preventDefault();
         const text = (e.clipboardData || window.clipboardData).getData('text/plain');
@@ -836,7 +835,6 @@
     msgInput.addEventListener('paste', handlePaste);
     friendMsgInput.addEventListener('paste', handlePaste);
 
-    // --- MESSAGE RENDERER LOGIC (Emojis & GIFs) ---
     function isEmojiOnly(str) {
         try {
             const string = str.trim();
@@ -875,7 +873,6 @@
         return div;
     }
 
-    // --- GIF API LOGIC (TENOR) ---
     async function loadGIFs(query, container, sendCallback) {
         const url = query 
             ? `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=21`
@@ -959,7 +956,7 @@
     });
 
     function showNotificationBanner(strangerName, strangerPhoto) {
-        notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
+        notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" stylewidth:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
         notifMsg.textContent = `${strangerName} wants to connect!`;
         
         notificationBanner.classList.add('show');
@@ -979,7 +976,6 @@
         }, 5000);
     }
 
-    // --- IN-BUTTON ODOMETER LOGIC ---
     pulseLikeBtn.addEventListener('click', async () => {
         if (!hasLikedThisPersonInThisSession && currentStrangerId && !roomLikeGiven) {
             
@@ -1042,7 +1038,7 @@
     ];
 
     function showScreen(targetName, animationClass) {
-        if (!spotifyAccessToken && window.location.search.includes('code=')) return; // Prevents flash before checking
+        if (!spotifyAccessToken && window.location.search.includes('code=')) return; 
         loginScreen.style.display = 'none';
         
         screens.forEach(s => {
@@ -1134,7 +1130,7 @@
     settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
 
     // --- TRUTH MODAL EVENT LISTENERS ---
-    playTruthBtn.addEventListener('click', () => {
+    floatTruthBtn.addEventListener('click', () => {
         if (!currentRoomId || !isChatting) return;
         truthModal.style.display = 'flex';
     });
@@ -1245,7 +1241,6 @@
 
             bottomNav.style.display = 'flex'; 
             
-            // Only go to home screen if we aren't returning from Spotify Auth
             if (!window.location.search.includes('code=') && !spotifyAccessToken) {
                 showScreen('home');
             }
@@ -1389,7 +1384,6 @@
         appendMessage("Connection request sent!", "system-msg");
     });
 
-    // 🧠 ANALYZE CHAT BUTTON LISTENER 
     analyzeBtn.addEventListener('click', async () => {
         if (!currentRoomId) return;
         
@@ -1405,7 +1399,7 @@
 
     window.respondRequest = async (roomId, response) => {
         if (response === 'accepted') await updateDoc(doc(db, "rooms", roomId), { friendStatus: "accepted" });
-        else await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" }); // Reject
+        else await updateDoc(doc(db, "rooms", roomId), { friendStatus: "none" }); 
     };
 
     function openFriendChatUI(roomId, friendName, strangerId, strangerPhoto) {
@@ -1511,7 +1505,6 @@
         chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
     }
 
-    // --- SPOTIFY LISTEN TOGETHER ACTION ---
     listenTogetherBtn.addEventListener('click', async () => {
         if (!currentRoomId || !isChatting) return;
 
@@ -1571,7 +1564,6 @@
 
         listenTogetherBtn.style.opacity = '1';
     });
-    // --------------------------------------
 
     function resetChat() {
         chatBox.innerHTML = ''; 
@@ -1580,8 +1572,9 @@
         sendBtn.disabled = true; 
         isChatting = false; 
         displayedMessageCount = 0;
+        window.lastTruthPromptIndex = 0;
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Connect Request";
-        analyzeBtn.style.display = 'none'; // 🧠 Hide analyze button
+        analyzeBtn.style.display = 'none';
         
         hasLikedThisPersonInThisSession = false;
         roomLikeGiven = false; 
@@ -1594,6 +1587,7 @@
         pulseLikeBtn.innerHTML = '💚';
 
         musicSyncContainer.style.display = 'none';
+        truthGameContainer.style.display = 'none';
 
         if (unsubscribeRoom) unsubscribeRoom(); currentRoomId = null;
     }
@@ -1606,12 +1600,10 @@
 
             // --- TRUTH GAME UI LOGIC ---
             if (data.needsTruthQuestion && data.truthRequester === myUserId) {
-                // We requested it, waiting for AI...
                 truthStateInitial.style.display = 'none';
                 truthStateLoading.style.display = 'block';
                 truthStateOptions.style.display = 'none';
             } else if (data.truthOptions && data.truthOptions.length > 0 && data.truthRequester === myUserId) {
-                // Questions have arrived from the AI!
                 truthStateInitial.style.display = 'none';
                 truthStateLoading.style.display = 'none';
                 truthStateOptions.style.display = 'block';
@@ -1622,14 +1614,10 @@
                     btn.className = 'truth-option-btn';
                     btn.textContent = question;
                     btn.onclick = async () => {
-                        // Close Modal immediately
                         truthModal.style.display = 'none'; 
-                        
-                        // Reset modal UI for next time
                         truthStateInitial.style.display = 'block';
                         truthStateOptions.style.display = 'none';
 
-                        // Push the chosen question to chat
                         await updateDoc(doc(db, "rooms", currentRoomId), { 
                             messages: arrayUnion({ text: "🎭 Truth: " + question, senderId: myUserId, timestamp: Date.now() }),
                             truthOptions: deleteField(),
@@ -1639,11 +1627,8 @@
                     };
                     truthOptionsList.appendChild(btn);
                 });
-                
-                // Force modal to open in case the user clicked away
                 truthModal.style.display = 'flex';
             } else if (!data.truthOptions) {
-                // Default state if no active questions
                 truthStateInitial.style.display = 'block';
                 truthStateLoading.style.display = 'none';
                 truthStateOptions.style.display = 'none';
@@ -1715,12 +1700,12 @@
                 msgInput.focus(); 
                 addFriendBtn.style.display = 'flex';
                 
-                // 🧠 Show analyze button and reset state
                 analyzeBtn.style.display = 'flex';
                 analyzeBtn.disabled = false;
                 analyzeBtn.style.opacity = '1';
 
-                musicSyncContainer.style.display = 'flex'; // Show listen together button
+                musicSyncContainer.style.display = 'flex'; 
+                truthGameContainer.style.display = 'flex'; // Show Floating Truth Button
                 
                 currentStrangerId = strangerId;
                 if(currentStrangerId && !data.likeGiven) {
@@ -1730,7 +1715,6 @@
                 }
             }
             
-            // --- RECEIVE SPOTIFY SYNC COMMAND ---
             if (isChatting && data.spotifySync && data.spotifySync.initiatorId !== myUserId) {
                 if (!window.lastSpotifySyncTime || window.lastSpotifySyncTime < data.spotifySync.timestamp) {
                     window.lastSpotifySyncTime = data.spotifySync.timestamp;
@@ -1770,7 +1754,6 @@
                     }
                 }
             }
-            // ------------------------------------
 
             if (data.status === "closed" && isChatting) {
                 appendMessage("The other person has left the network.", "system-msg");
@@ -1778,16 +1761,15 @@
                 msgInput.classList.add('disabled-input'); 
                 msgInput.setAttribute('contenteditable', 'false');
                 sendBtn.disabled = true; addFriendBtn.style.display = 'none';
-                analyzeBtn.style.display = 'none'; // 🧠 Hide analyze button
+                analyzeBtn.style.display = 'none';
                 likeStreamContainer.style.display = 'none'; 
-                
                 musicSyncContainer.style.display = 'none';
+                truthGameContainer.style.display = 'none';
 
                 appendMessage("⏬ Swipe or press ↓ to discover someone new ⏬", "system-msg");
                 if (isConfirming) hideConfirmModal();
             }
             
-            // Allow analyze button to be clicked again if the request was completed by the bot
             if (isChatting && data.analysisRequested === false && analyzeBtn.disabled) {
                 analyzeBtn.disabled = false;
                 analyzeBtn.style.opacity = '1';
@@ -1800,11 +1782,53 @@
                     const isAI = msg.senderId === "nova-analyst-001";
                     
                     if (isAI) {
-                        appendMessage(msg.text, "stranger-msg"); // Show AI response as a regular chat message
+                        appendMessage(msg.text, "stranger-msg"); 
                     } else {
                         appendMessage(msg.text, isMe ? "my-msg" : "stranger-msg"); 
                     }
                 });
+
+                // --- SMART TURN PROMPT DETECTION ---
+                // Wait for the UI to append messages, then check if someone answered a Truth
+                if (data.messages.length >= 2) {
+                    const lastMsg = data.messages[data.messages.length - 1];
+                    const prevMsg = data.messages[data.messages.length - 2];
+                    
+                    const strangerAsked = prevMsg.senderId !== myUserId && prevMsg.text.startsWith("🎭 Truth:");
+                    const iAnswered = lastMsg.senderId === myUserId;
+                    
+                    const iAsked = prevMsg.senderId === myUserId && prevMsg.text.startsWith("🎭 Truth:");
+                    const strangerAnswered = lastMsg.senderId !== myUserId;
+
+                    if (strangerAsked && iAnswered && window.lastTruthPromptIndex !== data.messages.length) {
+                        window.lastTruthPromptIndex = data.messages.length;
+                        
+                        // Show prompt to ME
+                        const promptDiv = document.createElement('div');
+                        promptDiv.className = 'message system-msg';
+                        promptDiv.style.display = 'flex';
+                        promptDiv.style.flexDirection = 'column';
+                        promptDiv.style.alignItems = 'center';
+                        promptDiv.style.gap = '8px';
+                        promptDiv.style.alignSelf = 'center';
+                        promptDiv.innerHTML = `
+                            <span>Great answer! Now it's your turn to ask.</span>
+                            <button class="spotify-btn" style="background: #10b981; padding: 8px 16px; margin-bottom: 0; width: auto; font-size: 0.9em; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);" onclick="document.getElementById('float-truth-btn').click()">
+                                Ask a Question
+                            </button>
+                        `;
+                        chatBox.appendChild(promptDiv);
+                        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+                    }
+                    
+                    if (iAsked && strangerAnswered && window.lastTruthPromptIndex !== data.messages.length) {
+                        window.lastTruthPromptIndex = data.messages.length;
+                        // Tell ME that the stranger is choosing
+                        appendMessage("They answered! Waiting for them to ask a question...", "system-msg");
+                    }
+                }
+                // ------------------------------------
+
                 displayedMessageCount = data.messages.length;
             }
         });
