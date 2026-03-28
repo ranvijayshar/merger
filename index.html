@@ -283,7 +283,7 @@
         </div>
         <div class="notif-actions">
             <button id="notif-view-btn">View</button>
-            <button id="notif-close-btn">&times;</button>
+            <button id="notif-close-btn">×</button>
         </div>
     </div>
     
@@ -482,7 +482,7 @@
 
     <div id="settings-modal" class="modal-overlay">
         <div class="modal-content settings-content">
-            <button id="close-settings-btn" class="close-modal-btn">&times;</button>
+            <button id="close-settings-btn" class="close-modal-btn">×</button>
             <h3>Settings</h3>
             <button class="settings-item"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Edit Profile</button>
             <button class="settings-item"><svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg> Notifications</button>
@@ -589,6 +589,8 @@
     const SPOTIFY_CLIENT_ID = '95eb69dcc6b5434eb42616c34f30fd26'; // <--- PASTE YOUR CLIENT ID HERE
     const SPOTIFY_REDIRECT_URI = window.location.origin + window.location.pathname;
     let spotifyAccessToken = null;
+    let spotifyDeviceId = null;
+    let spotifyPlayer = null;
     const connectSpotifyBtn = document.getElementById('connect-spotify-btn');
     const spotifyStatus = document.getElementById('spotify-status');
     const musicSyncContainer = document.getElementById('music-sync-container');
@@ -680,6 +682,9 @@
                 
                 if (data.access_token) {
                     spotifyAccessToken = data.access_token;
+
+                    // Initialize the Web Playback SDK
+                    initializeSpotifyPlayer(spotifyAccessToken);
                     
                     // Clean up the URL so it looks nice
                     window.history.replaceState({}, document.title, window.location.pathname);
@@ -703,9 +708,45 @@
         }
     }
     
+    // Web Playback SDK Initialization
+    function initializeSpotifyPlayer(token) {
+        const script = document.createElement("script");
+        script.src = "https://sdk.scdn.co/spotify-player.js";
+        script.async = true;
+        document.body.appendChild(script);
+
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            spotifyPlayer = new Spotify.Player({
+                name: 'Random Chat Player',
+                getOAuthToken: cb => { cb(token); },
+                volume: 0.8
+            });
+
+            spotifyPlayer.addListener('ready', ({ device_id }) => {
+                console.log('Web Player Ready with Device ID', device_id);
+                spotifyDeviceId = device_id;
+                
+                // Automatically transfer playback to this browser tab!
+                fetch('https://api.spotify.com/v1/me/player', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        device_ids: [device_id],
+                        play: false, 
+                    }),
+                });
+            });
+
+            spotifyPlayer.connect();
+        };
+    }
+
     // 3. The Login Button Click
     connectSpotifyBtn.addEventListener('click', async () => {
-        if(SPOTIFY_CLIENT_ID === 'YOUR_SPOTIFY_CLIENT_ID_HERE') {
+        if(SPOTIFY_CLIENT_ID === '95eb69dcc6b5434eb42616c34f30fd26') {
             alert("Developer: Please enter your Spotify Client ID in the code first.");
             return;
         }
@@ -716,13 +757,16 @@
         const codeChallenge = await generateCodeChallenge(codeVerifier);
 
         const scopes = [
+            'streaming',
+            'user-read-email',
+            'user-read-private',
             'user-read-currently-playing', 
             'user-modify-playback-state',
             'user-read-playback-state'
         ].join(' ');
         
         const params = new URLSearchParams({
-            response_type: 'code', // As requested by Spotify
+            response_type: 'code', 
             client_id: SPOTIFY_CLIENT_ID,
             scope: scopes,
             redirect_uri: SPOTIFY_REDIRECT_URI,
@@ -1137,7 +1181,7 @@
             bottomNav.style.display = 'flex'; 
             
             // Only go to home screen if we aren't returning from Spotify Auth
-            if (!window.location.hash.includes('access_token') && !spotifyAccessToken) {
+            if (!window.location.search.includes('code=') && !spotifyAccessToken) {
                 showScreen('home');
             }
             
@@ -1592,7 +1636,11 @@
                         const exactPosition = data.spotifySync.positionMs + timePassed;
                         
                         try {
-                            const playRes = await fetch('https://api.spotify.com/v1/me/player/play', {
+                            const playUrl = spotifyDeviceId 
+                                ? `https://api.spotify.com/v1/me/player/play?device_id=${spotifyDeviceId}` 
+                                : 'https://api.spotify.com/v1/me/player/play';
+
+                            const playRes = await fetch(playUrl, {
                                 method: 'PUT',
                                 headers: { 
                                     'Authorization': `Bearer ${spotifyAccessToken}`, 
@@ -1607,7 +1655,7 @@
                             if (playRes.ok || playRes.status === 204) {
                                 appendMessage(`🎧 Listening together to: ${data.spotifySync.trackName} by ${data.spotifySync.artistName}`, "system-msg");
                             } else {
-                                appendMessage("❌ Partner tried to sync music, but your Spotify isn't active. Open Spotify and play any song first.", "system-msg");
+                                appendMessage("❌ Partner tried to sync music, but your Spotify isn't active/Premium. Open Spotify and play any song first.", "system-msg");
                             }
                         } catch(err) {
                             console.error("Spotify sync failed", err);
