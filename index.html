@@ -246,7 +246,7 @@
         .scroll-track.scrolled { transform: translateY(-1.2em); }
         .scroll-track > span { display: block; height: 1.2em; line-height: 1.2em; text-align: center; }
 
-        /* --- WEBRTC LISTEN TOGETHER STYLES --- */
+        /* --- SPOTIFY LISTEN TOGETHER STYLES --- */
         #music-sync-container {
             position: absolute; top: calc(50% + 60px); transform: translateY(-50%); right: 15px; z-index: 100; display: none; align-items: center;
         }
@@ -256,29 +256,17 @@
             font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center;
             outline: none;
         }
-        #listen-together-btn:hover { transform: scale(1.05); }
-
-        .music-btn-idle { color: #2563eb; }
-        .music-btn-idle:hover { border-color: #2563eb; background: #eff6ff; }
+        #listen-together-btn:hover { transform: scale(1.05); border-color: #1DB954; background: #e8f8ee;}
         
-        .music-btn-active { 
-            background: #2563eb !important; color: white !important; border-color: #1d4ed8 !important;
-            animation: musicPulse 2s infinite; 
+        .spotify-btn {
+            background: #1DB954; color: white; border: none; padding: 12px 24px; border-radius: 30px; 
+            font-weight: 600; font-size: 1em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; 
+            box-shadow: 0 4px 10px rgba(29, 185, 84, 0.3); transition: transform 0.2s ease; width: 100%; margin-bottom: 15px;
         }
-        .music-btn-ready-to-join { 
-            background: #10b981 !important; color: white !important; border-color: #059669 !important;
-            animation: musicPulseJoin 2s infinite; 
-        }
-
-        @keyframes musicPulse {
-            0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
-            70% { box-shadow: 0 0 0 15px rgba(37, 99, 235, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
-        }
-        @keyframes musicPulseJoin {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
-            70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        .spotify-btn:hover { transform: translateY(-2px); background: #1ed760; }
+        
+        .spotify-connected-status {
+            font-size: 0.85em; color: #10b981; font-weight: 700; text-align: center; margin-bottom: 15px; display: none;
         }
 
     </style>
@@ -416,8 +404,7 @@
         </div>
 
         <div id="music-sync-container">
-            <button id="listen-together-btn" title="Start Listen Together" class="music-btn-idle">🎵</button>
-            <audio id="remote-audio-player" autoplay style="display: none;"></audio>
+            <button id="listen-together-btn" title="Sync Spotify Playback">🎵</button>
         </div>
 
         <div class="controls">
@@ -463,6 +450,13 @@
                 <span style="font-size: 1.3em;">💚</span>
                 <span id="page-profile-likes" style="font-weight: 800; font-size: 1.15em; color: #059669;">Liked by - 0</span>
             </div>
+
+            <button id="connect-spotify-btn" class="spotify-btn">
+                <svg viewBox="0 0 24 24" style="width: 22px; height: 22px; fill: white;"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.54.659.3 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.6.18-1.2.72-1.381 4.26-1.261 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                Connect Spotify
+            </button>
+            <div id="spotify-status" class="spotify-connected-status">Spotify Connected ✅</div>
+
         </div>
     </div>
 
@@ -591,17 +585,14 @@
     const notifViewBtn = document.getElementById('notif-view-btn');
     const notifCloseBtn = document.getElementById('notif-close-btn');
 
-    /* --- WEBRTC GLOBALS --- */
+    /* --- SPOTIFY GLOBALS --- */
+    const SPOTIFY_CLIENT_ID = '95eb69dcc6b5434eb42616c34f30fd26'; // <--- PASTE YOUR CLIENT ID HERE
+    const SPOTIFY_REDIRECT_URI = window.location.href.split('#')[0]; 
+    let spotifyAccessToken = null;
+    const connectSpotifyBtn = document.getElementById('connect-spotify-btn');
+    const spotifyStatus = document.getElementById('spotify-status');
     const musicSyncContainer = document.getElementById('music-sync-container');
     const listenTogetherBtn = document.getElementById('listen-together-btn');
-    const remoteAudioPlayer = document.getElementById('remote-audio-player');
-    
-    let peerConnection = null;
-    let localStream = null;
-    let isBroadcasting = false;
-    let isListening = false;
-    let processedCandidates = new Set();
-    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
     /* ---------------------- */
 
     let notifiedRequestIds = new Set();
@@ -640,6 +631,44 @@
     
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
+
+    // --- SPOTIFY AUTHENTICATION LOGIC ---
+    function checkSpotifyAuth() {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        if (params.has('access_token')) {
+            spotifyAccessToken = params.get('access_token');
+            window.location.hash = ''; // Clean the URL
+            
+            // Update UI
+            connectSpotifyBtn.style.display = 'none';
+            spotifyStatus.style.display = 'block';
+            
+            // Show the profile screen to the user so they know it worked
+            screens.forEach(s => s.element.style.display = 'none');
+            screens.forEach(s => s.tab.classList.remove('active'));
+            profileScreen.style.display = 'flex';
+            tabProfile.classList.add('active');
+        }
+    }
+    
+    connectSpotifyBtn.addEventListener('click', () => {
+        if(SPOTIFY_CLIENT_ID === 'YOUR_SPOTIFY_CLIENT_ID_HERE') {
+            alert("Developer: Please enter your Spotify Client ID in the code first.");
+            return;
+        }
+        const scopes = [
+            'user-read-currently-playing', 
+            'user-modify-playback-state',
+            'user-read-playback-state'
+        ].join(' ');
+        
+        const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}`;
+        window.location.href = authUrl;
+    });
+
+    checkSpotifyAuth(); // Run on page load
+    // ------------------------------------
 
     // --- PASTE HANDLER (TEXT ONLY) ---
     function handlePaste(e) {
@@ -856,6 +885,7 @@
     ];
 
     function showScreen(targetName, animationClass) {
+        if (!spotifyAccessToken && window.location.hash.includes('access_token')) return; // Prevents flash before checking
         loginScreen.style.display = 'none';
         
         screens.forEach(s => {
@@ -1036,7 +1066,12 @@
             notifiedRequestIds.clear();
 
             bottomNav.style.display = 'flex'; 
-            showScreen('home');
+            
+            // Only go to home screen if we aren't returning from Spotify Auth
+            if (!window.location.hash.includes('access_token') && !spotifyAccessToken) {
+                showScreen('home');
+            }
+            
             startFriendsListener(); 
         } else {
             myUserId = null;
@@ -1286,7 +1321,6 @@
         } 
     });
 
-
     function appendMessage(text, type) {
         if (type === "system-msg") {
             const div = document.createElement('div'); 
@@ -1301,153 +1335,69 @@
         chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
     }
 
-    // --- WEBRTC CORE FUNCTIONS ---
-    async function startWebRTCBroadcast() {
-        try {
-            // 1. Ask the browser to capture the screen/tab audio
-            const displayStream = await navigator.mediaDevices.getDisplayMedia({
-                video: true,
-                audio: true
-            });
-
-            // 2. Check if they actually shared audio (users sometimes forget to check the box)
-            const audioTracks = displayStream.getAudioTracks();
-            if (audioTracks.length === 0) {
-                alert("You didn't share audio! Please try again and make sure to toggle 'Share tab audio'.");
-                displayStream.getTracks().forEach(t => t.stop()); // Clean up
-                return;
-            }
-
-            isBroadcasting = true;
-
-            // 3. Create a stream with ONLY the audio track to send to the friend
-            localStream = new MediaStream([audioTracks[0]]);
-
-            // Stop the video track locally so we don't waste resources
-            displayStream.getVideoTracks().forEach(t => t.stop());
-
-            // 4. Setup Peer Connection
-            peerConnection = new RTCPeerConnection(rtcConfig);
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-            
-            // 5. Handle ICE Candidates
-            peerConnection.onicecandidate = async (e) => {
-                if (e.candidate && currentRoomId) {
-                    await updateDoc(doc(db, "rooms", currentRoomId), {
-                        callerCandidates: arrayUnion(e.candidate.toJSON())
-                    });
-                }
-            };
-
-            // 6. Create Offer and send via Firestore
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            
-            await updateDoc(doc(db, "rooms", currentRoomId), {
-                webrtcOffer: { type: offer.type, sdp: offer.sdp },
-                broadcasterId: myUserId,
-                callerCandidates: [],
-                calleeCandidates: [],
-                webrtcAnswer: null
-            });
-
-            listenTogetherBtn.classList.remove('music-btn-idle');
-            listenTogetherBtn.classList.add('music-btn-active');
-            listenTogetherBtn.title = "Stop Broadcast";
-            appendMessage("🎵 You are now broadcasting tab audio.", "system-msg");
-
-            // Automatically stop broadcasting if the user clicks "Stop Sharing" natively
-            audioTracks[0].onended = () => {
-                if (isBroadcasting) {
-                    stopWebRTCBroadcast();
-                    appendMessage("⏹️ Broadcast stopped.", "system-msg");
-                }
-            };
-
-        } catch (err) {
-            console.error("Error capturing tab audio:", err);
-            appendMessage("❌ Could not capture audio. Permission denied.", "system-msg");
-        }
-    }
-
-    async function joinWebRTCBroadcast(roomData) {
-        isListening = true;
-        listenTogetherBtn.classList.remove('music-btn-ready-to-join');
-        listenTogetherBtn.classList.add('music-btn-active');
-        
-        peerConnection = new RTCPeerConnection(rtcConfig);
-        
-        // 1. Receive incoming tracks
-        peerConnection.ontrack = (e) => {
-            remoteAudioPlayer.srcObject = e.streams[0];
-            appendMessage("🎧 You are now listening to the broadcast!", "system-msg");
-        };
-
-        // 2. Handle ICE Candidates
-        peerConnection.onicecandidate = async (e) => {
-            if (e.candidate && currentRoomId) {
-                await updateDoc(doc(db, "rooms", currentRoomId), {
-                    calleeCandidates: arrayUnion(e.candidate.toJSON())
-                });
-            }
-        };
-
-        // 3. Set Remote Offer, Create Answer, and send via Firestore
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(roomData.webrtcOffer));
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        
-        await updateDoc(doc(db, "rooms", currentRoomId), {
-            webrtcAnswer: { type: answer.type, sdp: answer.sdp }
-        });
-    }
-
-    async function stopWebRTCBroadcast() {
-        if (peerConnection) {
-            peerConnection.close();
-            peerConnection = null;
-        }
-        if (localStream) {
-            localStream.getTracks().forEach(t => t.stop());
-            localStream = null;
-        }
-        remoteAudioPlayer.srcObject = null;
-        
-        isBroadcasting = false;
-        isListening = false;
-        processedCandidates.clear();
-        
-        listenTogetherBtn.className = "music-btn-idle";
-        listenTogetherBtn.title = "Start Listen Together";
-
-        if (currentRoomId) {
-            try {
-                await updateDoc(doc(db, "rooms", currentRoomId), {
-                    webrtcOffer: null, webrtcAnswer: null, broadcasterId: null
-                });
-            } catch(e){}
-        }
-    }
-
-    // --- UI Listeners for WebRTC ---
+    // --- SPOTIFY LISTEN TOGETHER ACTION ---
     listenTogetherBtn.addEventListener('click', async () => {
         if (!currentRoomId || !isChatting) return;
 
-        const roomDoc = await getDoc(doc(db, "rooms", currentRoomId));
-        const data = roomDoc.data();
-
-        if (data.webrtcOffer && data.broadcasterId !== myUserId) {
-            // Join broadcast
-            if (!isListening) joinWebRTCBroadcast(data);
-        } else if (!isBroadcasting) {
-            // Start broadcast (Triggers native browser screen share prompt)
-            startWebRTCBroadcast();
-        } else {
-            // Stop broadcast
-            stopWebRTCBroadcast();
-            appendMessage("⏹️ You stopped the broadcast.", "system-msg");
+        if (!spotifyAccessToken) {
+            alert("Please connect your Spotify account in your Profile tab first!");
+            return;
         }
+
+        listenTogetherBtn.style.opacity = '0.5';
+
+        try {
+            // 1. Fetch what the user is currently playing
+            const res = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+                headers: { 'Authorization': `Bearer ${spotifyAccessToken}` }
+            });
+
+            if (res.status === 204) {
+                alert("You aren't playing anything on Spotify right now! Play a song, then click this button.");
+                listenTogetherBtn.style.opacity = '1';
+                return;
+            }
+
+            if (res.status === 401) {
+                alert("Your Spotify session expired. Please reconnect in your Profile tab.");
+                spotifyAccessToken = null;
+                connectSpotifyBtn.style.display = 'flex';
+                spotifyStatus.style.display = 'none';
+                listenTogetherBtn.style.opacity = '1';
+                return;
+            }
+
+            const currentData = await res.json();
+            
+            if (!currentData || !currentData.item) {
+                alert("Could not detect the current song.");
+                listenTogetherBtn.style.opacity = '1';
+                return;
+            }
+
+            // 2. Push the playback data to Firebase to sync the partner
+            await updateDoc(doc(db, "rooms", currentRoomId), {
+                spotifySync: {
+                    trackUri: currentData.item.uri,
+                    trackName: currentData.item.name,
+                    artistName: currentData.item.artists[0].name,
+                    positionMs: currentData.progress_ms,
+                    timestamp: Date.now(),
+                    initiatorId: myUserId,
+                    isPlaying: currentData.is_playing
+                }
+            });
+
+            appendMessage(`🎵 You synced the chat to: ${currentData.item.name}`, "system-msg");
+
+        } catch (e) {
+            console.error(e);
+            alert("Error syncing Spotify.");
+        }
+
+        listenTogetherBtn.style.opacity = '1';
     });
+    // --------------------------------------
 
     function resetChat() {
         chatBox.innerHTML = ''; 
@@ -1469,8 +1419,6 @@
         pulseLikeBtn.classList.remove('liked-state');
         pulseLikeBtn.innerHTML = '💚';
 
-        // WEBRTC RESET
-        stopWebRTCBroadcast();
         musicSyncContainer.style.display = 'none';
 
         if (unsubscribeRoom) unsubscribeRoom(); currentRoomId = null;
@@ -1478,7 +1426,7 @@
 
     function setupRoomListener(roomId) {
         if (unsubscribeRoom) unsubscribeRoom();
-        unsubscribeRoom = onSnapshot(doc(db, "rooms", roomId), (snapshot) => {
+        unsubscribeRoom = onSnapshot(doc(db, "rooms", roomId), async (snapshot) => {
             const data = snapshot.data();
             if (!data) return;
 
@@ -1562,50 +1510,45 @@
                 }
             }
             
-            // --- WEBRTC SIGNALING HANDLERS ---
-            if (isChatting) {
-                // Broadcaster receives Answer
-                if (data.webrtcAnswer && isBroadcasting && peerConnection && !peerConnection.currentRemoteDescription) {
-                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.webrtcAnswer)).catch(console.error);
-                }
+            // --- RECEIVE SPOTIFY SYNC COMMAND ---
+            if (isChatting && data.spotifySync && data.spotifySync.initiatorId !== myUserId) {
+                // To prevent re-running the same sync multiple times, check a local timestamp
+                if (!window.lastSpotifySyncTime || window.lastSpotifySyncTime < data.spotifySync.timestamp) {
+                    window.lastSpotifySyncTime = data.spotifySync.timestamp;
 
-                // Listener sees Offer
-                if (data.webrtcOffer && data.broadcasterId !== myUserId) {
-                    if (!isListening && !peerConnection) {
-                        listenTogetherBtn.classList.add('music-btn-ready-to-join');
-                        listenTogetherBtn.title = "Join Audio Broadcast";
+                    if (data.spotifySync.isPlaying && spotifyAccessToken) {
+                        
+                        // Calculate precise latency to match milliseconds
+                        const timePassed = Date.now() - data.spotifySync.timestamp;
+                        const exactPosition = data.spotifySync.positionMs + timePassed;
+                        
+                        try {
+                            const playRes = await fetch('https://api.spotify.com/v1/me/player/play', {
+                                method: 'PUT',
+                                headers: { 
+                                    'Authorization': `Bearer ${spotifyAccessToken}`, 
+                                    'Content-Type': 'application/json' 
+                                },
+                                body: JSON.stringify({ 
+                                    uris: [data.spotifySync.trackUri], 
+                                    position_ms: exactPosition 
+                                })
+                            });
+
+                            if (playRes.ok || playRes.status === 204) {
+                                appendMessage(`🎧 Listening together to: ${data.spotifySync.trackName} by ${data.spotifySync.artistName}`, "system-msg");
+                            } else {
+                                appendMessage("❌ Partner tried to sync music, but your Spotify isn't active. Open Spotify and play any song first.", "system-msg");
+                            }
+                        } catch(err) {
+                            console.error("Spotify sync failed", err);
+                        }
+                    } else if (!spotifyAccessToken) {
+                        appendMessage(`🎵 Partner started listening to ${data.spotifySync.trackName}. Connect your Spotify in your Profile to join!`, "system-msg");
                     }
                 }
-
-                // Listener sees broadcast stopped
-                if (!data.webrtcOffer && isListening) {
-                    stopWebRTCBroadcast();
-                    appendMessage("⏹️ Broadcaster stopped the audio.", "system-msg");
-                }
-
-                // Process ICE candidates for Broadcaster
-                if (isBroadcasting && data.calleeCandidates && peerConnection) {
-                    data.calleeCandidates.forEach(async candidate => {
-                        const candidateString = JSON.stringify(candidate);
-                        if (!processedCandidates.has(candidateString)) {
-                            processedCandidates.add(candidateString);
-                            try { await peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e){}
-                        }
-                    });
-                }
-
-                // Process ICE candidates for Listener
-                if (isListening && data.callerCandidates && peerConnection) {
-                     data.callerCandidates.forEach(async candidate => {
-                        const candidateString = JSON.stringify(candidate);
-                        if (!processedCandidates.has(candidateString)) {
-                            processedCandidates.add(candidateString);
-                            try { await peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e){}
-                        }
-                    });
-                }
             }
-            // ---------------------------------
+            // ------------------------------------
 
             if (data.status === "closed" && isChatting) {
                 appendMessage("The other person has left the network.", "system-msg");
@@ -1616,7 +1559,6 @@
                 analyzeBtn.style.display = 'none'; // 🧠 Hide analyze button
                 likeStreamContainer.style.display = 'none'; 
                 
-                stopWebRTCBroadcast();
                 musicSyncContainer.style.display = 'none';
 
                 appendMessage("⏬ Swipe or press ↓ to discover someone new ⏬", "system-msg");
