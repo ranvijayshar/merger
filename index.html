@@ -717,6 +717,10 @@
     let isConfirming = false; 
     let displayedMessageCount = 0; 
     
+    window.lastTruthPromptIndex = -1; 
+    window.lastAnsweredTruthIdx = -1;
+    let hasSeenTruthIntro = false; // Memory variable for Truth intro screen
+    
     let myUserId = null; 
     let myUserName = "Unknown User";
     let myUserPhoto = "";
@@ -1161,15 +1165,37 @@
     settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) settingsModal.style.display = 'none'; });
 
     // --- TRUTH MODAL EVENT LISTENERS ---
-    floatTruthBtn.addEventListener('click', () => {
+    floatTruthBtn.addEventListener('click', async () => {
         if (!currentRoomId || !isChatting) return;
+        
+        floatTruthBtn.classList.remove('truth-expanded-state');
         truthModal.style.display = 'flex';
+
+        // Check if they've seen the intro
+        if (hasSeenTruthIntro) {
+            // Bypass intro directly to loading
+            truthStateInitial.style.display = 'none';
+            truthStateLoading.style.display = 'block';
+            truthStateOptions.style.display = 'none';
+            
+            await updateDoc(doc(db, "rooms", currentRoomId), {
+                needsTruthQuestion: true,
+                truthRequester: myUserId
+            });
+        } else {
+            // Show intro for the first time
+            truthStateInitial.style.display = 'block';
+            truthStateLoading.style.display = 'none';
+            truthStateOptions.style.display = 'none';
+        }
     });
 
     closeTruthBtn.addEventListener('click', () => { truthModal.style.display = 'none'; });
     truthModal.addEventListener('click', (e) => { if(e.target === truthModal) truthModal.style.display = 'none'; });
 
     btnGenerateTruth.addEventListener('click', async () => {
+        hasSeenTruthIntro = true; // Remember for next time!
+        
         truthStateInitial.style.display = 'none';
         truthStateLoading.style.display = 'block';
         truthStateOptions.style.display = 'none';
@@ -1604,6 +1630,9 @@
         isChatting = false; 
         displayedMessageCount = 0;
         
+        window.lastTruthPromptIndex = -1;
+        window.lastAnsweredTruthIdx = -1;
+
         addFriendBtn.style.display = 'none'; addFriendBtn.classList.remove('active-friend-icon'); addFriendBtn.disabled = false; addFriendBtn.title = "Send Connect Request";
         analyzeBtn.style.display = 'none';
         
@@ -1647,11 +1676,9 @@
                     btn.textContent = question;
                     btn.onclick = async () => {
                         truthModal.style.display = 'none'; 
-                        truthStateInitial.style.display = 'block';
-                        truthStateOptions.style.display = 'none';
                         
-                        // Collapse the button once I ask a question
-                        floatTruthBtn.classList.remove('truth-expanded-state');
+                        // We do NOT set it to 'block' here so it skips intro next time
+                        truthStateOptions.style.display = 'none';
 
                         await updateDoc(doc(db, "rooms", currentRoomId), { 
                             messages: arrayUnion({ text: "🎭 Truth: " + question, senderId: myUserId, timestamp: Date.now() }),
@@ -1663,10 +1690,6 @@
                     truthOptionsList.appendChild(btn);
                 });
                 truthModal.style.display = 'flex';
-            } else if (!data.truthOptions) {
-                truthStateInitial.style.display = 'block';
-                truthStateLoading.style.display = 'none';
-                truthStateOptions.style.display = 'none';
             }
             // ------------------------
 
@@ -1829,11 +1852,9 @@
                     const isMe = lastMsg.senderId === myUserId;
                     const isTruth = lastMsg.text && lastMsg.text.startsWith("🎭 Truth:");
 
-                    // If I sent the last message, and it wasn't a Truth question, expand the button!
                     if (isMe && !isTruth) {
                         floatTruthBtn.classList.add('truth-expanded-state');
                     } 
-                    // If I just sent a Truth question, collapse it!
                     else if (isMe && isTruth) {
                         floatTruthBtn.classList.remove('truth-expanded-state');
                     }
