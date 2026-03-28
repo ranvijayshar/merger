@@ -634,7 +634,6 @@
     let myFriendIds = [];
     let myBlockedIds = JSON.parse(localStorage.getItem('blockedIds') || "[]");
 
-    // --- SPOTIFY AUTHENTICATION LOGIC ---
     // --- SPOTIFY AUTHENTICATION LOGIC (PKCE Authorization Code Flow) ---
     
     // 1. PKCE Helper Functions for Frontend Security
@@ -726,7 +725,7 @@
                 console.log('Web Player Ready with Device ID', device_id);
                 spotifyDeviceId = device_id;
                 
-                // Automatically transfer playback to this browser tab!
+                // Automatically transfer playback to this browser tab
                 fetch('https://api.spotify.com/v1/me/player', {
                     method: 'PUT',
                     headers: {
@@ -746,7 +745,7 @@
 
     // 3. The Login Button Click
     connectSpotifyBtn.addEventListener('click', async () => {
-        if(SPOTIFY_CLIENT_ID === '95eb69dcc6b5434eb42616c34f30fd26') {
+        if(SPOTIFY_CLIENT_ID === 'YOUR_SPOTIFY_CLIENT_ID_HERE') {
             alert("Developer: Please enter your Spotify Client ID in the code first.");
             return;
         }
@@ -780,8 +779,6 @@
 
     checkSpotifyAuth(); // Run on page load
     // -------------------------------------------------------------------
-
-    // ------------------------------------
 
     // --- PASTE HANDLER (TEXT ONLY) ---
     function handlePaste(e) {
@@ -915,7 +912,7 @@
     });
 
     function showNotificationBanner(strangerName, strangerPhoto) {
-        notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" stylewidth:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
+        notifAvatarContainer.innerHTML = strangerPhoto ? `<img src="${strangerPhoto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : strangerName.substring(0,1).toUpperCase();
         notifMsg.textContent = `${strangerName} wants to connect!`;
         
         notificationBanner.classList.add('show');
@@ -998,7 +995,7 @@
     ];
 
     function showScreen(targetName, animationClass) {
-        if (!spotifyAccessToken && window.location.hash.includes('access_token')) return; // Prevents flash before checking
+        if (!spotifyAccessToken && window.location.search.includes('code=')) return; // Prevents flash before checking
         loginScreen.style.display = 'none';
         
         screens.forEach(s => {
